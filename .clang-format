@@ -1,5 +1,5 @@
 ---
-BasedOnStyle: Microsoft
+BasedOnStyle: Google
 AlignConsecutiveAssignments:
   Enabled: true
   AcrossEmptyLines: false
@@ -25,3 +25,5 @@ AlignConsecutiveMacros:
   AlignCompound: false
   PadOperators: false
 Standard: c++20
+InsertNewlineAtEOF: true
+FixNamespaceComments: false
