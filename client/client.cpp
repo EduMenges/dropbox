@@ -1,4 +1,4 @@
-#include "Client.hpp"
+#include "client.hpp"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>

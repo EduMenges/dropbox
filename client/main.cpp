@@ -2,7 +2,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "Client.hpp"
+#include "client.hpp"
 
 namespace dropbox {
 enum ArgV : size_t {
