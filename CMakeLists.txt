@@ -1,9 +1,16 @@
-cmake_minimum_required(VERSION 3.27)
-
+cmake_minimum_required(VERSION 3.22)
 project(dropbox)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(dropbox Dropbox.cpp)
-target_include_directories(dropbox PRIVATE PROJECT_SOURCE_DIR)
+option(BUILD_CLIENT "Builds the client project" ON)
+option(BUILD_SERVER "Builds the server project" ON)
+
+if (BUILD_CLIENT)
+	add_subdirectory(client)
+endif()
+
+if(BUILD_SERVER)
+	add_subdirectory(server)
+endif()
