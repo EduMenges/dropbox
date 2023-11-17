@@ -1,7 +1,10 @@
 ---
 Checks: <
   abseil-*
+  
   altera-*
+  -altera-unroll-loops
+  
   boost-*
   
   bugprone-*
@@ -20,9 +23,10 @@ Checks: <
   
   google-*
   -google-explicit-constructor
-  -google-build-using-namespace
+  -google-readability-namespace-comments
   
   hicpp-*
+  -hicpp-explicit-conversions
   
   llvm-*
   -llvm-header-guard

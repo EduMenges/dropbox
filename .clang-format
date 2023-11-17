@@ -27,3 +27,4 @@ AlignConsecutiveMacros:
 Standard: c++20
 InsertNewlineAtEOF: true
 FixNamespaceComments: false
+IndentWidth: 4

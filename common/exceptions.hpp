@@ -21,4 +21,22 @@ class Binding: public std::exception {
     return "Failure when binding to socket";
   }
 };
+
+class Connecting: public std::exception {
+ public:
+  Connecting() = default;
+
+  [[nodiscard]] const char* what() const noexcept override {
+    return "Failure when connecting to address";
+  }
+};
+
+class Listening: public std::exception {
+ public:
+  Listening() = default;
+
+  [[nodiscard]] const char* what() const noexcept override {
+    return "Failure when listening";
+  }
+};
 }
