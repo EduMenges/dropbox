@@ -1,5 +1,3 @@
-#include <netinet/in.h>
-
 #include <charconv>
 #include <cstring>
 #include <iostream>
@@ -10,7 +8,8 @@ namespace dropbox {
 enum ArgV : size_t { EXECUTION_PATH [[maybe_unused]] = 0U, PORT, TOTAL };
 }
 
-using namespace dropbox;
+using enum dropbox::ArgV;
+using dropbox::ArgV;
 
 int main(int argc, char *argv[]) {
     if (static_cast<ArgV>(argc) != TOTAL) {
@@ -23,7 +22,7 @@ int main(int argc, char *argv[]) {
         std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
 
     if (ec == std::errc()) {
-        Server server(port);
+        dropbox::Server server(port);
         server.MainLoop();
     } else {
         std::cerr << "Port conversion failed\n";

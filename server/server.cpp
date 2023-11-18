@@ -38,12 +38,12 @@ dropbox::Server::Server(in_port_t port)
         if (kNewClient == -1) {
             std::cerr << "Could not accept new client connection.\n";
         } else {
-            std::thread newClientThread(
+            std::thread new_client_thread(
                 [](auto socket_descriptor) {
                     ClientHandler(socket_descriptor).MainLoop();
                 },
                 kNewClient);
-            newClientThread.detach();
+            new_client_thread.detach();
         }
     }
 }

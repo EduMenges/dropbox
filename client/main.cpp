@@ -14,7 +14,7 @@ enum ArgV : size_t {
 };
 }
 
-using namespace dropbox;
+using dropbox::ArgV;
 using enum ArgV;
 
 int main(int argc, char *argv[]) {  // NOLINT
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {  // NOLINT
         std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
 
     if (ec == std::errc()) {
-        Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
+        dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
     } else {
         std::cerr << "Port conversion failed\n";
         return EXIT_FAILURE;
