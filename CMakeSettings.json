@@ -5,7 +5,7 @@
             "name": "WSL-Clang-Debug",
             "generator": "Ninja",
             "configurationType": "Debug",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
+            "buildRoot": "${projectDir}\\build\\debug\\${name}",
             "installRoot": "${projectDir}\\out\\install\\${name}",
             "cmakeExecutable": "cmake",
             "cmakeCommandArgs": "",

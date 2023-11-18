@@ -1,0 +1,80 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}"
+        },
+        {
+            "name": "base-debug",
+            "inherits": "base",
+            "description": "Base debug preset to be inherited from",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "hidden": true
+        },
+        {
+            "name": "debug",
+            "inherits": "base-debug",
+            "displayName": "Default debug",
+            "description": "Uses UNIX Makefiles as generator and performs a debug build",
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "base-release",
+            "inherits": "base",
+            "description": "Base release preset to be inherited from",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "hidden": true
+        },
+        {
+            "name": "release",
+            "inherits": "base-release",
+            "displayName": "Default release",
+            "description": "Uses UNIX Makefiles as generator and performs a release build",
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "wsl-debug",
+            "inherits": "debug",
+            "displayName": "WSL Debug",
+            "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system",
+            "generator": "Ninja",
+            "vendor": {
+                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+                },
+                "jetbrains.com/clion": {
+                    "toolchain": "WSL"
+                }
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "displayName": "Default debug"
+        },
+        {
+            "name": "release",
+            "displayName": "Default release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "wsl-debug",
+            "configurePreset": "wsl-debug",
+            "displayName": "WSL Debug"
+        }
+    ]
+}
