@@ -8,8 +8,8 @@ O objetivo é implementar um clone do Dropbox, que faz sincronização dos arqui
 - [ ] Estrutura de comunicação
 
 - [ ] Receber os comandos
-  - [ ] Cliente
-  - [ ] Servidor
+  - [ ] Cliente - Arthur fazendo
+  - [ ] Servidor - Arthur fazendo
 
 - [ ] `get_sync_dir`
   - [ ] Cliente
