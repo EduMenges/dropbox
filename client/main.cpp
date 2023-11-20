@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "client.hpp"
+#include "user_input.hpp"
 
 namespace dropbox {
 enum ArgV : size_t {
@@ -33,6 +34,9 @@ int main(int argc, char *argv[]) {  // NOLINT
         std::cerr << "Port conversion failed\n";
         return EXIT_FAILURE;
     }
+
+    dropbox::UserInput inputReader;
+    inputReader.Start();
 
     return EXIT_SUCCESS;
 }
