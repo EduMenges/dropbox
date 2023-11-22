@@ -2,8 +2,7 @@
 Checks: <
   abseil-*
   
-  altera-*
-  -altera-unroll-loops
+  altera-struct-pack-align
   
   boost-*
   
@@ -15,7 +14,9 @@ Checks: <
   concurrency-*
   
   cppcoreguidelines-*
+  -cppcoreguidelines-avoid-do-while
   -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  -cppcoreguidelines-non-private-member-variables-in-classes
   -cppcoreguidelines-pro-type-reinterpret-cast
   
   fuchsia-*
@@ -35,6 +36,7 @@ Checks: <
   
   misc-*
   -misc-include-cleaner
+  -misc-non-private-member-variables-in-classes
   
   modernize-*
   -modernize-use-trailing-return-type
