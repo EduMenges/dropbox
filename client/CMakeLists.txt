@@ -6,3 +6,5 @@ add_executable(dropbox_client ${SOURCE_FILES})
 
 target_include_directories(dropbox_client PRIVATE PROJECT_SOURCE_DIR)
 target_include_directories(dropbox_client PRIVATE ${CMAKE_SOURCE_DIR}/common)
+
+target_link_libraries(dropbox_client communication)

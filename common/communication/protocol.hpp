@@ -39,6 +39,8 @@ class EntryExchange : public Exchange {
 
     inline void SetPath(std::filesystem::path&& path) { path_ = std::move(path); }
 
+    inline const std::filesystem::path GetPath() const { return path_; }
+
    protected:
     int                   socket_;
     std::filesystem::path path_;
@@ -59,6 +61,13 @@ class FileExchange : public EntryExchange {
 };
 
 class DirectoryExchange : public EntryExchange {
+   public:
+    inline DirectoryExchange(int socket) : EntryExchange(socket){};
+
+    bool Send() override;
+    bool Receive() override;
     /// @todo This
+   private:
+    int socket_;
 };
 }

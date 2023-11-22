@@ -32,6 +32,7 @@ bool dropbox::FileExchange::Send() {
             return false;
         }
     }
+
     return true;
 }
 
@@ -60,6 +61,8 @@ bool dropbox::FileExchange::Receive() {
 
         file.write(buffer_->data(), kBytesReceived);
     } while (!file.eof());
+
+    return true;
 }
 
 bool dropbox::EntryExchange::SendPath() {
@@ -78,3 +81,6 @@ bool dropbox::EntryExchange::ReceivePath() {
     path_ = received_path;
     return true;
 }
+
+bool dropbox::DirectoryExchange::Send() { return false; }
+bool dropbox::DirectoryExchange::Receive() { return false; }
