@@ -5,7 +5,7 @@ O objetivo é implementar um clone do Dropbox, que faz sincronização dos arqui
 
 # Objetivos
 
-- [ ] Estrutura de comunicação
+- [x] Estrutura de comunicação
 
 - [ ] Receber os comandos
   - [ ] Cliente - Arthur fazendo
@@ -16,11 +16,8 @@ O objetivo é implementar um clone do Dropbox, que faz sincronização dos arqui
   - [ ] Servidor
 
 - [ ] `exit`
-
 - [ ] Comandos de listar arquivos (na common)
-
+- [ ] Certificar de que há, no máximo, dois clientes com o mesmo user name
 - [ ] Comandos de modificar arquivos (`upload`, `download`, `delete`)
-
 - [ ] Sincronização automática com o explorador de arquivos do OS
-
 - [ ] Relatório
