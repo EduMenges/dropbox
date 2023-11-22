@@ -23,3 +23,5 @@ endif()
 if(BUILD_SERVER)
 	add_subdirectory(server)
 endif()
+
+add_subdirectory(common)

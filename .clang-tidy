@@ -31,15 +31,19 @@ Checks: <
   llvm-*
   -llvm-header-guard
   -llvm-namespace-comment
+  -llvm-else-after-return
   
   misc-*
+  -misc-include-cleaner
   
   modernize-*
   -modernize-use-trailing-return-type
   
   performance-*
   portability-*
+
   readability-*
+  -readability-else-after-return
 
 CheckOptions:
   - key: readability-identifier-naming.MacroDefinitionCase
