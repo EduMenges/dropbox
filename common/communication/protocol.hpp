@@ -18,6 +18,7 @@ class Exchange {
 
 class HeaderExchange : public Exchange {
    public:
+    constexpr HeaderExchange() = default;
     inline constexpr HeaderExchange(int socket) noexcept : socket_(socket){};
 
     inline constexpr void SetCommand(Command new_command) noexcept { command_ = new_command; }
@@ -27,12 +28,13 @@ class HeaderExchange : public Exchange {
 
    private:
     int     socket_;
-    Command command_;
+    Command command_{};
 };
 
 class EntryExchange : public Exchange {
    public:
-    explicit EntryExchange(int socket) : socket_(socket) {}
+    EntryExchange() = default;
+    inline EntryExchange(int socket) : socket_(socket) {}
 
     [[nodiscard]] bool SendPath();
     [[nodiscard]] bool ReceivePath();
@@ -48,6 +50,7 @@ class EntryExchange : public Exchange {
 
 class FileExchange : public EntryExchange {
    public:
+    FileExchange() = default;
     inline FileExchange(int socket) : EntryExchange(socket){};
 
     [[nodiscard]] bool Send() override;
@@ -56,18 +59,18 @@ class FileExchange : public EntryExchange {
    private:
     static constexpr size_t kPacketSize = 64U * 1024U;
 
-    int                                               socket_;
     std::unique_ptr<std::array<uint8_t, kPacketSize>> buffer_;
 };
 
 class DirectoryExchange : public EntryExchange {
    public:
+    DirectoryExchange() = default;
     inline DirectoryExchange(int socket) : EntryExchange(socket){};
 
     bool Send() override;
     bool Receive() override;
+
     /// @todo This
    private:
-    int socket_;
 };
 }
