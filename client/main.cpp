@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "client.hpp"
+#include "user_input.hpp"
 
 namespace dropbox {
 enum ArgV : size_t {
@@ -29,6 +30,10 @@ int main(int argc, char *argv[]) {  // NOLINT
 
     if (ec == std::errc()) {
         dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
+        
+        dropbox::UserInput inputReader(client);
+        inputReader.Start();
+
     } else {
         std::cerr << "Port conversion failed\n";
         return EXIT_FAILURE;

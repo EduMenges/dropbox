@@ -23,3 +23,7 @@ dropbox::Client::Client(std::string &&user_name, const char *server_ip_address,
         throw Connecting();
     }
 }
+
+int dropbox::Client::GetSocket(){
+    return server_socket_;
+}
