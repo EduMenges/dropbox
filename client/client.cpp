@@ -1,5 +1,7 @@
 #include "client.hpp"
 
+#include <iostream>
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
@@ -22,4 +24,8 @@ dropbox::Client::Client(std::string &&user_name, const char *server_ip_address,
                 sizeof(kServerAddress)) == -1) {
         throw Connecting();
     }
+}
+
+int dropbox::Client::GetSocket(){
+    return server_socket_;
 }

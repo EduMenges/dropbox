@@ -30,13 +30,14 @@ int main(int argc, char *argv[]) {  // NOLINT
 
     if (ec == std::errc()) {
         dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
+        
+        dropbox::UserInput inputReader(client);
+        inputReader.Start();
+
     } else {
         std::cerr << "Port conversion failed\n";
         return EXIT_FAILURE;
     }
-
-    dropbox::UserInput inputReader;
-    inputReader.Start();
 
     return EXIT_SUCCESS;
 }
