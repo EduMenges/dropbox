@@ -1,21 +1,21 @@
 #include <iostream>
 
 #include <sstream>
-#include <string>
-#include <cstring>
 
 #include "user_input.hpp"
 #include "client.hpp"
 #include "../common/communication/protocol.hpp"
 
 dropbox::UserInput::UserInput(dropbox::Client client) : reading_(false), client_(client) {
-   command_map_["upload"] = Command::UPLOAD;
-   command_map_["download"] = Command::UPLOAD;
-   command_map_["delete"] = Command::DELETE;
-   command_map_["list_server"] = Command::LIST_SERVER;
-   command_map_["list_client"] = Command::UPLOAD;
-   command_map_["get_sync_dir"] = Command::GET_SYNC_DIR;
-   command_map_["exit"] = Command::EXIT;
+   command_map_ = {
+      {"upload", Command::UPLOAD},
+      {"download", Command::UPLOAD},
+      {"delete", Command::DELETE},
+      {"list_server", Command::LIST_SERVER},
+      {"list_client", Command::UPLOAD},
+      {"get_sync_dir", Command::GET_SYNC_DIR},
+      {"exit", Command::EXIT}
+   };
 }
 
 void dropbox::UserInput::Start() {
