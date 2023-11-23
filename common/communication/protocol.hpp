@@ -7,7 +7,7 @@
 #include <filesystem>
 
 namespace dropbox {
-enum class Command { USERNAME, UPLOAD, DELETE, GET_SYNC_DIR, EXIT, LIST_SERVER };
+enum class Command { USERNAME, UPLOAD, DELETE, GET_SYNC_DIR, EXIT, LIST_SERVER, DOWNLOAD, LIST_CLIENT };
 
 class Exchange {
    public:
@@ -24,6 +24,8 @@ class HeaderExchange : public Exchange {
 
     [[nodiscard]] bool Send() override;
     [[nodiscard]] bool Receive() override;
+
+    Command GetCommand();
 
    private:
     int     socket_;

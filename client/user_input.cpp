@@ -9,10 +9,10 @@
 dropbox::UserInput::UserInput(dropbox::Client client) : reading_(false), client_(client) {
    command_map_ = {
       {"upload", Command::UPLOAD},
-      {"download", Command::UPLOAD},
+      {"download", Command::DOWNLOAD},
       {"delete", Command::DELETE},
       {"list_server", Command::LIST_SERVER},
-      {"list_client", Command::UPLOAD},
+      {"list_client", Command::LIST_CLIENT},
       {"get_sync_dir", Command::GET_SYNC_DIR},
       {"exit", Command::EXIT}
    };
@@ -35,27 +35,49 @@ void dropbox::UserInput::Start() {
             iss >> input_command;
             iss >> input_path;
 
-            if (command_map_.count(input_command)) {
-               HeaderExchange he(client_.GetSocket());
-               he.SetCommand(command_map_[input_command]);
+            Command command = command_map_[input_command];
 
-               if (he.Send()) {
-                  std::cout << "Command sent successfully.\n";
+            switch (command) {
+               case Command::UPLOAD:
+               case Command::DOWNLOAD:
+               case Command::DELETE:
                   if (!input_path.empty()) {
-                     FileExchange fe(client_.GetSocket());
-                     fe.SetPath(input_path);
-
-                     if (fe.SendPath()) {
-                        std::cout << "Path sent successfully.\n";
+                     HeaderExchange he(client_.GetSocket());
+                     he.SetCommand(command);
+                     if (he.Send()) {
+                        FileExchange fe(client_.GetSocket());
+                        fe.SetPath(input_path);
+                        if (fe.SendPath()) {
+                           std::cout << "sent: " << input_command << " " << input_path << "\n";
+                        } else {
+                           std::cerr << "Failed to send path.\n";
+                        }
                      } else {
-                        std::cerr << "Failed to send path.\n";
+                        std::cerr << "Failed to send command.\n";
                      }
+                  } else {
+                     std::cerr << "Missing path.\n";
                   }
-               } else {
-                  std::cerr << "Failed to send command.\n";
-               }
-            } else {
-               std::cout << "Unknown command: " << input_command << '\n';
+                  break;
+               case Command::LIST_SERVER:
+               case Command::LIST_CLIENT:
+               case Command::GET_SYNC_DIR:
+               case Command::EXIT:
+                  if (input_path.empty()) {
+                     HeaderExchange he(client_.GetSocket());
+                     he.SetCommand(command);
+                     if (he.Send()) {
+                        std::cout << "sent: " << input_command << "\n";
+                     } else {
+                        std::cerr << "Failed to send command.\n";
+                     }
+                  } else {
+                     std::cerr << "Invalid args: " << input_path << "\n";
+                  }
+                  break;
+               default:
+                  std::cout << "Unknown command: " << input_command << '\n';
+                  break;
             }
 
             if (user_input == "exit") {

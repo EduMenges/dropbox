@@ -15,13 +15,21 @@ class ClientHandler {
         // Só teste
         while (true) {
             HeaderExchange he(socket_desc_);
-            if (he.Receive()) {
-                 std::cout << "Command sent successfully.\n";   
-            }
-
             FileExchange fe(socket_desc_);
-            if (fe.ReceivePath()) {
-                std::cout << "Path sent successfully.\n";
+            if (he.Receive()) {
+                switch (he.GetCommand()) { 
+                    case Command::UPLOAD:
+                    case Command::DOWNLOAD:
+                    case Command::DELETE:
+                        if (fe.ReceivePath()) {
+                            std::cout << "comando + path" << '\n';
+                        }
+                        break;
+                    
+                    default:
+                        std::cout << "comando" << '\n';
+                        break;
+                }
             }
         }
     }
