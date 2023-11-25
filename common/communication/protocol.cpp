@@ -13,6 +13,10 @@ bool dropbox::HeaderExchange::Receive() {
     return read(socket_, &this->command_, sizeof(this->command_)) == sizeof(this->command_);
 }
 
+dropbox::Command dropbox::HeaderExchange::GetCommand() {
+    return this->command_;
+}
+
 bool dropbox::FileExchange::Send() {
     if (!SendPath()) {
         return false;
