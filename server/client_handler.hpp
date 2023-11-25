@@ -1,22 +1,17 @@
 #pragma once
 
-#include <filesystem>
 #include <iostream>
 
-#include "communication/protocol.hpp"
-#include "communication/exchange_aggregate.hpp"
-
 namespace dropbox {
-class ClientHandler : public ExchangeAggregate {
+class ClientHandler {
    public:
-    inline ClientHandler(int socket_fd)
-        : socket_(socket_fd), ExchangeAggregate(socket_fd) {};
+    ClientHandler(int socket_descriptor) : socket_desc_(socket_descriptor) {}
 
-    void MainLoop();
-
-    bool Upload(std::filesystem::path&& kPath);
+    void MainLoop() {
+        std::cout << "Comecei com o soquete " << socket_desc_ << '\n';
+    }
 
    private:
-    int socket_;
+    int socket_desc_;
 };
 }

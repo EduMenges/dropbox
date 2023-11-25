@@ -9,8 +9,7 @@
 dropbox::Client::Client(std::string &&user_name, const char *server_ip_address,
                         in_port_t port)
     : user_name_(std::move(user_name)),
-      server_socket_(socket(kDomain, kType, kProtocol)),
-      ExchangeAggregate(server_socket_) {
+      server_socket_(socket(kDomain, kType, kProtocol)) {
     if (this->server_socket_ == -1) {
         throw SocketCreation();
     }
