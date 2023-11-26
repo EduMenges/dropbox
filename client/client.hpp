@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <string>
 
+#include "utils.hpp"
+
 namespace dropbox {
 
 class Client {
@@ -26,9 +28,15 @@ class Client {
 
     bool GetSyncDir();
 
+    bool ListClient();
+
+    bool ListServer();
+
     bool Download(std::filesystem::path&& file_name);
 
     bool Exit();
+
+    inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
 
     /**
      * @brief Uploads a file to the server.
@@ -37,8 +45,8 @@ class Client {
     bool Upload(std::filesystem::path&& path);
 
    private:
-    std::string username_; ///< User's name, used as an identifier.
-    int         server_socket_; ///< Socket to communicate with the server.
+    std::string username_;       ///< User's name, used as an identifier.
+    int         server_socket_;  ///< Socket to communicate with the server.
 
     HeaderExchange    he_;
     FileExchange      fe_;

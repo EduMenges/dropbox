@@ -16,6 +16,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_CLIENT "Builds the client project" ON)
 option(BUILD_SERVER "Builds the server project" ON)
 
+add_subdirectory(common)
+link_libraries(utils)
+
 if (BUILD_CLIENT)
 	add_subdirectory(client)
 endif()
@@ -23,5 +26,3 @@ endif()
 if(BUILD_SERVER)
 	add_subdirectory(server)
 endif()
-
-add_subdirectory(common)
