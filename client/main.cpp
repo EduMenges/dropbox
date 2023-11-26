@@ -6,13 +6,7 @@
 #include "user_input.hpp"
 
 namespace dropbox {
-enum ArgV : size_t {
-    EXECUTION_PATH [[maybe_unused]] = 0U,
-    USER_NAME,
-    SERVER_IP_ADDRESS,
-    PORT,
-    TOTAL
-};
+enum ArgV : size_t { EXECUTION_PATH [[maybe_unused]] = 0U, USER_NAME, SERVER_IP_ADDRESS, PORT, TOTAL };
 }
 
 using dropbox::ArgV;
@@ -25,13 +19,12 @@ int main(int argc, char *argv[]) {  // NOLINT
     }
 
     in_port_t port = 0;
-    auto [ptr, ec] =
-        std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
+    auto [ptr, ec] = std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
 
     if (ec == std::errc()) {
         dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
-        
-        dropbox::UserInput inputReader(client);
+
+        dropbox::UserInput inputReader(std::move(client));
         inputReader.Start();
 
     } else {
