@@ -21,6 +21,7 @@ Checks: <
   
   fuchsia-*
   -fuchsia-default-arguments-calls
+  -fuchsia-overloaded-operator
   
   google-*
   -google-explicit-constructor
