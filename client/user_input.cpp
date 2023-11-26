@@ -61,25 +61,16 @@ void dropbox::UserInput::Start() {
                     if (!input_path.empty()) {
                         std::filesystem::path path(input_path);
 
-                        client_.Download(std::move(path));
+                        std::cerr << "Result: " << client_.Download(std::move(path)) << '\n';
                     } else {
                         std::cerr << "Missing path\n";
                     }
                     break;
-
                 case Command::DELETE:
                     if (!input_path.empty()) {
-                        if (he.Send()) {
-                            FileExchange fe(client_.GetSocket());
-                            fe.SetPath(input_path);
-                            if (fe.SendPath()) {
-                                std::cout << "DELETE: " << input_path << "\n";
-                            } else {
-                                std::cerr << "Failed to send path.\n";
-                            }
-                        } else {
-                            std::cerr << "Failed to send command.\n";
-                        }
+                        std::filesystem::path path(input_path);
+
+                        std::cerr << "Result: " << client_.Delete(std::move(path)) << '\n';
                     } else {
                         std::cerr << "Missing path.\n";
                     }
@@ -87,6 +78,8 @@ void dropbox::UserInput::Start() {
                 case Command::LIST_SERVER:
                 case Command::LIST_CLIENT:
                 case Command::GET_SYNC_DIR:
+                    std::cerr << "Result: " << client_.GetSyncDir() << '\n';
+                    break;
                 case Command::EXIT:
                     if (input_path.empty()) {
                         if (he.Send()) {

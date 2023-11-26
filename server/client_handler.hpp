@@ -20,6 +20,7 @@ class ClientHandler {
     bool ReceiveUpload();
     bool ReceiveDownload();
     bool ReceiveDelete();
+    bool ReceiveGetSyncDir();
 
    private:
     int         socket_;
@@ -28,5 +29,7 @@ class ClientHandler {
     HeaderExchange    he_;
     FileExchange      fe_;
     DirectoryExchange de_;
+
+    bool sync_;
 };
 }
