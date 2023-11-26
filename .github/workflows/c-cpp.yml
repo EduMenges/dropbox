@@ -16,5 +16,6 @@ jobs:
           cxx-compiler: clang++
 
       - name: Build the project
-        run: cmake --build build
+        run: cmake --preset debug
+              cmake --build --preset debug
         
