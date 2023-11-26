@@ -7,6 +7,7 @@ namespace dropbox {
 class Server {
    public:
     Server(in_port_t port);
+    ~Server();
 
     [[noreturn]] void MainLoop() const;
 

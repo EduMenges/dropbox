@@ -2,41 +2,40 @@
 
 #include <exception>
 
-namespace dropbox
-{
+namespace dropbox {
 class SocketCreation : public std::exception {
- public:
-  SocketCreation() = default;
+   public:
+    SocketCreation() = default;
 
-  [[nodiscard]] const char* what() const noexcept override {
-    return "Failure when creating sockets";
-  }
+    [[nodiscard]] const char* what() const noexcept override { return "Failure when creating sockets"; }
 };
 
-class Binding: public std::exception {
- public:
-  Binding() = default;
+class Binding : public std::exception {
+   public:
+    Binding() = default;
 
-  [[nodiscard]] const char* what() const noexcept override {
-    return "Failure when binding to socket";
-  }
+    [[nodiscard]] const char* what() const noexcept override { return "Failure when binding to socket"; }
 };
 
-class Connecting: public std::exception {
- public:
-  Connecting() = default;
+class Connecting : public std::exception {
+   public:
+    Connecting() = default;
 
-  [[nodiscard]] const char* what() const noexcept override {
-    return "Failure when connecting to address";
-  }
+    [[nodiscard]] const char* what() const noexcept override { return "Failure when connecting to address"; }
 };
 
-class Listening: public std::exception {
- public:
-  Listening() = default;
+class Listening : public std::exception {
+   public:
+    Listening() = default;
 
-  [[nodiscard]] const char* what() const noexcept override {
-    return "Failure when listening";
-  }
+    [[nodiscard]] const char* what() const noexcept override { return "Failure when listening"; }
 };
+
+class Username : public std::exception {
+   public:
+    Username() = default;
+
+    [[nodiscard]] const char* what() const noexcept override { return "Failure when exchanging username"; }
+};
+
 }

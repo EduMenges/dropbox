@@ -18,8 +18,7 @@ int main(int argc, char *argv[]) {
     }
 
     in_port_t port = 0;
-    auto [ptr, ec] =
-        std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
+    auto [ptr, ec] = std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
 
     if (ec == std::errc()) {
         dropbox::Server server(port);
