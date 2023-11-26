@@ -4,11 +4,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <fstream>
 #include <iostream>
 
 #include "connections.hpp"
 #include "exceptions.hpp"
+#include "utils.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)), server_socket_(socket(kDomain, kType, kProtocol)) {
@@ -34,7 +34,15 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 int dropbox::Client::GetSocket() const { return server_socket_; }
 
 bool dropbox::Client::SendUsername() {
-    return write(server_socket_, username_.c_str(), username_.size() + 1) == username_.size() + 1;
+    auto kBytesSent = write(server_socket_, username_.data(), username_.size());
+
+
+    if (kBytesSent == -1) {
+        perror(__func__);
+        return false;
+    }
+
+    return kBytesSent == username_.size();
 }
 
 bool dropbox::Client::Upload(std::filesystem::path &&path) {
@@ -42,7 +50,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
         return false;
     }
 
-    if (!fe_.SetPath(path.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirWithPrefix(username_) / path.filename()).SendPath()) {
         return false;
     }
 
@@ -53,4 +61,9 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) { return false
 
 dropbox::Client::~Client() { close(server_socket_); }
 
-bool dropbox::Client::GetSyncDir() { return false; }
+bool dropbox::Client::GetSyncDir() {
+    /// @todo This.
+    return false;
+}
+
+bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }

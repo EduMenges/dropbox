@@ -19,9 +19,12 @@ class UserInput {
     Client client_;
 
    private:
+    void HandleCommand(Command command);
+
     bool reading_;
 
     std::queue<std::string>                  input_queue_;
+    std::string                              input_path_;
     std::unordered_map<std::string, Command> command_map_;
 };
 }

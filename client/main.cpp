@@ -13,7 +13,8 @@ using dropbox::ArgV;
 using enum ArgV;
 
 int main(int argc, char *argv[]) {  // NOLINT
-    if (static_cast<ArgV>(argc) != TOTAL) {
+    const bool kHasAllParameters = static_cast<ArgV>(argc) != TOTAL;
+    if (kHasAllParameters) {
         std::cerr << "Usage: <username> <server_ip_address> <port>\n";
         return EXIT_FAILURE;
     }
@@ -21,12 +22,16 @@ int main(int argc, char *argv[]) {  // NOLINT
     in_port_t port = 0;
     auto [ptr, ec] = std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
 
-    if (ec == std::errc()) {
+    const bool kSuccessOnConversion = ec == std::errc();
+    if (kSuccessOnConversion) {
+        try {
         dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
 
-        dropbox::UserInput inputReader(std::move(client));
-        inputReader.Start();
-
+        dropbox::UserInput input_reader(std::move(client));
+        input_reader.Start();} catch (std::exception& e) {
+            std::cerr << e.what() << '\n';
+            perror(__func__);
+        }
     } else {
         std::cerr << "Port conversion failed\n";
         return EXIT_FAILURE;
