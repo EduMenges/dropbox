@@ -12,10 +12,12 @@ jobs:
         uses: threeal/cmake-action@v1.3.0
         with:
           generator: Ninja
-          c-compiler: clang
-          cxx-compiler: clang++
+          c-compiler: gcc
+          cxx-compiler: g++
 
-      - name: Build the project
+      - name: Configure CMake
         run: cmake --preset debug
-              cmake --build --preset debug
+        
+      - name: Build the project
+        run: cmake --build --preset debug
         
