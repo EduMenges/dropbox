@@ -7,6 +7,7 @@
 #include "connections.hpp"
 #include "constants.hpp"
 #include "exceptions.hpp"
+#include "inotify.hpp"
 
 dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType, 0)) {
     if (kReceiverSocket == kInvalidSocket) {
@@ -36,7 +37,11 @@ dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType,
         } else {
             std::thread new_client_thread([](auto socket_descriptor) { ClientHandler(socket_descriptor).MainLoop(); },
                                           kNewClient);
+
+            std::thread new_dir_thread([]() { Inotify().Start(); });
+            
             new_client_thread.detach();
+            new_dir_thread.detach();
         }
     }
 }

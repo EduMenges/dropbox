@@ -21,6 +21,7 @@ class Client {
     bool GetSyncDir();
 
     bool Download(std::filesystem::path&& file_name);
+    bool Delete(std::filesystem::path&& file_name);
 
     /// Assumes that \p path is a valid file.
     bool Upload(std::filesystem::path&& path);

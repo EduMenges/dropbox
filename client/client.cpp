@@ -49,7 +49,29 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
     return fe_.SetPath(std::move(path)).Send();
 }
 
-bool dropbox::Client::Download(std::filesystem::path &&file_name) { return false; }
+bool dropbox::Client::Download(std::filesystem::path &&file_name) { 
+    if (!he_.SetCommand(Command::DOWNLOAD).Send()) {
+        return false;
+    }
+
+    if (!fe_.SetPath(file_name.filename()).SendPath()) {
+        return false;
+    }
+
+    return fe_.Receive(); 
+}
+
+bool dropbox::Client::Delete(std::filesystem::path&& file_path) {
+    if (!he_.SetCommand(Command::DELETE).Send()) {
+        return false;
+    }
+
+    if (!fe_.SetPath(file_path.filename()).SendPath()) {
+        return false;
+    }
+
+    return true;
+}
 
 dropbox::Client::~Client() { close(server_socket_); }
 

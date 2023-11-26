@@ -12,10 +12,14 @@ class ClientHandler {
 
     void MainLoop();
 
+    void CreateUserFolder();
+
     bool ReceiveUsername();
 
     /// RECEIVES an upload from the client.
     bool ReceiveUpload();
+    bool ReceiveDownload();
+    bool ReceiveDelete();
 
    private:
     int         socket_;
