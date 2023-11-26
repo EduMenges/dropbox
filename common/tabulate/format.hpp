@@ -37,16 +37,16 @@ SOFTWARE.
 #include <cstddef>
 #include <sstream>
 #include <string>
-#include <tabulate/color.hpp>
-#include <tabulate/font_align.hpp>
-#include <tabulate/font_style.hpp>
-#include <tabulate/utf8.hpp>
+#include "tabulate/color.hpp"
+#include "tabulate/font_align.hpp"
+#include "tabulate/font_style.hpp"
+#include "tabulate/utf8.hpp"
 
 #if __cplusplus >= 201703L
 #include <optional>
 using std::optional;
 #else
-#include <tabulate/optional_lite.hpp>
+#include "tabulate/optional_lite.hpp"
 using nonstd::optional;
 #endif
 

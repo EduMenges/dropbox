@@ -35,11 +35,11 @@ SOFTWARE.
 #include <algorithm>
 #include <iostream>
 #include <string>
-#include <tabulate/column.hpp>
-#include <tabulate/font_style.hpp>
-#include <tabulate/printer.hpp>
-#include <tabulate/row.hpp>
-#include <tabulate/termcolor.hpp>
+#include "tabulate/column.hpp"
+#include "tabulate/font_style.hpp"
+#include "tabulate/printer.hpp"
+#include "tabulate/row.hpp"
+#include "tabulate/termcolor.hpp"
 #include <vector>
 #ifdef max
 #undef max

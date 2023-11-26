@@ -47,6 +47,7 @@ Checks: <
 
   readability-*
   -readability-else-after-return
+  -readability-identifier-length
 
 CheckOptions:
   - key: readability-identifier-naming.MacroDefinitionCase

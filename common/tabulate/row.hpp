@@ -35,13 +35,13 @@ SOFTWARE.
 #include <iostream>
 #include <memory>
 #include <string>
-#include <tabulate/cell.hpp>
+#include "tabulate/cell.hpp"
 
 #if __cplusplus >= 201703L
 #include <optional>
 using std::optional;
 #else
-#include <tabulate/optional_lite.hpp>
+#include "tabulate/optional_lite.hpp"
 using nonstd::optional;
 #endif
 

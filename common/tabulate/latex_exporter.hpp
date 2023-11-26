@@ -32,13 +32,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #pragma once
-#include <tabulate/exporter.hpp>
+#include "tabulate/exporter.hpp"
 
 #if __cplusplus >= 201703L
 #include <optional>
 using std::optional;
 #else
-#include <tabulate/optional_lite.hpp>
+#include "tabulate/optional_lite.hpp"
 using nonstd::optional;
 #endif
 

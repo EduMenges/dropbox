@@ -35,14 +35,15 @@ SOFTWARE.
 #include <iostream>
 #include <memory>
 #include <string>
-#include <tabulate/format.hpp>
-#include <tabulate/utf8.hpp>
+
+#include "tabulate/format.hpp"
+#include "tabulate/utf8.hpp"
 
 #if __cplusplus >= 201703L
 #include <optional>
 using std::optional;
 #else
-#include <tabulate/optional_lite.hpp>
+#include "tabulate/optional_lite.hpp"
 using nonstd::optional;
 #endif
 
@@ -51,27 +52,25 @@ using nonstd::optional;
 namespace tabulate {
 
 class Cell {
-public:
-  explicit Cell(std::shared_ptr<class Row> parent) : parent_(parent) {}
+   public:
+    explicit Cell(std::shared_ptr<class Row> parent) : parent_(parent) {}
 
-  void set_text(const std::string &text) { data_ = text; }
+    void set_text(const std::string &text) { data_ = text; }
 
-  const std::string &get_text() { return data_; }
+    const std::string &get_text() { return data_; }
 
-  size_t size() {
-    return get_sequence_length(data_, locale(), is_multi_byte_character_support_enabled());
-  }
+    size_t size() { return get_sequence_length(data_, locale(), is_multi_byte_character_support_enabled()); }
 
-  std::string locale() { return *format().locale_; }
+    std::string locale() { return *format().locale_; }
 
-  Format &format();
+    Format &format();
 
-  bool is_multi_byte_character_support_enabled();
+    bool is_multi_byte_character_support_enabled();
 
-private:
-  std::string data_;
-  std::weak_ptr<class Row> parent_;
-  optional<Format> format_;
+   private:
+    std::string              data_;
+    std::weak_ptr<class Row> parent_;
+    optional<Format>         format_;
 };
 
-} // namespace tabulate
+}  // namespace tabulate

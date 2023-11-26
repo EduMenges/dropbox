@@ -33,7 +33,7 @@ SOFTWARE.
 */
 #pragma once
 #include <string>
-#include <tabulate/table.hpp>
+#include "tabulate/table.hpp"
 
 namespace tabulate {
 

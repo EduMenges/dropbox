@@ -41,13 +41,13 @@ SOFTWARE.
 #include <optional>
 using std::optional;
 #else
-#include <tabulate/optional_lite.hpp>
+#include "tabulate/optional_lite.hpp"
 using nonstd::optional;
 #endif
 
 #include <string>
-#include <tabulate/cell.hpp>
-#include <tabulate/column_format.hpp>
+#include "tabulate/cell.hpp"
+#include "tabulate/column_format.hpp"
 #include <vector>
 #ifdef max
 #undef max

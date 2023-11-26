@@ -10,7 +10,7 @@
 #include "constants.hpp"
 
 // Should be since since it is thread_local
-thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
+thread_local std::array<char, dropbox::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
     auto bytes_sent = write(socket_, &this->command_, sizeof(this->command_));

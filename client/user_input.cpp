@@ -106,8 +106,13 @@ void dropbox::UserInput::HandleCommand(Command command) {
             }
             break;
         case Command::LIST_SERVER:
+            client_.ListServer();
+            break;
         case Command::LIST_CLIENT:
+            client_.ListClient();
+            break;
         case Command::GET_SYNC_DIR:
+            break;
         case Command::EXIT:
             client_.Exit();
             Stop();
