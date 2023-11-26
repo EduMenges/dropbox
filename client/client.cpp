@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <vector>
 
 #include "connections.hpp"
 #include "exceptions.hpp"
@@ -57,13 +58,44 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
     return fe_.SetPath(std::move(path)).Send();
 }
 
-bool dropbox::Client::Download(std::filesystem::path &&file_name) { return false; }
+bool dropbox::Client::Delete(std::filesystem::path&& file_path) {
+    if (!he_.SetCommand(Command::DELETE).Send()) {
+        return false;
+    }
+
+    if (!fe_.SetPath(file_path.filename()).SendPath()) {
+        return false;
+    }
+
+    return true;
+}
+
+bool dropbox::Client::Download(std::filesystem::path &&file_name) { 
+    if (!he_.SetCommand(Command::DOWNLOAD).Send()) {
+        return false;
+    }
+
+    if (!fe_.SetPath(file_name.filename()).SendPath()) {
+        return false;
+    }
+
+    return fe_.Receive(); 
+}
+
+bool dropbox::Client::GetSyncDir() {
+    if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
+        return false;
+    }
+
+    // quebrando aqui..
+    return fe_.Receive();
+}
 
 dropbox::Client::~Client() { close(server_socket_); }
 
-bool dropbox::Client::GetSyncDir() {
-    /// @todo This.
-    return false;
-}
+
+
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
+
+

@@ -1,6 +1,13 @@
 #include "client_handler.hpp"
+#include "../common/constants.hpp"
+#include "inotify.hpp"
 
 #include <unistd.h>
+#include <thread>
+#include <vector>
+#include <filesystem>
+#include <dirent.h>
+#include <fstream>
 
 #include <climits>
 
@@ -12,9 +19,14 @@ dropbox::ClientHandler::ClientHandler(int socket_descriptor)
       de_(socket_descriptor),
       he_(socket_descriptor),
       username_(NAME_MAX, '\0') {
+      sync_(false),
+
+
     if (!ReceiveUsername()) {
         throw Username();
     }
+
+    CreateUserFolder();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
 }
@@ -40,12 +52,23 @@ void dropbox::ClientHandler::MainLoop() {
                     ReceiveUpload();
                     break;
                 case Command::DOWNLOAD:
+                    ReceiveDownload();
                     break;
                 case Command::DELETE:
+                    ReceiveDelete();
                     break;
                 case Command::EXIT:
                     receiving = false;
                     break;
+                case Command::GET_SYNC_DIR:
+                    if (!sync_) {
+                        if (ReceiveGetSyncDir()) {
+                            std::cout << "Starting to listen sync_dir" << '\n';
+                            sync_ = true;
+                            std::thread new_dir_thread([]() { Inotify().Start(); });
+                            new_dir_thread.detach();
+                        }
+                    }
                 default:
                     break;
             }
@@ -61,7 +84,73 @@ bool dropbox::ClientHandler::ReceiveUpload() {
     return fe_.Receive();
 }
 
+
 dropbox::ClientHandler::~ClientHandler() {
     std::cerr << username_ << " disconnected\n";
     close(socket_);
 }
+
+bool dropbox::ClientHandler::ReceiveDelete() {
+    if (!fe_.ReceivePath()) {
+        return false;
+    }
+
+    const std::filesystem::path& file_path = fe_.GetPath();
+    
+    if (std::filesystem::exists(file_path)) {
+        std::filesystem::remove(file_path);
+        return true;
+    }
+
+    return false;
+}
+
+bool dropbox::ClientHandler::ReceiveDownload() {
+    if (!fe_.ReceivePath()) {
+        return false;
+    }
+
+    return fe_.Send();
+}
+
+bool dropbox::ClientHandler::ReceiveGetSyncDir() {
+    std::string path = ".";
+    std::vector<std::filesystem::path> file_names;
+
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+            if (std::filesystem::is_regular_file(entry.path())) {
+                file_names.push_back(entry.path().filename());
+            }
+        }
+
+        for (const auto& file_name : file_names) {
+            std::cout << file_name << '\n';
+            
+            if (!fe_.SetPath(file_name.filename()).SendPath()) {
+                return false;
+            }
+            if (!fe_.Send()) {
+                return false;
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+        return false;
+    }
+
+    return true;
+}
+
+void dropbox::ClientHandler::CreateUserFolder() {
+    try{
+        if(!std::filesystem::exists( kSyncDirPath + getSyncDir(username_.c_str()) )) {
+            std::filesystem::create_directory(kSyncDirPath + getSyncDir(username_.c_str()));
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error creating directory " << e.what() << '\n';
+    }
+}
+
+dropbox::ClientHandler::~ClientHandler() { close(socket_); }
+

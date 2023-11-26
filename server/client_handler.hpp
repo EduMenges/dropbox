@@ -18,10 +18,15 @@ class ClientHandler {
 
     void MainLoop();
 
+    void CreateUserFolder();
+
     bool ReceiveUsername();
 
     /// RECEIVES an upload from the client.
     bool ReceiveUpload();
+    bool ReceiveDownload();
+    bool ReceiveDelete();
+    bool ReceiveGetSyncDir();
 
    private:
     int           socket_;
@@ -30,5 +35,7 @@ class ClientHandler {
     HeaderExchange    he_;
     FileExchange      fe_;
     DirectoryExchange de_;
+
+    bool sync_;
 };
 }

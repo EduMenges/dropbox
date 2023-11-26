@@ -27,6 +27,7 @@ class Client {
     bool GetSyncDir();
 
     bool Download(std::filesystem::path&& file_name);
+    bool Delete(std::filesystem::path&& file_name);
 
     bool Exit();
 
