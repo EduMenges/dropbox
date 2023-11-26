@@ -88,7 +88,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return true;
     }
 
-    return fe_.Receive(); 
+    return fe_.SetPath(std::move(file_name.filename())).Receive();
 }
 
 bool dropbox::Client::GetSyncDir() {

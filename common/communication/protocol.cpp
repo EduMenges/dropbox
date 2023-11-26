@@ -25,8 +25,7 @@ bool dropbox::HeaderExchange::Send() {
 bool dropbox::HeaderExchange::Receive() {
     auto bytes_read = read(socket_, &this->command_, sizeof(this->command_));
 
-    if (bytes_read == kInvalidRead)
-    {
+    if (bytes_read == kInvalidRead) {
         perror(__func__);
     }
 
@@ -61,7 +60,10 @@ bool dropbox::FileExchange::Send() {
 bool dropbox::FileExchange::Receive() {
     if (!std::filesystem::is_regular_file(path_)) {
         std::filesystem::remove_all(path_);
-        std::filesystem::create_directories(path_.parent_path());
+
+        if (path_.has_parent_path()) {
+            std::filesystem::create_directories(path_.parent_path());
+        }
     }
 
     std::basic_ofstream<char> file(path_, std::ios::out | std::ios::binary | std::ios::trunc);
@@ -76,7 +78,7 @@ bool dropbox::FileExchange::Receive() {
 
     while (remaining_size != 0) {
         const auto kBytesToReceive = std::min(remaining_size, kPacketSize);
-        const auto kBytesReceived = read(socket_, buffer.data(), kBytesToReceive);
+        const auto kBytesReceived  = read(socket_, buffer.data(), kBytesToReceive);
 
         if (kBytesReceived == kInvalidRead) {
             return false;
@@ -137,8 +139,17 @@ std::ostream& dropbox::operator<<(std::ostream& os, dropbox::Command command) {
         case Command::GET_SYNC_DIR:
             os << "get_sync_dir";
             break;
+        case Command::LIST_SERVER:
+            os << "list_server";
+            break;
+        case Command::EXIT:
+            os << "exit";
+            break;
+        case Command::DOWNLOAD:
+            os << "download";
+            break;
         default:
-            os.setstate(std::ios_base::failbit);
+            break;
     }
     return os;
 }
