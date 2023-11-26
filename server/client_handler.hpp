@@ -8,6 +8,12 @@ namespace dropbox {
 class ClientHandler {
    public:
     ClientHandler(int socket_descriptor);
+
+    /// Clients handlers are not copiable due to side effect in socket closing.
+    ClientHandler(const ClientHandler& other) = delete;
+
+    ClientHandler(ClientHandler&& other) = default;
+
     ~ClientHandler();
 
     void MainLoop();
@@ -18,7 +24,7 @@ class ClientHandler {
     bool ReceiveUpload();
 
    private:
-    int         socket_;
+    int           socket_;
     std::string username_;
 
     HeaderExchange    he_;

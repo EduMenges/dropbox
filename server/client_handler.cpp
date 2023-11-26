@@ -3,14 +3,15 @@
 #include <unistd.h>
 
 #include <climits>
-#include <exceptions.hpp>
+
+#include "exceptions.hpp"
 
 dropbox::ClientHandler::ClientHandler(int socket_descriptor)
     : socket_(socket_descriptor),
       fe_(socket_descriptor),
       de_(socket_descriptor),
       he_(socket_descriptor),
-      username_(NAME_MAX + 1, '\0') {
+      username_(NAME_MAX, '\0') {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -19,8 +20,6 @@ dropbox::ClientHandler::ClientHandler(int socket_descriptor)
 }
 
 bool dropbox::ClientHandler::ReceiveUsername() {
-    static thread_local std::array<char, NAME_MAX> buffer;
-
     const auto kBytesReceived = read(socket_, username_.data(), NAME_MAX);
 
     if (kBytesReceived == -1) {
@@ -28,13 +27,12 @@ bool dropbox::ClientHandler::ReceiveUsername() {
         return false;
     }
 
-    username_ = buffer.data();
-
     return true;
 }
 
 void dropbox::ClientHandler::MainLoop() {
-    while (true) {
+    bool receiving = true;
+    while (receiving) {
         if (he_.Receive()) {
             std::cout << username_ << " ordered " << he_.GetCommand() << '\n';
             switch (he_.GetCommand()) {
@@ -44,6 +42,9 @@ void dropbox::ClientHandler::MainLoop() {
                 case Command::DOWNLOAD:
                     break;
                 case Command::DELETE:
+                    break;
+                case Command::EXIT:
+                    receiving = false;
                     break;
                 default:
                     break;
@@ -60,4 +61,7 @@ bool dropbox::ClientHandler::ReceiveUpload() {
     return fe_.Receive();
 }
 
-dropbox::ClientHandler::~ClientHandler() { close(socket_); }
+dropbox::ClientHandler::~ClientHandler() {
+    std::cerr << username_ << " disconnected\n";
+    close(socket_);
+}

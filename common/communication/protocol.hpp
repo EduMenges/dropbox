@@ -8,17 +8,33 @@
 #include <iostream>
 
 namespace dropbox {
-enum class Command { USERNAME, UPLOAD, DELETE, GET_SYNC_DIR, EXIT, LIST_SERVER, DOWNLOAD, LIST_CLIENT };
 
+/// Possible user actions
+enum class Command {
+    UPLOAD,        ///< Uploads a file at the root directory.
+    DELETE,        ///< Deletes a file at the root directory.
+    GET_SYNC_DIR,  ///< Downloads the \c sync_dir directory and starts syncing.
+    EXIT,          ///< Ends connection with server
+    LIST_CLIENT,   ///< Lists the files from the client
+    LIST_SERVER,   ///< Lists the files from the server
+    DOWNLOAD,      ///< Downloads a file to the \c cwd.
+};
+
+/// Interface for exchanging information on both sides.
 class Exchange {
    public:
-    virtual ~Exchange()                  = default;
-    [[nodiscard]] virtual bool Send()    = 0;
+    virtual ~Exchange() = default;
+
+    /// Sending.
+    [[nodiscard]] virtual bool Send() = 0;
+
+    /// Receiving.
     [[nodiscard]] virtual bool Receive() = 0;
 };
 
 std::ostream& operator<<(std::ostream& os, Command command);
 
+/// Exchanges the header.
 class HeaderExchange : public Exchange {
    public:
     inline constexpr HeaderExchange() : socket_(-1), command_{} {};
@@ -37,13 +53,14 @@ class HeaderExchange : public Exchange {
     [[nodiscard]] bool Send() override;
     [[nodiscard]] bool Receive() override;
 
-    Command GetCommand();
+    [[nodiscard]] inline constexpr Command GetCommand() const noexcept { return this->command_; }
 
    private:
-    int     socket_;
-    Command command_;
+    int     socket_;   ///< Where send and receive from.
+    Command command_;  ///< Command to be exchanged.
 };
 
+/// Abstract class for exchanging entries (directories and files).
 class EntryExchange : public Exchange {
    public:
     inline EntryExchange() : socket_(-1) {}
@@ -62,13 +79,14 @@ class EntryExchange : public Exchange {
         return *this;
     }
 
-    inline const std::filesystem::path& GetPath() const { return path_; }
+    [[nodiscard]] inline const std::filesystem::path& GetPath() const { return path_; }
 
    protected:
-    int                   socket_;
-    std::filesystem::path path_;
+    int                   socket_;  ///< Where send and receive from.
+    std::filesystem::path path_;    ///< The path to be exchanged.
 };
 
+/// Exchange whole files.
 class FileExchange : public EntryExchange {
    public:
     FileExchange() = default;
@@ -81,9 +99,11 @@ class FileExchange : public EntryExchange {
     /// Max size of a single packet exchange.
     static constexpr size_t kPacketSize = 64U * 1024U;
 
+    /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;
 };
 
+/// Exchanges whole directories.
 class DirectoryExchange : public EntryExchange {
    public:
     DirectoryExchange() = default;

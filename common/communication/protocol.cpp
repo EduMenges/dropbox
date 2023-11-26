@@ -9,6 +9,7 @@
 
 #include "constants.hpp"
 
+// Should be since since it is thread_local
 thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
@@ -23,11 +24,14 @@ bool dropbox::HeaderExchange::Send() {
 
 bool dropbox::HeaderExchange::Receive() {
     auto bytes_read = read(socket_, &this->command_, sizeof(this->command_));
-    std::cerr << bytes_read << '\n';
+
+    if (bytes_read == kInvalidRead)
+    {
+        perror(__func__);
+    }
+
     return bytes_read == sizeof(this->command_);
 }
-
-dropbox::Command dropbox::HeaderExchange::GetCommand() { return this->command_; }
 
 bool dropbox::FileExchange::Send() {
     /// @todo Transferência de permissões
@@ -57,6 +61,7 @@ bool dropbox::FileExchange::Send() {
 bool dropbox::FileExchange::Receive() {
     if (!std::filesystem::is_regular_file(path_)) {
         std::filesystem::remove_all(path_);
+        std::filesystem::create_directories(path_.parent_path());
     }
 
     std::basic_ofstream<char> file(path_, std::ios::out | std::ios::binary | std::ios::trunc);
@@ -70,7 +75,8 @@ bool dropbox::FileExchange::Receive() {
     read(socket_, &remaining_size, sizeof(remaining_size));
 
     while (remaining_size != 0) {
-        const auto kBytesReceived = read(socket_, buffer.data(), kPacketSize);
+        const auto kBytesToReceive = std::min(remaining_size, kPacketSize);
+        const auto kBytesReceived = read(socket_, buffer.data(), kBytesToReceive);
 
         if (kBytesReceived == kInvalidRead) {
             return false;
@@ -87,6 +93,7 @@ bool dropbox::EntryExchange::ReceivePath() {
     static std::array<char, PATH_MAX> received_path;
 
     const auto kBytesReceived = read(socket_, received_path.data(), received_path.size());
+
     if (kBytesReceived == kInvalidRead) {
         perror(__func__);
         return false;
@@ -102,7 +109,7 @@ bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) const {
 
     const auto kBytesSent = write(socket_, path.c_str(), path_len);
 
-    if (kBytesSent == -1) {
+    if (kBytesSent == kInvalidWrite) {
         perror(__func__);
         return false;
     }

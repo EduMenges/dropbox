@@ -19,6 +19,7 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
 
 void dropbox::UserInput::Start() {
     reading_ = true;
+
     std::thread input_thread_([this]() {  // NOLINT
         while (reading_) {
             std::cout << "$ ";
@@ -29,83 +30,18 @@ void dropbox::UserInput::Start() {
             input_queue_.push(user_input);
 
             std::string        input_command;
-            std::string        input_path;
             std::istringstream iss(user_input);
-            iss >> input_command;
-            iss >> input_path;
 
-            Command command = command_map_[input_command];
+            iss >> input_command;
+            iss >> input_path_;
 
             if (!command_map_.contains(input_command)) {
                 std::cerr << "Unknown command: " << input_command << '\n';
                 continue;
             }
 
-            HeaderExchange he(client_.GetSocket(), command);
-
-            switch (command) {
-                case Command::UPLOAD:
-                    if (!input_path.empty()) {
-                        std::filesystem::path path(input_path);
-
-                        if (is_regular_file(path)) {
-                            std::cerr << "Result: " << client_.Upload(std::move(path)) << '\n';
-                        } else {
-                            std::cerr << path.filename() << " is not a file\n";
-                        }
-                    } else {
-                        std::cerr << "Missing path\n";
-                    }
-                    break;
-                case Command::DOWNLOAD:
-                    if (!input_path.empty()) {
-                        std::filesystem::path path(input_path);
-
-                        client_.Download(std::move(path));
-                    } else {
-                        std::cerr << "Missing path\n";
-                    }
-                    break;
-
-                case Command::DELETE:
-                    if (!input_path.empty()) {
-                        if (he.Send()) {
-                            FileExchange fe(client_.GetSocket());
-                            fe.SetPath(input_path);
-                            if (fe.SendPath()) {
-                                std::cout << "DELETE: " << input_path << "\n";
-                            } else {
-                                std::cerr << "Failed to send path.\n";
-                            }
-                        } else {
-                            std::cerr << "Failed to send command.\n";
-                        }
-                    } else {
-                        std::cerr << "Missing path.\n";
-                    }
-                    break;
-                case Command::LIST_SERVER:
-                case Command::LIST_CLIENT:
-                case Command::GET_SYNC_DIR:
-                case Command::EXIT:
-                    if (input_path.empty()) {
-                        if (he.Send()) {
-                            std::cout << "sent: " << input_command << "\n";
-                        } else {
-                            std::cerr << "Failed to send command.\n";
-                        }
-                    } else {
-                        std::cerr << "Invalid args: " << input_path << "\n";
-                    }
-                    break;
-                default:
-                    std::cerr << "Unknown command: " << input_command << '\n';
-                    break;
-            }
-
-            if (user_input == "exit") {
-                Stop();
-            }
+            Command const kCommand = command_map_.at(input_command);
+            HandleCommand(kCommand);
         }
     });
 
@@ -123,4 +59,58 @@ std::string dropbox::UserInput::GetQueue() {
     input_queue_.pop();
 
     return front_queue;
+}
+
+void dropbox::UserInput::HandleCommand(Command command) {
+    HeaderExchange he(client_.GetSocket(), command);
+
+    switch (command) {
+        case Command::UPLOAD:
+            if (!input_path_.empty()) {
+                std::filesystem::path path(input_path_);
+
+                if (is_regular_file(path)) {
+                    std::cerr << "Result: " << client_.Upload(std::move(path)) << '\n';
+                } else {
+                    std::cerr << path.filename() << " is not a file\n";
+                }
+            } else {
+                std::cerr << "Missing path\n";
+            }
+            break;
+        case Command::DOWNLOAD:
+            if (!input_path_.empty()) {
+                std::filesystem::path path(input_path_);
+
+                client_.Download(std::move(path));
+            } else {
+                std::cerr << "Missing path\n";
+            }
+            break;
+
+        case Command::DELETE:
+            if (!input_path_.empty()) {
+                if (he.Send()) {
+                    FileExchange fe(client_.GetSocket());
+                    fe.SetPath(input_path_);
+                    if (fe.SendPath()) {
+                        std::cout << "DELETE: " << input_path_ << "\n";
+                    } else {
+                        std::cerr << "Failed to send path.\n";
+                    }
+                } else {
+                    std::cerr << "Failed to send command.\n";
+                }
+            } else {
+                std::cerr << "Missing path.\n";
+            }
+            break;
+        case Command::LIST_SERVER:
+        case Command::LIST_CLIENT:
+        case Command::GET_SYNC_DIR:
+        case Command::EXIT:
+            client_.Exit();
+            Stop();
+            break;
+    }
 }
