@@ -63,7 +63,7 @@ bool dropbox::Client::Delete(std::filesystem::path&& file_path) {
         return false;
     }
 
-    if (!fe_.SetPath(file_path.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirWithPrefix(username_) / file_path.filename()).SendPath()) {
         return false;
     }
 
@@ -75,7 +75,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return false;
     }
 
-    if (!fe_.SetPath(file_name.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirWithPrefix(username_) / file_name.filename()).SendPath()) {
         return false;
     }
 

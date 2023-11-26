@@ -83,7 +83,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
         case Command::DOWNLOAD:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
-
+                
                 std::cerr << "Result: " << client_.Download(std::move(path)) << '\n';
             } else {
                 std::cerr << "Missing path\n";

@@ -12,6 +12,7 @@
 #include <climits>
 
 #include "exceptions.hpp"
+#include "../common/utils.hpp"
 
 dropbox::ClientHandler::ClientHandler(int socket_descriptor)
     : socket_(socket_descriptor),
@@ -136,8 +137,8 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
 
 void dropbox::ClientHandler::CreateUserFolder() {
     try{
-        if(!std::filesystem::exists( kSyncDirPath + getSyncDir(username_.c_str()) )) {
-            std::filesystem::create_directory(kSyncDirPath + getSyncDir(username_.c_str()));
+        if(!std::filesystem::exists(SyncDirWithPrefix(username_))) {
+            std::filesystem::create_directory(SyncDirWithPrefix(username_));
         }
     } catch (const std::exception& e) {
         std::cerr << "Error creating directory " << e.what() << '\n';
