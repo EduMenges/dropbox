@@ -18,10 +18,8 @@ dropbox::ClientHandler::ClientHandler(int socket_descriptor)
       fe_(socket_descriptor),
       de_(socket_descriptor),
       he_(socket_descriptor),
-      username_(NAME_MAX, '\0') {
       sync_(false),
-
-
+      username_(NAME_MAX, '\0') {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -82,12 +80,6 @@ bool dropbox::ClientHandler::ReceiveUpload() {
     }
 
     return fe_.Receive();
-}
-
-
-dropbox::ClientHandler::~ClientHandler() {
-    std::cerr << username_ << " disconnected\n";
-    close(socket_);
 }
 
 bool dropbox::ClientHandler::ReceiveDelete() {
@@ -152,5 +144,8 @@ void dropbox::ClientHandler::CreateUserFolder() {
     }
 }
 
-dropbox::ClientHandler::~ClientHandler() { close(socket_); }
+dropbox::ClientHandler::~ClientHandler() {
+    std::cerr << username_ << " disconnected\n";
+    close(socket_);
+}
 

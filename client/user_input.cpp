@@ -81,8 +81,8 @@ void dropbox::UserInput::HandleCommand(Command command) {
             }
             break;
         case Command::DOWNLOAD:
-            if (!input_path.empty()) {
-                std::filesystem::path path(input_path);
+            if (!input_path_.empty()) {
+                std::filesystem::path path(input_path_);
 
                 std::cerr << "Result: " << client_.Download(std::move(path)) << '\n';
             } else {
@@ -90,8 +90,8 @@ void dropbox::UserInput::HandleCommand(Command command) {
             }
             break;
         case Command::DELETE:
-            if (!input_path.empty()) {
-                std::filesystem::path path(input_path);
+            if (!input_path_.empty()) {
+                std::filesystem::path path(input_path_);
 
                 std::cerr << "Result: " << client_.Delete(std::move(path)) << '\n';
             } else {
