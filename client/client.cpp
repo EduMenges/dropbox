@@ -79,6 +79,15 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return false;
     }
 
+    if (!he_.Receive()) {
+        return false;
+    }
+
+    if (he_.GetCommand() == Command::EXIT) {
+        std::cerr << "File not found on the server ";
+        return true;
+    }
+
     return fe_.Receive(); 
 }
 

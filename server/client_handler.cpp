@@ -103,6 +103,23 @@ bool dropbox::ClientHandler::ReceiveDownload() {
         return false;
     }
 
+    const std::filesystem::path& file_path = fe_.GetPath();
+
+    if (!std::filesystem::exists(file_path)) {
+        std::cerr << "Error: File does not exist - " << file_path << '\n';
+        
+        he_.SetCommand(Command::EXIT);
+        if (!he_.Send()) {
+            return false;
+        }
+        return true;
+    }
+
+    he_.SetCommand(Command::DOWNLOAD);
+    if (!he_.Send()) {
+        return false;
+    }
+
     return fe_.Send();
 }
 
