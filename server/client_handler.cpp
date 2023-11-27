@@ -192,7 +192,7 @@ bool dropbox::ClientHandler::ListServer() {
 
     const size_t kTableSize = str_table.size() + 1;
 
-    if (write(socket_, &kTableSize, sizeof(kTableSize)) == kInvalidWrite) {
+    if (write(header_socket_, &kTableSize, sizeof(kTableSize)) == kInvalidWrite) {
         perror(__func__);
         return false;
     }
@@ -201,7 +201,7 @@ bool dropbox::ClientHandler::ListServer() {
     while (total_sent != kTableSize) {
         const size_t kBytesToSend = std::min(kPacketSize, kTableSize - total_sent);
 
-        if (write(socket_, str_table.data() + total_sent, kBytesToSend) == kInvalidWrite) {
+        if (write(header_socket_, str_table.data() + total_sent, kBytesToSend) == kInvalidWrite) {
             perror(__func__);
             return false;
         }
