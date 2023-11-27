@@ -23,6 +23,7 @@ void dropbox::UserInput::Start() {
     std::thread input_thread_([this]() {  // NOLINT
         while (reading_) {
             std::cout << "$ ";
+            std::cout.flush();
 
             std::string user_input;
             std::getline(std::cin, user_input);
@@ -40,10 +41,8 @@ void dropbox::UserInput::Start() {
                 continue;
             }
 
-
             Command const kCommand = command_map_.at(input_command);
             HandleCommand(kCommand);
-
         }
     });
 
@@ -83,7 +82,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
         case Command::DOWNLOAD:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
-                
+
                 std::cerr << "Result: " << client_.Download(std::move(path)) << '\n';
             } else {
                 std::cerr << "Missing path\n";

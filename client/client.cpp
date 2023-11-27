@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include <iostream>
-#include <vector>
 
 #include "connections.hpp"
 #include "exceptions.hpp"
@@ -35,15 +34,14 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 int dropbox::Client::GetSocket() const { return server_socket_; }
 
 bool dropbox::Client::SendUsername() {
-    auto kBytesSent = write(server_socket_, username_.data(), username_.size());
-
+    const auto kBytesSent = write(server_socket_, username_.data(), username_.size() + 1);
 
     if (kBytesSent == -1) {
         perror(__func__);
         return false;
     }
 
-    return kBytesSent == username_.size();
+    return kBytesSent == username_.size() + 1;
 }
 
 bool dropbox::Client::Upload(std::filesystem::path &&path) {
@@ -58,7 +56,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
     return fe_.SetPath(std::move(path)).Send();
 }
 
-bool dropbox::Client::Delete(std::filesystem::path&& file_path) {
+bool dropbox::Client::Delete(std::filesystem::path &&file_path) {
     if (!he_.SetCommand(Command::DELETE).Send()) {
         return false;
     }
@@ -70,7 +68,7 @@ bool dropbox::Client::Delete(std::filesystem::path&& file_path) {
     return true;
 }
 
-bool dropbox::Client::Download(std::filesystem::path &&file_name) { 
+bool dropbox::Client::Download(std::filesystem::path &&file_name) {
     if (!he_.SetCommand(Command::DOWNLOAD).Send()) {
         return false;
     }
@@ -83,7 +81,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return false;
     }
 
-    if (he_.GetCommand() == Command::EXIT) {
+    if (he_.GetCommand() == Command::ERROR) {
         std::cerr << "File not found on the server ";
         return true;
     }
@@ -102,9 +100,4 @@ bool dropbox::Client::GetSyncDir() {
 
 dropbox::Client::~Client() { close(server_socket_); }
 
-
-
-
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
-
-

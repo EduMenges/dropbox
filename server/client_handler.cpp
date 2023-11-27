@@ -1,26 +1,18 @@
 #include "client_handler.hpp"
-#include "../common/constants.hpp"
-#include "inotify.hpp"
 
+#include <dirent.h>
 #include <unistd.h>
+
+#include <filesystem>
 #include <thread>
 #include <vector>
-#include <filesystem>
-#include <dirent.h>
-#include <fstream>
 
-#include <climits>
-
-#include "exceptions.hpp"
 #include "../common/utils.hpp"
+#include "exceptions.hpp"
+#include "inotify.hpp"
 
 dropbox::ClientHandler::ClientHandler(int socket_descriptor)
-    : socket_(socket_descriptor),
-      fe_(socket_descriptor),
-      de_(socket_descriptor),
-      he_(socket_descriptor),
-      sync_(false),
-      username_(NAME_MAX, '\0') {
+    : socket_(socket_descriptor), fe_(socket_descriptor), de_(socket_descriptor), he_(socket_descriptor), sync_(false) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -31,21 +23,25 @@ dropbox::ClientHandler::ClientHandler(int socket_descriptor)
 }
 
 bool dropbox::ClientHandler::ReceiveUsername() {
-    const auto kBytesReceived = read(socket_, username_.data(), NAME_MAX);
+    static thread_local std::array<char, NAME_MAX + 1> buffer{};
+
+    const auto kBytesReceived = read(socket_, buffer.data(), NAME_MAX + 1);
 
     if (kBytesReceived == -1) {
         perror(__func__);  // NOLINT
         return false;
     }
 
+    username_ = std::string(buffer.data());
     return true;
 }
 
 void dropbox::ClientHandler::MainLoop() {
     bool receiving = true;
+
     while (receiving) {
         if (he_.Receive()) {
-            std::cout << username_ << " ordered " << he_.GetCommand() << '\n';
+            std::cout << username_ << " ordered " << he_.GetCommand() << std::endl;  // NOLINT
             switch (he_.GetCommand()) {
                 case Command::UPLOAD:
                     ReceiveUpload();
@@ -89,7 +85,7 @@ bool dropbox::ClientHandler::ReceiveDelete() {
     }
 
     const std::filesystem::path& file_path = fe_.GetPath();
-    
+
     if (std::filesystem::exists(file_path)) {
         std::filesystem::remove(file_path);
         return true;
@@ -107,16 +103,12 @@ bool dropbox::ClientHandler::ReceiveDownload() {
 
     if (!std::filesystem::exists(file_path)) {
         std::cerr << "Error: File does not exist - " << file_path << '\n';
-        
-        he_.SetCommand(Command::EXIT);
-        if (!he_.Send()) {
-            return false;
-        }
-        return true;
+
+        return he_.SetCommand(Command::ERROR).Send();
     }
 
-    he_.SetCommand(Command::DOWNLOAD);
-    if (!he_.Send()) {
+    const bool kCouldSendSuccess = he_.SetCommand(Command::SUCCESS).Send();
+    if (!kCouldSendSuccess) {
         return false;
     }
 
@@ -124,7 +116,7 @@ bool dropbox::ClientHandler::ReceiveDownload() {
 }
 
 bool dropbox::ClientHandler::ReceiveGetSyncDir() {
-    std::string path = ".";
+    std::filesystem::path              path(".");
     std::vector<std::filesystem::path> file_names;
 
     try {
@@ -136,7 +128,7 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
 
         for (const auto& file_name : file_names) {
             std::cout << file_name << '\n';
-            
+
             if (!fe_.SetPath(file_name.filename()).SendPath()) {
                 return false;
             }
@@ -153,8 +145,8 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
 }
 
 void dropbox::ClientHandler::CreateUserFolder() {
-    try{
-        if(!std::filesystem::exists(SyncDirWithPrefix(username_))) {
+    try {
+        if (!std::filesystem::exists(SyncDirWithPrefix(username_))) {
             std::filesystem::create_directory(SyncDirWithPrefix(username_));
         }
     } catch (const std::exception& e) {
@@ -163,7 +155,6 @@ void dropbox::ClientHandler::CreateUserFolder() {
 }
 
 dropbox::ClientHandler::~ClientHandler() {
-    std::cerr << username_ << " disconnected\n";
+    std::cout << username_ << " disconnected" << std::endl;  // NOLINT
     close(socket_);
 }
-

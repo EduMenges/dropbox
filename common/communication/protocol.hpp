@@ -18,6 +18,8 @@ enum class Command {
     LIST_CLIENT,   ///< Lists the files from the client
     LIST_SERVER,   ///< Lists the files from the server
     DOWNLOAD,      ///< Downloads a file to the \c cwd.
+    ERROR,
+    SUCCESS
 };
 
 /// Interface for exchanging information on both sides.

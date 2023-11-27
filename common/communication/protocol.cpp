@@ -9,7 +9,7 @@
 
 #include "constants.hpp"
 
-// Should be since since it is thread_local
+// Should be safe since it is thread_local
 thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
@@ -23,13 +23,14 @@ bool dropbox::HeaderExchange::Send() {
 }
 
 bool dropbox::HeaderExchange::Receive() {
-    auto bytes_read = read(socket_, &this->command_, sizeof(this->command_));
+    const ssize_t kBytesRead = read(socket_, &command_, sizeof(command_));
 
-    if (bytes_read == kInvalidRead) {
+    if (kBytesRead == kInvalidRead) {
         perror(__func__);
+        return false;
     }
 
-    return bytes_read == sizeof(this->command_);
+    return kBytesRead == sizeof(command_);
 }
 
 bool dropbox::FileExchange::Send() {
@@ -42,8 +43,11 @@ bool dropbox::FileExchange::Send() {
     }
 
     // Sending size
-    auto file_size = std::filesystem::file_size(path_);
-    write(socket_, &file_size, sizeof(file_size));
+    uintmax_t file_size = std::filesystem::file_size(path_);
+    if (write(socket_, &file_size, sizeof(file_size)) < sizeof(file_size)) {
+        perror(__func__);
+        return false;
+    }
 
     do {
         const auto    kBytesRead = file.read(buffer.data(), kPacketSize).gcount();
@@ -74,7 +78,10 @@ bool dropbox::FileExchange::Receive() {
 
     // Receiving file size
     uintmax_t remaining_size = 0;
-    read(socket_, &remaining_size, sizeof(remaining_size));
+    if (read(socket_, &remaining_size, sizeof(remaining_size)) < sizeof(remaining_size)) {
+        perror(__func__);
+        return false;
+    }
 
     while (remaining_size != 0) {
         const auto kBytesToReceive = std::min(remaining_size, kPacketSize);
