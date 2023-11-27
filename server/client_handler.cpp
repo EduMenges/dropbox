@@ -11,8 +11,13 @@
 #include "exceptions.hpp"
 #include "inotify.hpp"
 
-dropbox::ClientHandler::ClientHandler(int socket_descriptor)
-    : socket_(socket_descriptor), fe_(socket_descriptor), de_(socket_descriptor), he_(socket_descriptor), sync_(false) {
+dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
+    : header_socket_(header_socket),
+      file_socket_(file_socket),
+      he_(header_socket),
+      fe_(file_socket),
+      de_(file_socket),
+      sync_(false) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -25,9 +30,19 @@ dropbox::ClientHandler::ClientHandler(int socket_descriptor)
 bool dropbox::ClientHandler::ReceiveUsername() {
     static thread_local std::array<char, NAME_MAX + 1> buffer{};
 
-    const auto kBytesReceived = read(socket_, buffer.data(), NAME_MAX + 1);
+    if (!he_.Receive() || he_.GetCommand() != Command::USERNAME) {
+        return false;
+    }
 
-    if (kBytesReceived == -1) {
+    size_t username_length = 0;
+    if (read(file_socket_, &username_length, sizeof(username_length)) != sizeof(username_length)) {
+        perror(__func__);
+        return false;
+    }
+
+    const auto kBytesReceived = read(file_socket_, buffer.data(), username_length);
+
+    if (kBytesReceived != username_length) {
         perror(__func__);  // NOLINT
         return false;
     }
@@ -156,5 +171,6 @@ void dropbox::ClientHandler::CreateUserFolder() {
 
 dropbox::ClientHandler::~ClientHandler() {
     std::cout << username_ << " disconnected" << std::endl;  // NOLINT
-    close(socket_);
+    close(header_socket_);
+    close(file_socket_);
 }

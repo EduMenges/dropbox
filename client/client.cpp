@@ -11,37 +11,49 @@
 #include "utils.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
-    : username_(std::move(username)), server_socket_(socket(kDomain, kType, kProtocol)) {
-    if (this->server_socket_ == -1) {
+     : username_(std::move(username)),
+      header_socket_(socket(kDomain, kType, kProtocol)),
+      file_socket_(socket(kDomain, kType, kProtocol)) {
+    if (header_socket_ == -1 || file_socket_ == -1) {
         throw SocketCreation();
     }
 
     const sockaddr_in kServerAddress = {kFamily, htons(port), inet_addr(server_ip_address)};
 
-    if (connect(server_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
+    if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
+        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
         throw Connecting();
     }
+
+    he_.SetSocket(header_socket_);
+    fe_.SetSocket(file_socket_);
+    de_.SetSocket(file_socket_);
 
     if (!SendUsername()) {
         throw Username();
     }
-
-    he_.SetSocket(server_socket_);
-    fe_.SetSocket(server_socket_);
-    de_.SetSocket(server_socket_);
 }
 
-int dropbox::Client::GetSocket() const { return server_socket_; }
-
 bool dropbox::Client::SendUsername() {
-    const auto kBytesSent = write(server_socket_, username_.data(), username_.size() + 1);
+    if (!he_.SetCommand(Command::USERNAME).Send()) {
+        return false;
+    }
+
+    // Sending name's length
+    size_t username_length = username_.length() + 1;
+    if (write(file_socket_, &username_length, sizeof(username_length)) != sizeof(username_length)) {
+        perror(__func__);
+        return false;
+    }
+
+    const auto kBytesSent = write(file_socket_, username_.c_str(), username_length);
 
     if (kBytesSent == -1) {
         perror(__func__);
         return false;
     }
 
-    return kBytesSent == username_.size() + 1;
+    return kBytesSent == username_length;
 }
 
 bool dropbox::Client::Upload(std::filesystem::path &&path) {
@@ -98,6 +110,9 @@ bool dropbox::Client::GetSyncDir() {
     return fe_.Receive();
 }
 
-dropbox::Client::~Client() { close(server_socket_); }
+dropbox::Client::~Client() {
+    close(header_socket_);
+    close(file_socket_);
+}
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }

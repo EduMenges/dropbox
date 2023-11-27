@@ -63,8 +63,6 @@ std::string dropbox::UserInput::GetQueue() {
 }
 
 void dropbox::UserInput::HandleCommand(Command command) {
-    HeaderExchange he(client_.GetSocket(), command);
-
     switch (command) {
         case Command::UPLOAD:
             if (!input_path_.empty()) {
