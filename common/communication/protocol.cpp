@@ -78,6 +78,7 @@ bool dropbox::FileExchange::Receive() {
 
     // Receiving file size
     uintmax_t remaining_size = 0;
+
     if (read(socket_, &remaining_size, sizeof(remaining_size)) < sizeof(remaining_size)) {
         perror(__func__);
         return false;
@@ -101,7 +102,10 @@ bool dropbox::FileExchange::Receive() {
 bool dropbox::EntryExchange::ReceivePath() {
     static std::array<char, PATH_MAX> received_path;
 
-    const auto kBytesReceived = read(socket_, received_path.data(), received_path.size());
+    size_t path_len = 0;
+    read(socket_, &path_len, sizeof(path_len));
+
+    const auto kBytesReceived = read(socket_, received_path.data(), path_len);
 
     if (kBytesReceived == kInvalidRead) {
         perror(__func__);
@@ -115,6 +119,8 @@ bool dropbox::EntryExchange::ReceivePath() {
 
 bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) const {
     auto path_len = strlen(path.c_str()) + 1;
+
+    write(socket_, &path_len, sizeof(path_len));
 
     const auto kBytesSent = write(socket_, path.c_str(), path_len);
 

@@ -11,7 +11,7 @@
 #include "utils.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
-     : username_(std::move(username)),
+    : username_(std::move(username)),
       header_socket_(socket(kDomain, kType, kProtocol)),
       file_socket_(socket(kDomain, kType, kProtocol)) {
     if (header_socket_ == -1 || file_socket_ == -1) {
@@ -102,19 +102,17 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 }
 
 bool dropbox::Client::GetSyncDir() {
-    if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
-        return false;
-    }
-
-    // cria/reseta diretorio
-    /*try {
+    try {
         if (std::filesystem::exists(SyncDirWithPrefix(username_))) {
             std::filesystem::remove_all(SyncDirWithPrefix(username_));
         }
-        std::filesystem::create_directory(SyncDirWithPrefix(username_));
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         std::cerr << "Error creating directory " << e.what() << '\n';
-    }*/
+    }
+
+    if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
+        return false;
+    }
 
     do {
         if (!he_.Receive()) {
@@ -122,18 +120,16 @@ bool dropbox::Client::GetSyncDir() {
         }
 
         if (he_.GetCommand() == Command::SUCCESS) {
-
-            if ( !fe_.ReceivePath() ) {
-                return false;
-            }
-  
-            if ( !fe_.SetPath(std::move( fe_.GetPath().filename() )).Receive() ) {
+            if (!fe_.ReceivePath()) {
                 return false;
             }
 
+            if (!fe_.Receive()) {
+                return false;
+            }
         }
     } while (he_.GetCommand() == Command::SUCCESS);
-    
+
     return true;
 }
 

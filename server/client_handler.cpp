@@ -71,17 +71,17 @@ void dropbox::ClientHandler::MainLoop() {
                     receiving = false;
                     break;
                 case Command::GET_SYNC_DIR:
-                    if (!sync_) {
+                    //if (!sync_) {
                         if (ReceiveGetSyncDir()) {
                             std::cout << "Starting to listen sync_dir" << '\n';
                             sync_ = true;
                             /*std::thread new_dir_thread(
-                                [](auto username) { 
-                                    Inotify(username).Start(); 
+                                [](auto username) {
+                                    Inotify(username).Start();
                                 }, username_);
                             new_dir_thread.detach();*/
                         }
-                    }
+                    //}
                 default:
                     break;
             }
@@ -134,7 +134,7 @@ bool dropbox::ClientHandler::ReceiveDownload() {
 }
 
 bool dropbox::ClientHandler::ReceiveGetSyncDir() {
-    std::filesystem::path sync_path = SyncDirWithPrefix(username_);
+    const std::filesystem::path        sync_path = SyncDirWithPrefix(username_);
     std::vector<std::filesystem::path> file_names;
 
     try {
@@ -154,14 +154,13 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
             return false;
         }
 
-        if (!fe_.SetPath( sync_path / file_name.filename() ).SendPath()) {
+        if (!fe_.SetPath(sync_path / file_name.filename()).SendPath()) {
             return false;
         }
 
-        if (!fe_.SetPath( sync_path / file_name.filename() ).Send()) {
+        if (!fe_.Send()) {
             return false;
         }
-
     }
 
     return he_.SetCommand(Command::EXIT).Send();
