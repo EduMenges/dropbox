@@ -15,11 +15,14 @@ namespace dropbox {
 enum class Command {
     UPLOAD,        ///< Uploads a file at the root directory.
     DELETE,        ///< Deletes a file at the root directory.
+    USERNAME, ///< Username receiver.
     GET_SYNC_DIR,  ///< Downloads the \c sync_dir directory and starts syncing.
     EXIT,          ///< Ends connection with server
     LIST_CLIENT,   ///< Lists the files from the client
     LIST_SERVER,   ///< Lists the files from the server
     DOWNLOAD,      ///< Downloads a file to the \c cwd.
+    ERROR, ///< An error occurred.
+    SUCCESS ///< Operation was a success.
 };
 
 /// Interface for exchanging information on both sides.
@@ -98,6 +101,9 @@ class FileExchange : public EntryExchange {
     [[nodiscard]] bool Receive() override;
 
    private:
+    /// Max size of a single packet exchange.
+    static constexpr size_t kPacketSize = 64U * 1024U;
+
     /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;
 };
