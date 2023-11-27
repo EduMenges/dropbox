@@ -96,7 +96,11 @@ void dropbox::UserInput::HandleCommand(Command command) {
             }
             break;
         case Command::LIST_SERVER:
+            client_.ListServer();
+            break;
         case Command::LIST_CLIENT:
+            client_.ListClient();
+            break;
         case Command::GET_SYNC_DIR:
             std::cerr << "Result: " << client_.GetSyncDir() << '\n';
             break;

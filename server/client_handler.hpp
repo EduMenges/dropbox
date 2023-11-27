@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "communication/protocol.hpp"
+#include "utils.hpp"
 
 namespace dropbox {
 class ClientHandler {
@@ -28,7 +29,12 @@ class ClientHandler {
     bool ReceiveDelete();
     bool ReceiveGetSyncDir();
 
+    bool ListServer();
+
+    inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
+
    private:
+
     int         header_socket_;
     int         file_socket_;
     std::string username_;

@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <iostream>
 
+#include "constants.hpp"
+
 namespace dropbox {
 
 /// Possible user actions
@@ -99,9 +101,6 @@ class FileExchange : public EntryExchange {
     [[nodiscard]] bool Receive() override;
 
    private:
-    /// Max size of a single packet exchange.
-    static constexpr size_t kPacketSize = 64U * 1024U;
-
     /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;
 };

@@ -9,7 +9,6 @@
 
 #include "constants.hpp"
 
-// Should be safe since it is thread_local
 thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {

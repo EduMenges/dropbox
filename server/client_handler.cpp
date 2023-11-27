@@ -10,6 +10,8 @@
 #include "../common/utils.hpp"
 #include "exceptions.hpp"
 #include "inotify.hpp"
+#include "list_directory.hpp"
+
 
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     : header_socket_(header_socket),
@@ -82,6 +84,9 @@ void dropbox::ClientHandler::MainLoop() {
                             new_dir_thread.detach();*/
                         }
                     //}
+                case Command::LIST_SERVER:
+                    ListServer();
+                    break;
                 default:
                     break;
             }
@@ -180,4 +185,29 @@ dropbox::ClientHandler::~ClientHandler() {
     std::cout << username_ << " disconnected" << std::endl;  // NOLINT
     close(header_socket_);
     close(file_socket_);
+}
+
+bool dropbox::ClientHandler::ListServer() {
+    std::string str_table = ListDirectory(SyncDirPath()).str();
+
+    const size_t kTableSize = str_table.size() + 1;
+
+    if (write(socket_, &kTableSize, sizeof(kTableSize)) == kInvalidWrite) {
+        perror(__func__);
+        return false;
+    }
+
+    size_t total_sent = 0;
+    while (total_sent != kTableSize) {
+        const size_t kBytesToSend = std::min(kPacketSize, kTableSize - total_sent);
+
+        if (write(socket_, str_table.data() + total_sent, kBytesToSend) == kInvalidWrite) {
+            perror(__func__);
+            return false;
+        }
+
+        total_sent += kTableSize;
+    }
+
+    return true;
 }

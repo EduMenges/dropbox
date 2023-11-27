@@ -8,7 +8,7 @@
 
 #include "connections.hpp"
 #include "exceptions.hpp"
-#include "utils.hpp"
+#include "list_directory.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
@@ -61,7 +61,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
         return false;
     }
 
-    if (!fe_.SetPath(SyncDirWithPrefix(username_) / path.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirPath() / path.filename()).SendPath()) {
         return false;
     }
 
@@ -139,3 +139,44 @@ dropbox::Client::~Client() {
 }
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
+
+bool dropbox::Client::ListClient() {
+    auto table = ListDirectory(SyncDirPath());
+
+    table.print(std::cout);
+    std::cout << '\n';
+
+    return true;
+}
+
+bool dropbox::Client::ListServer() {
+    static thread_local std::array<char, kPacketSize> buffer;
+
+    if (!he_.SetCommand(Command::LIST_SERVER).Send()) {
+        return false;
+    }
+
+    size_t remaining_size = 0;
+
+    if (read(server_socket_, &remaining_size, sizeof(remaining_size)) == kInvalidRead) {
+        perror(__func__);
+        return false;
+    }
+
+    while (remaining_size != 0) {
+        const size_t kBytesToRead = std::min(remaining_size, kPacketSize);
+
+        const ssize_t kBytesRead = read(server_socket_, buffer.data(), kBytesToRead);
+
+        if (kBytesRead == kInvalidRead) {
+            perror(__func__);
+            return false;
+        }
+
+        remaining_size -= kBytesRead;
+        std::cout << buffer.data();
+    }
+    std::cout << '\n';
+
+    return true;
+}
