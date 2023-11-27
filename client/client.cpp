@@ -158,7 +158,7 @@ bool dropbox::Client::ListServer() {
 
     size_t remaining_size = 0;
 
-    if (read(server_socket_, &remaining_size, sizeof(remaining_size)) == kInvalidRead) {
+    if (read(header_socket_, &remaining_size, sizeof(remaining_size)) == kInvalidRead) {
         perror(__func__);
         return false;
     }
@@ -166,7 +166,7 @@ bool dropbox::Client::ListServer() {
     while (remaining_size != 0) {
         const size_t kBytesToRead = std::min(remaining_size, kPacketSize);
 
-        const ssize_t kBytesRead = read(server_socket_, buffer.data(), kBytesToRead);
+        const ssize_t kBytesRead = read(header_socket_, buffer.data(), kBytesToRead);
 
         if (kBytesRead == kInvalidRead) {
             perror(__func__);
