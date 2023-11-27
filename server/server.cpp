@@ -36,11 +36,21 @@ dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType,
             if (kFileSocket == kInvalidSocket) {
                 close(kHeaderSocket);
             }
+
             std::cerr << "Could not accept new client connection.\n";
         } else {
             std::thread new_client_thread(
-                [](int header_socket, int file_socket) { ClientHandler(header_socket, file_socket).MainLoop(); },
+                [](int header_socket, int file_socket) {
+                    try {
+                        ClientHandler(header_socket, file_socket).MainLoop();
+                    } catch (std::exception& e) {
+                        std::cerr << e.what() << std::endl;  // NOLINT
+                        close(header_socket);
+                        close(file_socket);
+                    }
+                },
                 kHeaderSocket, kFileSocket);
+
             new_client_thread.detach();
         }
     }
