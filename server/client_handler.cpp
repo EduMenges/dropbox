@@ -75,8 +75,11 @@ void dropbox::ClientHandler::MainLoop() {
                         if (ReceiveGetSyncDir()) {
                             std::cout << "Starting to listen sync_dir" << '\n';
                             sync_ = true;
-                            std::thread new_dir_thread([]() { Inotify().Start(); });
-                            new_dir_thread.detach();
+                            /*std::thread new_dir_thread(
+                                [](auto username) { 
+                                    Inotify(username).Start(); 
+                                }, username_);
+                            new_dir_thread.detach();*/
                         }
                     }
                 default:
@@ -131,24 +134,13 @@ bool dropbox::ClientHandler::ReceiveDownload() {
 }
 
 bool dropbox::ClientHandler::ReceiveGetSyncDir() {
-    std::filesystem::path              path(".");
+    std::filesystem::path sync_path = SyncDirWithPrefix(username_);
     std::vector<std::filesystem::path> file_names;
 
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        for (const auto& entry : std::filesystem::directory_iterator(sync_path)) {
             if (std::filesystem::is_regular_file(entry.path())) {
                 file_names.push_back(entry.path().filename());
-            }
-        }
-
-        for (const auto& file_name : file_names) {
-            std::cout << file_name << '\n';
-
-            if (!fe_.SetPath(file_name.filename()).SendPath()) {
-                return false;
-            }
-            if (!fe_.Send()) {
-                return false;
             }
         }
     } catch (const std::filesystem::filesystem_error& e) {
@@ -156,7 +148,23 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
         return false;
     }
 
-    return true;
+    for (const auto& file_name : file_names) {
+        std::cout << file_name << '\n';
+        if (!he_.SetCommand(Command::SUCCESS).Send()) {
+            return false;
+        }
+
+        if (!fe_.SetPath( sync_path / file_name.filename() ).SendPath()) {
+            return false;
+        }
+
+        if (!fe_.SetPath( sync_path / file_name.filename() ).Send()) {
+            return false;
+        }
+
+    }
+
+    return he_.SetCommand(Command::EXIT).Send();
 }
 
 void dropbox::ClientHandler::CreateUserFolder() {

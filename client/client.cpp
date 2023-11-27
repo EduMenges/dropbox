@@ -106,8 +106,25 @@ bool dropbox::Client::GetSyncDir() {
         return false;
     }
 
-    // quebrando aqui..
-    return fe_.Receive();
+    do {
+        if (!he_.Receive()) {
+            return false;
+        }
+
+        if (he_.GetCommand() == Command::SUCCESS) {
+
+            if ( !fe_.ReceivePath() ) {
+                return false;
+            }
+  
+            if ( !fe_.SetPath(std::move( fe_.GetPath().filename() )).Receive() ) {
+                return false;
+            }
+
+        }
+    } while (he_.GetCommand() == Command::SUCCESS);
+    
+    return true;
 }
 
 dropbox::Client::~Client() {

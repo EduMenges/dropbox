@@ -10,7 +10,7 @@
 namespace dropbox{
     class Inotify {
         public:
-            Inotify();
+            Inotify(const std::string& username);
 
             void Start();
             void Stop();

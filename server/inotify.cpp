@@ -1,4 +1,5 @@
 #include "inotify.hpp"
+#include "../common/utils.hpp"
 
 #include <iostream>
 #include <unistd.h>
@@ -10,8 +11,8 @@
 // The fcntl() function is used so that when we read using the fd descriptor, the thread will not be blocked.
 #include <fcntl.h>
 
-dropbox::Inotify::Inotify() : i_(0), watching_(false){
-    watch_path_ = ".";
+dropbox::Inotify::Inotify(const std::string& username) : i_(0), watching_(false){
+    watch_path_ = SyncDirWithPrefix(username);
 
     fd_ = inotify_init();
 
