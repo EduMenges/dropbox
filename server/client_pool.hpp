@@ -1,3 +1,19 @@
 #pragma once
 
-// Isso aqui vai ser a estrutura pra gerenciar os múltiplos clientes
+#include <string>
+#include <unordered_map>
+
+#include "client_aggregate.hpp"
+
+namespace dropbox {
+class ClientPool {
+   public:
+    ClientPool()                        = default;
+    ~ClientPool()                       = default;
+    ClientPool(const ClientPool& other) = delete;
+    ClientPool(ClientPool&& other)      = default;
+
+   private:
+    std::unordered_map<std::string, ClientAggregate> clients_;
+};
+}
