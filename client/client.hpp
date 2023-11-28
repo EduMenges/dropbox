@@ -31,6 +31,7 @@ class Client {
     bool ListServer();
 
     bool Download(std::filesystem::path&& file_name);
+
     bool Delete(std::filesystem::path&& file_name);
 
     bool Exit();

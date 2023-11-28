@@ -12,24 +12,25 @@
 thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
-    auto bytes_sent = write(socket_, &this->command_, sizeof(this->command_));
+    auto bytes_sent = write(socket_, &command_, sizeof(command_));
 
-    if (bytes_sent == kInvalidWrite) {
+    if (bytes_sent != sizeof(command_)) {
         perror(__func__);
+        return false;
     }
 
-    return bytes_sent == sizeof(this->command_);
+    return true;
 }
 
 bool dropbox::HeaderExchange::Receive() {
     const ssize_t kBytesRead = read(socket_, &command_, sizeof(command_));
 
-    if (kBytesRead == kInvalidRead) {
+    if (kBytesRead != sizeof(command_)) {
         perror(__func__);
         return false;
     }
 
-    return kBytesRead == sizeof(command_);
+    return true;
 }
 
 bool dropbox::FileExchange::Send() {
@@ -43,7 +44,7 @@ bool dropbox::FileExchange::Send() {
 
     // Sending size
     uintmax_t file_size = std::filesystem::file_size(path_);
-    if (write(socket_, &file_size, sizeof(file_size)) < sizeof(file_size)) {
+    if (write(socket_, &file_size, sizeof(file_size)) != sizeof(file_size)) {
         perror(__func__);
         return false;
     }
@@ -52,7 +53,7 @@ bool dropbox::FileExchange::Send() {
         const auto    kBytesRead = file.read(buffer.data(), kPacketSize).gcount();
         const ssize_t kBytesSent = write(socket_, buffer.data(), kBytesRead);
 
-        if (kBytesSent < kBytesRead) {
+        if (kBytesSent != kBytesRead) {
             return false;
         }
     } while (!file.eof());
@@ -98,15 +99,29 @@ bool dropbox::FileExchange::Receive() {
     return true;
 }
 
+bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) const {
+    const size_t kPathLen = strlen(path.c_str()) + 1;
+    write(socket_, &kPathLen, sizeof(kPathLen));
+
+    const auto kBytesSent = write(socket_, path.c_str(), kPathLen);
+
+    if (kBytesSent != kPathLen) {
+        perror(__func__);
+        return false;
+    }
+
+    return true;
+}
+
 bool dropbox::EntryExchange::ReceivePath() {
-    static std::array<char, PATH_MAX> received_path;
+    static thread_local std::array<char, PATH_MAX> received_path;
 
     size_t path_len = 0;
     read(socket_, &path_len, sizeof(path_len));
 
-    const auto kBytesReceived = read(socket_, received_path.data(), path_len);
+    const ssize_t kBytesReceived = read(socket_, received_path.data(), path_len);
 
-    if (kBytesReceived == kInvalidRead) {
+    if (kBytesReceived != path_len) {
         perror(__func__);
         return false;
     }
@@ -114,21 +129,6 @@ bool dropbox::EntryExchange::ReceivePath() {
     path_ = received_path.data();
 
     return true;
-}
-
-bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) const {
-    auto path_len = strlen(path.c_str()) + 1;
-
-    write(socket_, &path_len, sizeof(path_len));
-
-    const auto kBytesSent = write(socket_, path.c_str(), path_len);
-
-    if (kBytesSent == kInvalidWrite) {
-        perror(__func__);
-        return false;
-    }
-
-    return kBytesSent == strlen(path.c_str()) + 1;
 }
 
 bool dropbox::DirectoryExchange::Send() {

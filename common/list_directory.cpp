@@ -28,6 +28,7 @@ static tabulate::Table::Row_t RowFromEntry(const fs::directory_entry& entry) {
     return tabulate::Table::Row_t({entry.path().filename(), ReadableTimePoint(kLastWriteTime),
                                    ReadableTimePoint(kLastAccessTime), ReadableTimePoint(kCreationTime)});
 }
+
 }
 
 tabulate::Table dropbox::ListDirectory(const std::filesystem::path& path) {
