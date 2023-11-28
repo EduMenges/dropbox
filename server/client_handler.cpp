@@ -18,8 +18,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
       file_socket_(file_socket),
       he_(header_socket),
       fe_(file_socket),
-      de_(file_socket),
-      sync_(false) {
+      de_(file_socket) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -31,11 +30,12 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     ReceiveGetSyncDir();
 
     // Começa a escutar o diretorio
-    //inotify_server_thread = std::thread(
-    //    [](auto username) {
-    //        Inotify(username).Start();
-    //    }, username_);
-    //inotify_server_thread.detach();
+    inotify_server_thread_ = std::thread(
+        [](auto username) {
+            Inotify inotify(username);
+            inotify.Start();
+            // A ideia é fazer .Stop no inicio do upload e .Start dps do Receive
+        }, username_);
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
 }
@@ -187,6 +187,10 @@ void dropbox::ClientHandler::CreateUserFolder() {
 
 dropbox::ClientHandler::~ClientHandler() {
     std::cout << username_ << " disconnected" << std::endl;  // NOLINT
+
+    if (inotify_server_thread_.joinable()) {
+        inotify_server_thread_.join();
+    }
 
     close(header_socket_);
     close(file_socket_);

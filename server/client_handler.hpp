@@ -6,6 +6,7 @@
 
 #include "communication/protocol.hpp"
 #include "utils.hpp"
+#include "inotify.hpp"
 
 namespace dropbox {
 class ClientHandler {
@@ -45,8 +46,6 @@ class ClientHandler {
     FileExchange      fe_;
     DirectoryExchange de_;
 
-    std::thread inotify_server_thread;
-
-    bool sync_;
+    std::thread inotify_server_thread_;
 };
 }
