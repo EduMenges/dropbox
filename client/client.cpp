@@ -106,9 +106,9 @@ bool dropbox::Client::GetSyncDir() {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }
 
-    if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
-        return false;
-    }
+    //if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
+    //    return false;
+    //}
 
     do {
         if (!he_.Receive()) {

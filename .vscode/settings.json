@@ -51,7 +51,8 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "thread": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "variant": "cpp"
     },
     "cmake.configureOnOpen": true,
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",

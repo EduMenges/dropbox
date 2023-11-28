@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <thread>
+
 #include "communication/protocol.hpp"
 #include "utils.hpp"
 
@@ -42,6 +44,8 @@ class ClientHandler {
     HeaderExchange    he_;
     FileExchange      fe_;
     DirectoryExchange de_;
+
+    std::thread inotify_server_thread;
 
     bool sync_;
 };

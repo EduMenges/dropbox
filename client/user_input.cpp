@@ -15,6 +15,8 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
                     {"list_client", Command::LIST_CLIENT},
                     {"get_sync_dir", Command::GET_SYNC_DIR},
                     {"exit", Command::EXIT}};
+
+    client_.GetSyncDir();
 }
 
 void dropbox::UserInput::Start() {

@@ -24,7 +24,18 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
         throw Username();
     }
 
+    // Cria diretorio no servidor
     CreateUserFolder();
+
+    // Puxa o diretorio para a maquina do client
+    ReceiveGetSyncDir();
+
+    // Começa a escutar o diretorio
+    //inotify_server_thread = std::thread(
+    //    [](auto username) {
+    //        Inotify(username).Start();
+    //    }, username_);
+    //inotify_server_thread.detach();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
 }
@@ -73,19 +84,10 @@ void dropbox::ClientHandler::MainLoop() {
                     receiving = false;
                     break;
                 case Command::GET_SYNC_DIR:
-                    ReceiveGetSyncDir();
+                    //if (ReceiveGetSyncDir()) {
+                    //    std::cout << "Starting to listen " << SyncDirWithPrefix(username_) << " (server side)" << '\n';
+                    //}    
                     break;
-                    //if (!sync_) {
-                        //if (ReceiveGetSyncDir()) {
-                            //std::cout << "Starting to listen sync_dir (server side)" << '\n';
-                            //sync_ = true;
-                            //std::thread inotify_server_thread(
-                            //    [](auto username) {
-                            //        Inotify(username).Start();
-                            //    }, username_);
-                            //inotify_server_thread.detach();
-                        //}
-                    //}
                 case Command::LIST_SERVER:
                     ListServer();
                     break;
@@ -156,7 +158,7 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
     }
 
     for (const auto& file_name : file_names) {
-        std::cout << file_name << '\n';
+        //std::cout << file_name << '\n';
         if (!he_.SetCommand(Command::SUCCESS).Send()) {
             return false;
         }
