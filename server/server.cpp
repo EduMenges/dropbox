@@ -8,7 +8,7 @@
 #include "constants.hpp"
 #include "exceptions.hpp"
 
-dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType, 0)) {
+dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType, 0)), client_pool_() {
     if (kReceiverSocket == kInvalidSocket) {
         throw SocketCreation();
     }
@@ -38,21 +38,24 @@ dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType,
             }
 
             std::cerr << "Could not accept new client connection.\n";
-        } else {
-            std::thread new_client_thread(
-                [](int header_socket, int file_socket) {
-                    try {
-                        ClientHandler(header_socket, file_socket).MainLoop();
-                    } catch (std::exception& e) {
-                        std::cerr << e.what() << std::endl;  // NOLINT
-                        close(header_socket);
-                        close(file_socket);
-                    }
-                },
-                kHeaderSocket, kFileSocket);
-
-            new_client_thread.detach();
+            continue;
         }
+
+        std::thread new_client_thread(
+            [](int header_socket, int file_socket, ClientPool& composite) {
+                try {
+                    ClientHandler new_cli(header_socket, file_socket);
+                    composite.Insert(std::move(new_cli));
+
+                } catch (std::exception& e) {
+                    std::cerr << e.what() << std::endl;  // NOLINT
+                    close(header_socket);
+                    close(file_socket);
+                }
+            },
+            kHeaderSocket, kFileSocket, client_pool_);
+
+        new_client_thread.detach();
     }
 }
 

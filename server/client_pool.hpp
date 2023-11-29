@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "client_composition.hpp"
+#include "client_composite.hpp"
 
 namespace dropbox {
 class ClientPool {
@@ -13,7 +13,10 @@ class ClientPool {
     ClientPool(const ClientPool& other) = delete;
     ClientPool(ClientPool&& other)      = default;
 
+    void Insert(ClientHandler&& handler);
+
    private:
-    std::unordered_map<std::string, ClientAggregate> clients_;
+    int                                              TESTE_OLA;
+    std::unordered_map<std::string, ClientComposite> clients_;
 };
 }

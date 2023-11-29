@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-
 #include <thread>
 
 #include "communication/protocol.hpp"
@@ -25,6 +24,10 @@ class ClientHandler {
 
     bool ReceiveUsername();
 
+    const std::string& GetUsername() const {
+        return username_;
+    }
+
     /// RECEIVES an upload from the client.
     bool ReceiveUpload();
     bool ReceiveDownload();
@@ -33,18 +36,15 @@ class ClientHandler {
 
     bool ListServer();
 
-    inline bool operator==(const ClientHandler& other) const noexcept {
-        return socket_ == other.socket_;
-    }
+    [[nodiscard]] inline int GetId() const noexcept { return header_socket_; }
 
-    inline bool operator==(int socket) const noexcept {
-        return socket == socket_;
-    }
+    inline bool operator==(const ClientHandler& other) const noexcept { return GetId() == other.GetId(); }
+
+    inline bool operator==(int socket) const noexcept { return socket == GetId(); }
 
     inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
 
    private:
-
     int         header_socket_;
     int         file_socket_;
     std::string username_;

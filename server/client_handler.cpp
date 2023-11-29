@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include "../common/utils.hpp"
+#include "utils.hpp"
 #include "exceptions.hpp"
 #include "inotify.hpp"
 #include "list_directory.hpp"

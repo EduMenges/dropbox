@@ -2,6 +2,8 @@
 
 #include <netinet/in.h>
 
+#include "client_pool.hpp"
+
 namespace dropbox {
 
 class Server {
@@ -19,6 +21,8 @@ class Server {
 
    private:
     static constexpr int kBacklog = 10;
+
+    ClientPool client_pool_;
 
     const int kReceiverSocket;  // NOLINT
 };
