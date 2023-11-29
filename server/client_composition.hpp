@@ -1,6 +1,7 @@
 #pragma once
 
-#include <forward_list>
+#include <list>
+#include <mutex>
 
 #include "client_handler.hpp"
 
@@ -15,8 +16,14 @@ class ClientAggregate {
 
     ClientAggregate(ClientAggregate&& other) = default;
 
+    bool Insert(ClientHandler&& client);
+
+    void Remove(int id);
+
    private:
     static constexpr size_t          kClientLimit = 2U;
-    std::forward_list<ClientHandler> list_;
+
+    std::mutex mutex_;
+    std::list<ClientHandler> list_;
 };
 }

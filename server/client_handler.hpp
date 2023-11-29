@@ -26,6 +26,14 @@ class ClientHandler {
 
     bool ListServer();
 
+    inline bool operator==(const ClientHandler& other) const noexcept {
+        return socket_ == other.socket_;
+    }
+
+    inline bool operator==(int socket) const noexcept {
+        return socket == socket_;
+    }
+
     inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
 
    private:

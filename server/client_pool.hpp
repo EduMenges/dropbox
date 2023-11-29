@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "client_aggregate.hpp"
+#include "client_composition.hpp"
 
 namespace dropbox {
 class ClientPool {
