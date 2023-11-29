@@ -15,6 +15,8 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
                     {"list_client", Command::LIST_CLIENT},
                     {"get_sync_dir", Command::GET_SYNC_DIR},
                     {"exit", Command::EXIT}};
+
+    client_.GetSyncDir();
 }
 
 void dropbox::UserInput::Start() {
@@ -23,6 +25,7 @@ void dropbox::UserInput::Start() {
     std::thread input_thread_([this]() {  // NOLINT
         while (reading_) {
             std::cout << "$ ";
+            std::cout.flush();
 
             std::string user_input;
             std::getline(std::cin, user_input);
@@ -62,8 +65,6 @@ std::string dropbox::UserInput::GetQueue() {
 }
 
 void dropbox::UserInput::HandleCommand(Command command) {
-    HeaderExchange he(client_.GetSocket(), command);
-
     switch (command) {
         case Command::UPLOAD:
             if (!input_path_.empty()) {
@@ -82,25 +83,16 @@ void dropbox::UserInput::HandleCommand(Command command) {
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
-                client_.Download(std::move(path));
+                std::cerr << "Result: " << client_.Download(std::move(path)) << '\n';
             } else {
                 std::cerr << "Missing path\n";
             }
             break;
-
         case Command::DELETE:
             if (!input_path_.empty()) {
-                if (he.Send()) {
-                    FileExchange fe(client_.GetSocket());
-                    fe.SetPath(input_path_);
-                    if (fe.SendPath()) {
-                        std::cout << "DELETE: " << input_path_ << "\n";
-                    } else {
-                        std::cerr << "Failed to send path.\n";
-                    }
-                } else {
-                    std::cerr << "Failed to send command.\n";
-                }
+                std::filesystem::path path(input_path_);
+
+                std::cerr << "Result: " << client_.Delete(std::move(path)) << '\n';
             } else {
                 std::cerr << "Missing path.\n";
             }
@@ -112,6 +104,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
             client_.ListClient();
             break;
         case Command::GET_SYNC_DIR:
+            //std::cerr << "Result: " << client_.GetSyncDir() << '\n';
             break;
         case Command::EXIT:
             client_.Exit();

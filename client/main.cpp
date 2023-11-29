@@ -12,7 +12,7 @@ enum ArgV : size_t { EXECUTION_PATH [[maybe_unused]] = 0U, USER_NAME, SERVER_IP_
 using dropbox::ArgV;
 using enum ArgV;
 
-int main(int argc, char *argv[]) {  // NOLINT
+int main(int argc, char* argv[]) {  // NOLINT
     const bool kHasAllParameters = static_cast<ArgV>(argc) != TOTAL;
     if (kHasAllParameters) {
         std::cerr << "Usage: <username> <server_ip_address> <port>\n";
@@ -25,10 +25,11 @@ int main(int argc, char *argv[]) {  // NOLINT
     const bool kSuccessOnConversion = ec == std::errc();
     if (kSuccessOnConversion) {
         try {
-        dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
+            dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
 
-        dropbox::UserInput input_reader(std::move(client));
-        input_reader.Start();} catch (std::exception& e) {
+            dropbox::UserInput input_reader(std::move(client));
+            input_reader.Start();
+        } catch (std::exception& e) {
             std::cerr << e.what() << '\n';
             perror(__func__);
         }

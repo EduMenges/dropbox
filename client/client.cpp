@@ -11,37 +11,49 @@
 #include "list_directory.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
-    : username_(std::move(username)), server_socket_(socket(kDomain, kType, kProtocol)) {
-    if (this->server_socket_ == -1) {
+    : username_(std::move(username)),
+      header_socket_(socket(kDomain, kType, kProtocol)),
+      file_socket_(socket(kDomain, kType, kProtocol)) {
+    if (header_socket_ == kInvalidSocket || file_socket_ == kInvalidSocket) {
         throw SocketCreation();
     }
 
     const sockaddr_in kServerAddress = {kFamily, htons(port), inet_addr(server_ip_address)};
 
-    if (connect(server_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
+    if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
+        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
         throw Connecting();
     }
+
+    he_.SetSocket(header_socket_);
+    fe_.SetSocket(file_socket_);
+    de_.SetSocket(file_socket_);
 
     if (!SendUsername()) {
         throw Username();
     }
-
-    he_.SetSocket(server_socket_);
-    fe_.SetSocket(server_socket_);
-    de_.SetSocket(server_socket_);
 }
 
-int dropbox::Client::GetSocket() const { return server_socket_; }
-
 bool dropbox::Client::SendUsername() {
-    auto kBytesSent = write(server_socket_, username_.data(), username_.size());
+    if (!he_.SetCommand(Command::USERNAME).Send()) {
+        return false;
+    }
 
-    if (kBytesSent == -1) {
+    // Sending name's length
+    size_t username_length = username_.length() + 1;
+    if (write(file_socket_, &username_length, sizeof(username_length)) != sizeof(username_length)) {
         perror(__func__);
         return false;
     }
 
-    return kBytesSent == username_.size();
+    const auto kBytesSent = write(file_socket_, username_.c_str(), username_length);
+
+    if (kBytesSent != username_length) {
+        perror(__func__);
+        return false;
+    }
+
+    return true;
 }
 
 bool dropbox::Client::Upload(std::filesystem::path &&path) {
@@ -56,13 +68,70 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
     return fe_.SetPath(std::move(path)).Send();
 }
 
-bool dropbox::Client::Download(std::filesystem::path &&file_name) { return false; }
+bool dropbox::Client::Delete(std::filesystem::path &&file_path) {
+    if (!he_.SetCommand(Command::DELETE).Send()) {
+        return false;
+    }
 
-dropbox::Client::~Client() { close(server_socket_); }
+    return fe_.SetPath(SyncDirWithPrefix(username_) / std::move(file_path).filename()).SendPath();
+}
+
+bool dropbox::Client::Download(std::filesystem::path &&file_name) {
+    if (!he_.SetCommand(Command::DOWNLOAD).Send()) {
+        return false;
+    }
+
+    if (!fe_.SetPath(SyncDirWithPrefix(username_) / file_name.filename()).SendPath()) {
+        return false;
+    }
+
+    if (!he_.Receive()) {
+        return false;
+    }
+
+    if (he_.GetCommand() == Command::ERROR) {
+        std::cerr << "File not found on the server ";
+        return true;
+    }
+
+    return fe_.SetPath(std::move(file_name).filename()).Receive();
+}
 
 bool dropbox::Client::GetSyncDir() {
-    /// @todo This.
-    return false;
+    try {
+        if (std::filesystem::exists(SyncDirWithPrefix(username_))) {
+            std::filesystem::remove_all(SyncDirWithPrefix(username_));
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Error creating directory " << e.what() << '\n';
+    }
+
+    //if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
+    //    return false;
+    //}
+
+    do {
+        if (!he_.Receive()) {
+            return false;
+        }
+
+        if (he_.GetCommand() == Command::SUCCESS) {
+            if (!fe_.ReceivePath()) {
+                return false;
+            }
+
+            if (!fe_.Receive()) {
+                return false;
+            }
+        }
+    } while (he_.GetCommand() == Command::SUCCESS);
+
+    return true;
+}
+
+dropbox::Client::~Client() {
+    close(header_socket_);
+    close(file_socket_);
 }
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
@@ -85,7 +154,7 @@ bool dropbox::Client::ListServer() {
 
     size_t remaining_size = 0;
 
-    if (read(server_socket_, &remaining_size, sizeof(remaining_size)) == kInvalidRead) {
+    if (read(header_socket_, &remaining_size, sizeof(remaining_size)) == kInvalidRead) {
         perror(__func__);
         return false;
     }
@@ -93,7 +162,7 @@ bool dropbox::Client::ListServer() {
     while (remaining_size != 0) {
         const size_t kBytesToRead = std::min(remaining_size, kPacketSize);
 
-        const ssize_t kBytesRead = read(server_socket_, buffer.data(), kBytesToRead);
+        const ssize_t kBytesRead = read(header_socket_, buffer.data(), kBytesToRead);
 
         if (kBytesRead == kInvalidRead) {
             perror(__func__);

@@ -22,8 +22,6 @@ class Client {
 
     ~Client();
 
-    [[nodiscard]] int GetSocket() const;
-
     bool SendUsername();
 
     bool GetSyncDir();
@@ -33,6 +31,8 @@ class Client {
     bool ListServer();
 
     bool Download(std::filesystem::path&& file_name);
+
+    bool Delete(std::filesystem::path&& file_name);
 
     bool Exit();
 
@@ -46,7 +46,8 @@ class Client {
 
    private:
     std::string username_;       ///< User's name, used as an identifier.
-    int         server_socket_;  ///< Socket to communicate with the server.
+    int         header_socket_;  ///< Socket to exchange headers.
+    int         file_socket_;    ///< Socket to exchange files.
 
     HeaderExchange    he_;
     FileExchange      fe_;

@@ -6,18 +6,18 @@ O objetivo é implementar um clone do Dropbox, que faz sincronização dos arqui
 # Objetivos
 
 - [x] Estrutura de comunicação
-- [ ] Receber os comandos
+- [X] Receber os comandos
   - [X] Cliente
-  - [ ] Servidor
-- [ ] `get_sync_dir`
-  - [ ] Cliente
-  - [ ] Servidor
+  - [X] Servidor
+- [x] `get_sync_dir`
+  - [x] Cliente
+  - [x] Servidor
 - [X] `exit`
 - [X] Comandos de listar arquivos (na common)
 - [ ] Certificar de que há, no máximo, dois clientes com o mesmo user name
-- [ ] Comandos de modificar arquivos
+- [X] Comandos de modificar arquivos
   - [X] `upload`
-  - [ ] `download`
-  - [ ] `delete`
+  - [X] `download`
+  - [X] `delete`
 - [ ] Sincronização automática com o explorador de arquivos do OS
 - [ ] Relatório
