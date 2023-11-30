@@ -16,7 +16,7 @@ class ClientHandler {
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
 
-    ClientHandler(ClientHandler&& other) = default;
+    ClientHandler(ClientHandler&& other);
 
     ~ClientHandler();
 

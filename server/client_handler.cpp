@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <vector>
+#include <utility>
 
 #include "exceptions.hpp"
 #include "inotify.hpp"
@@ -29,6 +30,15 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     //        Inotify(username).Start();
     //    }, username_);
     // inotify_server_thread.detach();
+}
+
+dropbox::ClientHandler::ClientHandler(ClientHandler&& other)
+: composite_(std::exchange(other.composite_, nullptr)),
+    file_socket_(std::exchange(other.file_socket_, -1)),
+    header_socket_(std::exchange(other.header_socket_, -1)),
+    username_(std::exchange(other.username_, "NULL"))
+{
+    std::cout << "moved" << std::endl;
 }
 
 bool dropbox::ClientHandler::ReceiveUsername() {
@@ -88,8 +98,6 @@ void dropbox::ClientHandler::MainLoop() {
             }
         }
     }
-
-    composite_->Remove(GetId());
 }
 
 bool dropbox::ClientHandler::ReceiveUpload() {
@@ -184,6 +192,8 @@ dropbox::ClientHandler::~ClientHandler() {
 
     close(header_socket_);
     close(file_socket_);
+
+    composite_->Remove(GetId());
 }
 
 bool dropbox::ClientHandler::ListServer() {
