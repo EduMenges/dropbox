@@ -17,7 +17,7 @@ class Server {
 
     ~Server();
 
-    [[noreturn]] void MainLoop() const;
+    [[noreturn]] void MainLoop();
 
    private:
     static constexpr int kBacklog = 10;

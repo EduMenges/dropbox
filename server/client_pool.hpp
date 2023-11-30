@@ -9,14 +9,20 @@ namespace dropbox {
 class ClientPool {
    public:
     ClientPool()                        = default;
+
     ~ClientPool()                       = default;
+
     ClientPool(const ClientPool& other) = delete;
+
     ClientPool(ClientPool&& other)      = default;
 
-    void Insert(ClientHandler&& handler);
+    inline dropbox::ClientHandler& Insert(ClientHandler&& handler) noexcept(false)
+    {
+        handler.SetComposite(&clients_[handler.GetUsername()]);
+        return clients_[handler.GetUsername()].Insert(std::move(handler));
+    }
 
    private:
-    int                                              TESTE_OLA;
     std::unordered_map<std::string, ClientComposite> clients_;
 };
 }

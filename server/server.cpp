@@ -1,5 +1,6 @@
 #include "server.hpp"
 
+#include <functional>
 #include <iostream>
 #include <thread>
 
@@ -24,7 +25,7 @@ dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType,
     }
 }
 
-[[noreturn]] void dropbox::Server::MainLoop() const {
+[[noreturn]] void dropbox::Server::MainLoop() {
     sockaddr_in client_address{};
     socklen_t   client_length = sizeof(client_address);
 
@@ -42,18 +43,16 @@ dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType,
         }
 
         std::thread new_client_thread(
-            [](int header_socket, int file_socket, ClientPool& composite) {
+            [](int header_socket, int file_socket, ClientPool& pool) {
                 try {
-                    ClientHandler new_cli(header_socket, file_socket);
-                    composite.Insert(std::move(new_cli));
-
+                    pool.Insert(ClientHandler(header_socket, file_socket)).MainLoop();
                 } catch (std::exception& e) {
                     std::cerr << e.what() << std::endl;  // NOLINT
                     close(header_socket);
                     close(file_socket);
                 }
             },
-            kHeaderSocket, kFileSocket, client_pool_);
+            kHeaderSocket, kFileSocket, std::ref(client_pool_));
 
         new_client_thread.detach();
     }

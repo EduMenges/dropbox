@@ -27,7 +27,6 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     he_.SetSocket(header_socket_);
     fe_.SetSocket(file_socket_);
-    de_.SetSocket(file_socket_);
 
     if (!SendUsername()) {
         throw Username();

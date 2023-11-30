@@ -51,7 +51,6 @@ class Client {
 
     HeaderExchange    he_;
     FileExchange      fe_;
-    DirectoryExchange de_;
 };
 
 }

@@ -131,15 +131,6 @@ bool dropbox::EntryExchange::ReceivePath() {
     return true;
 }
 
-bool dropbox::DirectoryExchange::Send() {
-    /// @todo This
-    return false;
-}
-bool dropbox::DirectoryExchange::Receive() {
-    /// @todo This
-    return false;
-}
-
 std::ostream& dropbox::operator<<(std::ostream& os, dropbox::Command command) {
     switch (command) {
         case Command::UPLOAD:
