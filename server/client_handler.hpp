@@ -31,7 +31,6 @@ class ClientHandler {
     bool ReceiveDownload();
     bool ReceiveDelete();
     bool ReceiveGetSyncDir();
-
     bool ListServer();
 
     inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
@@ -46,6 +45,7 @@ class ClientHandler {
     FileExchange      fe_;
     DirectoryExchange de_;
 
-    std::thread inotify_server_thread_;
+    Inotify inotify_;
+
 };
 }

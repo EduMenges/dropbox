@@ -7,18 +7,21 @@
 #include <thread>
 #include <vector>
 
+
 #include "../common/utils.hpp"
 #include "exceptions.hpp"
 #include "inotify.hpp"
 #include "list_directory.hpp"
 
+#include "../common/constants.hpp"
 
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     : header_socket_(header_socket),
       file_socket_(file_socket),
       he_(header_socket),
       fe_(file_socket),
-      de_(file_socket) {
+      de_(file_socket),
+      inotify_({}, {}, {}) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -29,13 +32,66 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     // Puxa o diretorio para a maquina do client
     ReceiveGetSyncDir();
 
-    // Começa a escutar o diretorio
-    inotify_server_thread_ = std::thread(
-        [](auto username) {
-            Inotify inotify(username);
-            inotify.Start();
-            // A ideia é fazer .Stop no inicio do upload e .Start dps do Receive
-        }, username_);
+    // Monitora o diretorio
+    /**
+     * NAO FAÇO IDEIA DO PORQUÊ DISSO
+     * mas tu tem que deixar um terminal do wsl aberto no deretorio que
+     * ele vai escutar no windows, no linux nao sei como ta funcionando
+    */
+    inotify_ = Inotify(username_, header_socket, file_socket);
+    std::thread inotify_thread(
+        [this](){
+            inotify_.Start();
+        }
+    );
+    inotify_thread.detach();
+
+    // Thread que ennvia as informações para o client, client recebe essas infos
+    // lá na funcao ReceiveSyncFromServer do client.cpp
+    // Troca os arquivos
+    sem_init(&sem_server_, 0, 1);
+    std::thread file_exchange_thread(
+        [this]() {
+            while (true) {
+                if (!inotify_.inotify_queue_.empty()) {
+                    std::string queue = inotify_.inotify_queue_.front();
+                    inotify_.inotify_queue_.pop();
+
+                    std::istringstream iss(queue);
+
+                    std::string command;
+                    std::string file;
+
+                    iss >> command;
+                    iss >> file;
+
+                    std::cout << "Modificacoes no client -> operacao: " << command << " arquivo: " << file << '\n';
+
+                    sem_wait(&sem_server_);
+                    if (command == "write") {
+                        // Send file to client sync_dir
+                        //
+                        if (!he_.SetCommand(Command::WRITE_DIR).Send()) {
+                            
+                        }
+                        printf("enviei writedir\n");
+                        if (!fe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) {
+                            
+                        }
+
+                        if (!fe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
+                            
+                        }
+
+                    } else if (command == "delete") {
+
+                    }
+                    sem_post(&sem_client_);
+                }   
+            }
+        }
+    );
+    file_exchange_thread.detach();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
 }
@@ -82,11 +138,6 @@ void dropbox::ClientHandler::MainLoop() {
                     break;
                 case Command::EXIT:
                     receiving = false;
-                    break;
-                case Command::GET_SYNC_DIR:
-                    //if (ReceiveGetSyncDir()) {
-                    //    std::cout << "Starting to listen " << SyncDirWithPrefix(username_) << " (server side)" << '\n';
-                    //}    
                     break;
                 case Command::LIST_SERVER:
                     ListServer();
@@ -188,9 +239,11 @@ void dropbox::ClientHandler::CreateUserFolder() {
 dropbox::ClientHandler::~ClientHandler() {
     std::cout << username_ << " disconnected" << std::endl;  // NOLINT
 
-    if (inotify_server_thread_.joinable()) {
-        inotify_server_thread_.join();
-    }
+    //inotify_.Stop();
+
+    //if (inotify_server_thread_.joinable()) {
+    //    inotify_server_thread_.join();
+    //}
 
     close(header_socket_);
     close(file_socket_);

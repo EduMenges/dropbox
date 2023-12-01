@@ -4,8 +4,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <thread>
+
 #include "client.hpp"
 #include "communication/protocol.hpp"
+
+#include "../common/constants.hpp"
 
 dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), client_(std::move(client)) {
     command_map_ = {{"upload", Command::UPLOAD},
@@ -17,6 +21,17 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
                     {"exit", Command::EXIT}};
 
     client_.GetSyncDir();
+
+    // thread para rodar o recebimento de arquivos do servidor
+    // aqui ele de fato criar os arquivos na maquina local toda
+    // vez que o sync_dir do servidor é atualizado
+    sem_init(&sem_client_, 0, 1);
+    std::thread file_exchange_thread(
+        [this]() {
+            client_.ReceiveSyncFromServer();
+        }
+    );
+    file_exchange_thread.detach();
 }
 
 void dropbox::UserInput::Start() {

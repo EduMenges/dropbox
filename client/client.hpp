@@ -36,6 +36,8 @@ class Client {
 
     bool Exit();
 
+    bool ReceiveSyncFromServer();
+
     inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
 
     /**

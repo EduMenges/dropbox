@@ -9,6 +9,7 @@
 #include "connections.hpp"
 #include "exceptions.hpp"
 #include "list_directory.hpp"
+#include "../common/constants.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
@@ -61,7 +62,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
         return false;
     }
 
-    if (!fe_.SetPath(SyncDirPath() / path.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirWithPrefix(username_) / path.filename()).SendPath()) {
         return false;
     }
 
@@ -173,6 +174,35 @@ bool dropbox::Client::ListServer() {
         std::cout << buffer.data();
     }
     std::cout << '\n';
+
+    return true;
+}
+
+// Responsável por receber a informação do servidor, quando o inotify recebe att do diretorio
+// Essa funcao é usada em uma thread dentro do construtor do user_input.cpp (só teste)
+bool dropbox::Client::ReceiveSyncFromServer() {
+    printf("before\n");
+    sem_wait(&sem_client_); // congela aqui
+    printf("after\n");
+    if (!he_.Receive()) {
+        return false;
+    }
+
+    if (he_.GetCommand() == Command::WRITE_DIR) {
+        printf("Servidor enviou para o client modificao de arquivo\n");
+        if (!fe_.ReceivePath()) {
+            return false;
+        }
+
+        if (!fe_.Receive()) {
+            return false;
+        }
+
+        sem_post(&sem_server_);
+
+        return true;
+    }
+
 
     return true;
 }
