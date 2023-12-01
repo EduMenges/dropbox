@@ -19,6 +19,8 @@ class Server {
 
     [[noreturn]] void MainLoop();
 
+    void NewClient(int header_socket, int file_socket);
+
    private:
     static constexpr int kBacklog = 10;
 

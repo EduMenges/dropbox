@@ -16,11 +16,7 @@ class ClientPool {
 
     ClientPool(ClientPool&& other)      = default;
 
-    inline dropbox::ClientHandler& Insert(ClientHandler&& handler) noexcept(false)
-    {
-        handler.SetComposite(&clients_[handler.GetUsername()]);
-        return clients_[handler.GetUsername()].Insert(std::move(handler));
-    }
+    ClientHandler& Insert(ClientHandler&& handler) noexcept(false);
 
    private:
     std::unordered_map<std::string, ClientComposite> clients_;
