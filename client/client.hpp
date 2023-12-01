@@ -51,9 +51,14 @@ class Client {
     int         header_socket_;  ///< Socket to exchange headers.
     int         file_socket_;    ///< Socket to exchange files.
 
+    int         sync_socket_;    ///< Socket only for sync
+
     HeaderExchange    he_;
     FileExchange      fe_;
     DirectoryExchange de_;
+
+    HeaderExchange she_;
+    FileExchange   sfe_;
 };
 
 }

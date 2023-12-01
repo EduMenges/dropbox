@@ -14,6 +14,3 @@ constexpr ssize_t kInvalidRead   = -1;
 /// Max size of a single packet exchange.
 static constexpr size_t kPacketSize = 64U * 1024U;
 }
-
-#include <semaphore>
-static sem_t sem_server_, sem_client_;

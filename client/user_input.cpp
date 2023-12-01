@@ -25,7 +25,6 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
     // thread para rodar o recebimento de arquivos do servidor
     // aqui ele de fato criar os arquivos na maquina local toda
     // vez que o sync_dir do servidor é atualizado
-    sem_init(&sem_client_, 0, 1);
     std::thread file_exchange_thread(
         [this]() {
             client_.ReceiveSyncFromServer();

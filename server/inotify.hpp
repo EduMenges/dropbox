@@ -13,7 +13,7 @@
 namespace dropbox {
 class Inotify {
    public:
-    Inotify(const std::string& username, int header_socket, int file_socket);
+    Inotify(const std::string& username, int sync_socket);
 
     void Start();
     void Stop();
@@ -27,7 +27,7 @@ class Inotify {
     std::string username_;
 
 
-    HeaderExchange    he_;
-    FileExchange      fe_;
+    HeaderExchange    she_;
+    FileExchange      sfe_;
 };
 }

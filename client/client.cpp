@@ -14,7 +14,8 @@
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
       header_socket_(socket(kDomain, kType, kProtocol)),
-      file_socket_(socket(kDomain, kType, kProtocol)) {
+      file_socket_(socket(kDomain, kType, kProtocol)),
+      sync_socket_(socket(kDomain, kType, kProtocol)) {
     if (header_socket_ == kInvalidSocket || file_socket_ == kInvalidSocket) {
         throw SocketCreation();
     }
@@ -22,13 +23,18 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
     const sockaddr_in kServerAddress = {kFamily, htons(port), inet_addr(server_ip_address)};
 
     if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
-        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
+        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
+        connect(sync_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
         throw Connecting();
     }
 
     he_.SetSocket(header_socket_);
     fe_.SetSocket(file_socket_);
     de_.SetSocket(file_socket_);
+
+    she_.SetSocket(sync_socket_);
+    sfe_.SetSocket(sync_socket_);
+
 
     if (!SendUsername()) {
         throw Username();
@@ -133,6 +139,8 @@ bool dropbox::Client::GetSyncDir() {
 dropbox::Client::~Client() {
     close(header_socket_);
     close(file_socket_);
+
+    
 }
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
@@ -181,26 +189,32 @@ bool dropbox::Client::ListServer() {
 // Responsável por receber a informação do servidor, quando o inotify recebe att do diretorio
 // Essa funcao é usada em uma thread dentro do construtor do user_input.cpp (só teste)
 bool dropbox::Client::ReceiveSyncFromServer() {
-    printf("before\n");
-    sem_wait(&sem_client_); // congela aqui
-    printf("after\n");
-    if (!he_.Receive()) {
+    if (!she_.Receive()) {
         return false;
     }
 
-    if (he_.GetCommand() == Command::WRITE_DIR) {
+    if (she_.GetCommand() == Command::WRITE_DIR) {
         printf("Servidor enviou para o client modificao de arquivo\n");
-        if (!fe_.ReceivePath()) {
+        if (!sfe_.ReceivePath()) {
             return false;
         }
 
-        if (!fe_.Receive()) {
+        return sfe_.Receive();
+        
+    } else if (she_.GetCommand() == Command::DELETE_DIR) {
+        printf("Servidor enviou para o client del de arquivo\n");
+        if (!sfe_.ReceivePath()) {
             return false;
         }
 
-        sem_post(&sem_server_);
+        const std::filesystem::path& file_path = sfe_.GetPath();
 
-        return true;
+        if (std::filesystem::exists(file_path)) {
+            std::filesystem::remove(file_path);
+            return true;
+        }
+
+        return false;
     }
 
 

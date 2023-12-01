@@ -15,13 +15,16 @@
 
 #include "../common/constants.hpp"
 
-dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
+dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_socket)
     : header_socket_(header_socket),
       file_socket_(file_socket),
+      sync_socket_(sync_socket),
       he_(header_socket),
       fe_(file_socket),
       de_(file_socket),
-      inotify_({}, {}, {}) {
+      she_(sync_socket),
+      sfe_(sync_socket),
+      inotify_({}, {}) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -38,7 +41,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
      * mas tu tem que deixar um terminal do wsl aberto no deretorio que
      * ele vai escutar no windows, no linux nao sei como ta funcionando
     */
-    inotify_ = Inotify(username_, header_socket, file_socket);
+    inotify_ = Inotify(username_, sync_socket);
     std::thread inotify_thread(
         [this](){
             inotify_.Start();
@@ -49,7 +52,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     // Thread que ennvia as informações para o client, client recebe essas infos
     // lá na funcao ReceiveSyncFromServer do client.cpp
     // Troca os arquivos
-    sem_init(&sem_server_, 0, 1);
     std::thread file_exchange_thread(
         [this]() {
             while (true) {
@@ -67,26 +69,28 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
 
                     std::cout << "Modificacoes no client -> operacao: " << command << " arquivo: " << file << '\n';
 
-                    sem_wait(&sem_server_);
                     if (command == "write") {
                         // Send file to client sync_dir
                         //
-                        if (!he_.SetCommand(Command::WRITE_DIR).Send()) {
+                        if (!she_.SetCommand(Command::WRITE_DIR).Send()) {
                             
                         }
-                        printf("enviei writedir\n");
-                        if (!fe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) {
+                        
+                        if (!sfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) {
                             
                         }
 
-                        if (!fe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
+                        if (!sfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
                             
                         }
 
                     } else if (command == "delete") {
+                        if (!she_.SetCommand(Command::DELETE_DIR).Send()) {
+                            return false;
+                        }
 
+                        return sfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath();
                     }
-                    sem_post(&sem_client_);
                 }   
             }
         }
