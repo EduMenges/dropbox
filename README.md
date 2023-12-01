@@ -14,7 +14,7 @@ O objetivo é implementar um clone do Dropbox, que faz sincronização dos arqui
   - [x] Servidor
 - [X] `exit`
 - [X] Comandos de listar arquivos (na common)
-- [ ] Certificar de que há, no máximo, dois clientes com o mesmo user name
+- [X] Certificar de que há, no máximo, dois clientes com o mesmo user name
 - [X] Comandos de modificar arquivos
   - [X] `upload`
   - [X] `download`

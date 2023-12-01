@@ -26,7 +26,7 @@ class Client {
 
     bool GetSyncDir();
 
-    bool ListClient();
+    bool ListClient() const;
 
     bool ListServer();
 
@@ -51,7 +51,6 @@ class Client {
 
     HeaderExchange    he_;
     FileExchange      fe_;
-    DirectoryExchange de_;
 };
 
 }

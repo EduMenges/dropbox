@@ -27,7 +27,6 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     he_.SetSocket(header_socket_);
     fe_.SetSocket(file_socket_);
-    de_.SetSocket(file_socket_);
 
     if (!SendUsername()) {
         throw Username();
@@ -106,9 +105,9 @@ bool dropbox::Client::GetSyncDir() {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }
 
-    //if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
-    //    return false;
-    //}
+    // if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
+    //     return false;
+    // }
 
     do {
         if (!he_.Receive()) {
@@ -136,7 +135,7 @@ dropbox::Client::~Client() {
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
 
-bool dropbox::Client::ListClient() {
+bool dropbox::Client::ListClient() const {
     auto table = ListDirectory(SyncDirPath());
 
     table.print(std::cout);
