@@ -8,7 +8,6 @@
 #include <iostream>
 
 thread_local std::array<char, dropbox::kPacketSize>    dropbox::FileExchange::buffer;
-thread_local std::array<uint8_t, dropbox::kPacketSize> dropbox::StringExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
     auto bytes_sent = write(socket_, &command_, sizeof(command_));
@@ -129,13 +128,5 @@ bool dropbox::EntryExchange::ReceivePath() {
 
     path_ = received_path.data();
 
-    return true;
-}
-
-bool dropbox::StringExchange::Send() {
-    return false;
-}
-
-bool dropbox::StringExchange::Receive() {
     return true;
 }
