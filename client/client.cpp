@@ -12,9 +12,6 @@
 #include "list_directory.hpp"
 #include "../common/constants.hpp"
 
-#include <semaphore>
-#include "sem.cpp"
-
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
       header_socket_(socket(kDomain, kType, kProtocol)),
