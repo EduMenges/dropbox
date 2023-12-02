@@ -44,7 +44,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
      * ele vai escutar no windows, no linux nao sei como ta funcionando
     */
     inotify_ = Inotify(username_);
-    std::thread inotify_thread(
+    std::thread inotify_thread_(
         [this](){
             inotify_.Start();
         }
@@ -95,7 +95,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
         }
     );
 
-    inotify_thread.detach();
+    inotify_thread_.detach();
     file_exchange_thread.detach();
     sync_thread.detach();
 
@@ -287,7 +287,10 @@ bool dropbox::ClientHandler::ReceiveSyncFromClient() {
         return false;
     }
 
+
     if (cshe_.GetCommand() == Command::WRITE_DIR) {
+        //inotify_.Stop();
+        inotify_.Pause();
         printf("CLIENT -> SERVER: modified\n");
         if (!csfe_.ReceivePath()) {
             return false;
@@ -298,12 +301,21 @@ bool dropbox::ClientHandler::ReceiveSyncFromClient() {
             return false;
         }
 
+        //usleep(1000);
         //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+        //inotify_ = Inotify("arthur");
+        //std::thread inotify_thread_(
+        //    [this]() {
+        //        inotify_.Start();
+        //    }
+        //);
+        //inotify_thread_.detach();
+        inotify_.Resume();
 
         return true;
         
     } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
-        
+        //inotify_.Stop();
         printf("CLIENT -> SERVER: delete\n");
         if (!csfe_.ReceivePath()) {
             return false;
@@ -314,7 +326,15 @@ bool dropbox::ClientHandler::ReceiveSyncFromClient() {
         if (std::filesystem::exists(file_path)) {
             std::filesystem::remove(file_path);
             
+            //usleep(1000);
             //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+            //inotify_ = Inotify("arthur");
+            //std::thread inotify_thread_(
+            //    [this]() {
+            //        inotify_.Start();
+            //    }
+            //);
+            //inotify_thread_.detach();
 
             return true;
         }

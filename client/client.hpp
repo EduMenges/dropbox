@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <thread>
 
 #include "utils.hpp"
 
@@ -67,6 +68,7 @@ class Client {
     FileExchange   csfe_;
 
     Inotify inotify_;
+    std::thread inotify_client_thread_;
 };
 
 }

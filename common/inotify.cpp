@@ -17,7 +17,8 @@
 dropbox::Inotify::Inotify(const std::string &username) 
     : i_(0),
       watching_(false),
-      username_(username) {
+      username_(username),
+      pause_(false) {
 
     watch_path_ = SyncDirWithPrefix(username_);
 
@@ -31,7 +32,7 @@ dropbox::Inotify::Inotify(const std::string &username)
     wd_ = inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE);
 
     if (wd_ == -1) {
-        //std::cerr << "Could not watch: " << watch_path_ << '\n';
+        std::cerr << "Could not watch: " << watch_path_ << '\n';
     } else {
         std::cerr << "Watching: " << watch_path_ << '\n';
     }
@@ -51,7 +52,7 @@ void dropbox::Inotify::Start() {
         }
         
         i_      = 0;  // precisa resetar aqui
-        while (i_ < length_) {
+        while (i_ < length_ && !pause_) {
             struct inotify_event *event = (struct inotify_event *)&buffer_[i_];
             if (event->len) {
                 if (event->mask & IN_CLOSE_WRITE) {
@@ -78,3 +79,5 @@ void dropbox::Inotify::Start() {
 }
 
 void dropbox::Inotify::Stop() { watching_ = false; }
+void dropbox::Inotify::Pause() { pause_ = true; }
+void dropbox::Inotify::Resume() { pause_ = false; }

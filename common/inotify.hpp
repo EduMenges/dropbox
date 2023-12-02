@@ -18,11 +18,14 @@ class Inotify {
 
     void Start();
     void Stop();
+    void Pause();
+    void Resume();
     
     std::vector<std::string> inotify_vector_;
     
    private:
     bool        watching_;
+    bool        pause_;
     int         fd_, wd_;
     int         length_, i_;
     std::string watch_path_;
