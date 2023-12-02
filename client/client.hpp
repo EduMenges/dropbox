@@ -6,8 +6,11 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <thread>
 
 #include "utils.hpp"
+
+#include "../common/inotify.hpp"
 
 namespace dropbox {
 
@@ -73,6 +76,8 @@ class Client {
      */
     bool Exit();
 
+    bool ReceiveSyncFromServer();
+
     /**
      * @return Sync dir path concatenated with the username.
      */
@@ -89,8 +94,22 @@ class Client {
     int         header_socket_;  ///< Socket to exchange headers.
     int         file_socket_;    ///< Socket to exchange files.
 
-    HeaderExchange he_; ///< What to exchange headers (commands) to the server with.
-    FileExchange   fe_; ///< What to exchange files with the server with.
+    int         sync_sc_socket_;    ///< Socket only for sync server -> client
+    int         sync_cs_socket_;    ///< Socket only for sync client -> server
+
+    HeaderExchange    he_; ///< What to exchange headers (commands) to the server with.
+    FileExchange      fe_; ///< What to exchange files with the server with.
+    DirectoryExchange de_;
+
+    HeaderExchange sche_;
+    FileExchange   scfe_;
+
+    HeaderExchange cshe_;
+    FileExchange   csfe_;
+
+    Inotify inotify_;
+    std::thread inotify_client_thread_;
+
 };
 
 }

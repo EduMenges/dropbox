@@ -6,21 +6,23 @@
 #include "communication/protocol.hpp"
 #include "composite_interface.hpp"
 #include "utils.hpp"
+#include "../common/inotify.hpp"
 
 namespace dropbox {
 
 /// Handles one device of a client.
 class ClientHandler {
    public:
-    using id_type = int;
     /**
      * Constructor.
      * @param header_socket Socket to use in header communications.
      * @param file_socket Socket to use in file communications.
      * @pre Both \p header_socket and \p file_socket are initialized and connected to the client.
      */
-    ClientHandler(int header_socket, int file_socket);
+    ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket);
 
+    using id_type = int;
+    
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
 
@@ -67,6 +69,8 @@ class ClientHandler {
      */
     bool ReceiveGetSyncDir();
 
+    bool ReceiveSyncFromClient();
+
     /**
      * Lists all the files on the server side along with their MAC times and sends them.
      * @return Operation status.
@@ -93,18 +97,26 @@ class ClientHandler {
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
-    int header_socket_;  ///< Socket to exchange the header with.
-    int file_socket_;    ///< Socket to exchange files with.
-
-    std::string username_;  ///< Username of the client.
+    int         header_socket_; ///< Socket to exchange the header with.
+    int         file_socket_;   ///< Socket to exchange files with.
+    int         sync_sc_socket_;
+    int         sync_cs_socket_;
+    std::string username_;      ///< Username of the client.
 
     CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
+
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
 
-    std::thread inotify_server_thread;  /// Coisa do Arthur
+    HeaderExchange    sche_;
+    FileExchange      scfe_;
+    HeaderExchange    cshe_;
+    FileExchange      csfe_;
+
+    Inotify inotify_;
 
     bool sync_{};  /// não sei mano
+
 };
 }

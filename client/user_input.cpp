@@ -4,17 +4,27 @@
 #include <iostream>
 #include <sstream>
 
+#include <thread>
+
 #include "client.hpp"
 #include "communication/protocol.hpp"
 
-dropbox::UserInput::UserInput(dropbox::Client&& client) : client_(std::move(client)), reading_(false) {
-    client_.GetSyncDir();
+#include "../common/constants.hpp"
+
+dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), client_(std::move(client)) {
+    command_map_ = {{"upload", Command::UPLOAD},
+                    {"download", Command::DOWNLOAD},
+                    {"delete", Command::DELETE},
+                    {"list_server", Command::LIST_SERVER},
+                    {"list_client", Command::LIST_CLIENT},
+                    {"get_sync_dir", Command::GET_SYNC_DIR},
+                    {"exit", Command::EXIT}};
 }
 
 void dropbox::UserInput::Start() {
     reading_ = true;
 
-    std::thread input_thread_([this]() {  // NOLINT
+    //std::thread input_thread_([this]() {  // NOLINT
         while (reading_) {
             std::cout << "$ ";
             std::cout.flush();
@@ -38,9 +48,9 @@ void dropbox::UserInput::Start() {
             const Command kCommand = CommandFromStr(input_command).value();
             HandleCommand(kCommand);
         }
-    });
+    //});
 
-    input_thread_.join();
+    //input_thread_.join();
 }
 
 void dropbox::UserInput::Stop() { reading_ = false; }
