@@ -55,10 +55,10 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
     std::thread file_exchange_thread(
         [this]() {
             while (true) {
-                if (!inotify_.inotify_queue_.empty()) {
-                    std::string queue = inotify_.inotify_queue_.front();
-                    inotify_.inotify_queue_.pop();
-
+                if (!inotify_.inotify_vector_.empty()) {
+                    //std::string queue = inotify_.GetQueue();
+                    std::string queue = inotify_.inotify_vector_.front();
+                    inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
                     std::istringstream iss(queue);
 
                     std::string command;
@@ -70,19 +70,11 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
                     std::cout << "Modificacoes no client -> operacao: " << command << " arquivo: " << file << '\n';
 
                     if (command == "write") {
-                        // Send file to client sync_dir
-                        //
-                        if (!she_.SetCommand(Command::WRITE_DIR).Send()) {
-                            
-                        }
+                        if (!she_.SetCommand(Command::WRITE_DIR).Send()) { }
                         
-                        if (!sfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) {
-                            
-                        }
+                        if (!sfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
 
-                        if (!sfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
-                            
-                        }
+                        if (!sfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
 
                     } else if (command == "delete") {
                         if (!she_.SetCommand(Command::DELETE_DIR).Send()) {
@@ -243,7 +235,7 @@ void dropbox::ClientHandler::CreateUserFolder() {
 dropbox::ClientHandler::~ClientHandler() {
     std::cout << username_ << " disconnected" << std::endl;  // NOLINT
 
-    //inotify_.Stop();
+    inotify_.Stop();
 
     //if (inotify_server_thread_.joinable()) {
     //    inotify_server_thread_.join();
@@ -251,6 +243,7 @@ dropbox::ClientHandler::~ClientHandler() {
 
     close(header_socket_);
     close(file_socket_);
+    close(sync_socket_);
 }
 
 bool dropbox::ClientHandler::ListServer() {

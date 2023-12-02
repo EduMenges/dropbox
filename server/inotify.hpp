@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <queue>
+#include <vector>
 
 #include "communication/protocol.hpp"
 
@@ -17,8 +18,10 @@ class Inotify {
 
     void Start();
     void Stop();
+    std::string GetQueue();
+    bool isQueueEmpty();
 
-    std::queue<std::string> inotify_queue_;
+    std::vector<std::string> inotify_vector_;
    private:
     bool        watching_;
     int         fd_, wd_;
@@ -26,6 +29,8 @@ class Inotify {
     std::string watch_path_;
     std::string username_;
 
+
+    std::queue<std::string> inotify_queue_;
 
     HeaderExchange    she_;
     FileExchange      sfe_;
