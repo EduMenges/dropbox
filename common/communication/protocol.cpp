@@ -9,7 +9,7 @@
 
 #include "constants.hpp"
 
-thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
+thread_local std::array<char, dropbox::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
     auto bytes_sent = write(socket_, &command_, sizeof(command_));

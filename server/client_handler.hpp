@@ -12,6 +12,7 @@ namespace dropbox {
 /// Handles one device of a client.
 class ClientHandler {
    public:
+    using id_type = int;
     /**
      * Constructor.
      * @param header_socket Socket to use in header communications.
@@ -76,9 +77,11 @@ class ClientHandler {
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
      */
-    [[nodiscard]] inline int GetId() const noexcept { return header_socket_; }
+    [[nodiscard]] inline id_type GetId() const noexcept { return header_socket_; }
 
     inline bool operator==(const ClientHandler& other) const noexcept { return GetId() == other.GetId(); }
+
+    inline bool operator==(id_type id) const noexcept { return GetId() == id; }
 
     /**
      * Getter for the \c sync_dir path.
@@ -90,18 +93,18 @@ class ClientHandler {
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
-    int header_socket_; ///< Socket to exchange the header with.
-    int file_socket_; ///< Socket to exchange files with.
+    int header_socket_;  ///< Socket to exchange the header with.
+    int file_socket_;    ///< Socket to exchange files with.
 
-    std::string username_; ///< Username of the client.
+    std::string username_;  ///< Username of the client.
 
-    CompositeInterface* composite_; ///< Parent composite structure that OWNS this instance.
+    CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
-    HeaderExchange he_; ///< Exchanges headers with the client.
-    FileExchange   fe_; ///< Exchanges files with the client.
+    HeaderExchange he_;  ///< Exchanges headers with the client.
+    FileExchange   fe_;  ///< Exchanges files with the client.
 
-    std::thread inotify_server_thread; /// Coisa do Arthur
+    std::thread inotify_server_thread;  /// Coisa do Arthur
 
-    bool sync_{}; /// não sei mano
+    bool sync_{};  /// não sei mano
 };
 }
