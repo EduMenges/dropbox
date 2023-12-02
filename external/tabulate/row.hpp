@@ -35,7 +35,7 @@ SOFTWARE.
 #include <iostream>
 #include <memory>
 #include <string>
-#include "tabulate/cell.hpp"
+#include "cell.hpp"
 
 #if __cplusplus >= 201703L
 #include <optional>

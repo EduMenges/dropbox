@@ -7,3 +7,4 @@ file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 add_library(utils STATIC ${SOURCE_FILES})
 
 target_include_directories(utils PUBLIC ${PROJECT_SOURCE_DIR})
+target_include_directories(utils PUBLIC ${CMAKE_SOURCE_DIR}/external)

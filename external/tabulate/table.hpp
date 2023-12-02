@@ -32,7 +32,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #pragma once
-#include "tabulate/table_internal.hpp"
+#include "table_internal.hpp"
 
 #if __cplusplus >= 201703L
 #include <string_view>

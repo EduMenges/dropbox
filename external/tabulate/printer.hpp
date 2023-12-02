@@ -35,8 +35,8 @@ SOFTWARE.
 #include <utility>
 #include <vector>
 
-#include "tabulate/color.hpp"
-#include "tabulate/font_style.hpp"
+#include "color.hpp"
+#include "font_style.hpp"
 
 namespace tabulate {
 

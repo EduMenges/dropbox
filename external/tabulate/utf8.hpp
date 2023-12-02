@@ -40,7 +40,7 @@ SOFTWARE.
 #include <locale>
 
 #include <cstdlib>
-#include "tabulate/termcolor.hpp"
+#include "termcolor.hpp"
 #include <wchar.h>
 
 namespace tabulate {

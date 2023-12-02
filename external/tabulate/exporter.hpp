@@ -32,9 +32,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #pragma once
-#include "tabulate/termcolor.hpp"
+#include <string>
+#include "table.hpp"
 
 namespace tabulate {
 
-enum class Color { none, grey, red, green, yellow, blue, magenta, cyan, white };
-}
+class Exporter {
+public:
+  virtual std::string dump(Table &table) = 0;
+  virtual ~Exporter() {}
+};
+
+} // namespace tabulate
