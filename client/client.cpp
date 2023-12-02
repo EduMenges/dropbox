@@ -164,6 +164,7 @@ bool dropbox::Client::GetSyncDir() {
         if (std::filesystem::exists(SyncDirWithPrefix(username_))) {
             std::filesystem::remove_all(SyncDirWithPrefix(username_));
         }
+        std::filesystem::create_directory(SyncDirWithPrefix(username_));
     } catch (const std::exception &e) {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }
