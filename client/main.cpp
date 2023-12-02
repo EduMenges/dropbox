@@ -43,9 +43,8 @@ int main(int argc, char* argv[]) {  // NOLINT
                 }
             );
 
-            sync_thread.join();
             input_thread.join();
-
+            sync_thread.join();
 
         } catch (std::exception& e) {
             std::cerr << e.what() << '\n';

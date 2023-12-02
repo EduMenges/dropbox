@@ -111,12 +111,10 @@ class ClientHandler {
 
     HeaderExchange    sche_;
     FileExchange      scfe_;
+
     HeaderExchange    cshe_;
     FileExchange      csfe_;
 
     Inotify inotify_;
-
-    bool sync_{};  /// não sei mano
-
 };
 }

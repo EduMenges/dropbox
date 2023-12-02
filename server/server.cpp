@@ -30,36 +30,6 @@ dropbox::Server::Server(in_port_t port) : receiver_socket_(socket(kDomain, kType
     socklen_t   client_length = sizeof(client_address);
 
     while (true) {
-/* old
-        const int kHeaderSocket = accept(kReceiverSocket, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kFileSocket   = accept(kReceiverSocket, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kSyncSCSocket = accept(kReceiverSocket, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kSyncCSSocket = accept(kReceiverSocket, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-
-        if (kHeaderSocket == kInvalidSocket) {
-            if (kFileSocket == kInvalidSocket) {
-                close(kHeaderSocket);
-            }
- 
-            std::cerr << "Could not accept new client connection.\n";
-        } else {
-            std::thread new_client_thread(
-                [](int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket) {
-                    try {
-                        ClientHandler(header_socket, file_socket, sync_sc_socket, sync_cs_socket).MainLoop();
-                    } catch (std::exception& e) {
-                        std::cerr << e.what() << std::endl;  // NOLINT
-                        close(header_socket);
-                        close(file_socket);
-                        close(sync_sc_socket);
-                        close(sync_cs_socket);
-                    }
-                },
-                kHeaderSocket, kFileSocket, kSyncSCSocket, kSyncCSSocket);
-
-            new_client_thread.detach();
-        }
-*/
         const int kHeaderSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
         const int kFileSocket   = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
         const int kSyncSCSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
@@ -78,8 +48,13 @@ void dropbox::Server::NewClient(int header_socket, int file_socket, int sync_sc_
             // Immediately stops the client building if any sockets are invalid.
             if (header_socket == kInvalidSocket) {
                 if (file_socket == kInvalidSocket) {
-                    close(header_socket);
+                    if (sync_sc_socket == kInvalidSocket) {
+                        if (sync_cs_socket == kInvalidSocket) {
+                            close(header_socket);
+                        }
+                    }
                 }
+                
                 std::cerr << "Could not accept new client connection\n";
                 return;
             }

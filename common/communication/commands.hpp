@@ -16,7 +16,9 @@ enum class Command {
     LIST_SERVER,   ///< Lists the files from the server
     DOWNLOAD,      ///< Downloads a file to the \c cwd.
     ERROR,         ///< An error occurred.
-    SUCCESS        ///< Operation was a success.
+    SUCCESS,        ///< Operation was a success.
+    WRITE_DIR,
+    DELETE_DIR
 };
 
 /// Constructs a command based on a str.

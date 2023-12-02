@@ -29,7 +29,7 @@ class Server {
      * @param header_socket Header socket of the new client.
      * @param file_socket File socket of the new client.
      */
-    void NewClient(int header_socket, int file_socket);
+    void NewClient(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket);
 
    private:
     static constexpr int kBacklog = 10; ///< Backlog in connection.

@@ -13,6 +13,7 @@
 #include "../common/utils.hpp"
 #include "../common/inotify.hpp"
 #include "../common/constants.hpp"
+#include "../common/communication/commands.hpp"
 
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket)
     : header_socket_(header_socket),
@@ -21,7 +22,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       sync_cs_socket_(sync_cs_socket),
       he_(header_socket),
       fe_(file_socket),
-      de_(file_socket),
       sche_(sync_sc_socket),
       scfe_(sync_sc_socket),
       cshe_(sync_cs_socket),
@@ -46,54 +46,52 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
         }
     );
 
-    // Thread que ennvia as informações para o client, client recebe essas infos
-    // lá na funcao ReceiveSyncFromServer do client.cpp
-    // Troca os arquivos
-    std::thread file_exchange_thread(
-        [this]() {
-            while (true) {
-                if (!inotify_.inotify_vector_.empty()) {
-                    //std::string queue = inotify_.GetQueue();
-                    std::string queue = inotify_.inotify_vector_.front();
-                    inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-                    std::istringstream iss(queue);
+    // Troca os arquivos sv -> client
+    //std::thread file_exchange_thread(
+    //    [this]() {
+    //        while (true) {
+    //            if (!inotify_.inotify_vector_.empty()) {
+    //                //std::string queue = inotify_.GetQueue();
+    //                std::string queue = inotify_.inotify_vector_.front();
+    //                inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+    //                std::istringstream iss(queue);
+//
+    //                std::string command;
+    //                std::string file;
+//
+    //                iss >> command;
+    //                iss >> file;
+//
+    //                std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
+//
+    //                if (command == "write") {
+    //                    if (!sche_.SetCommand(Command::WRITE_DIR).Send()) { }
+    //                    
+    //                    if (!scfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
+//
+    //                    if (!scfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
+//
+    //                } else if (command == "delete") {
+    //                    if (!sche_.SetCommand(Command::DELETE_DIR).Send()) { }
+//
+    //                    if (!scfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
+    //                }
+    //            }   
+    //        }
+    //    }
+    //);
 
-                    std::string command;
-                    std::string file;
-
-                    iss >> command;
-                    iss >> file;
-
-                    std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
-
-                    if (command == "write") {
-                        if (!sche_.SetCommand(Command::WRITE_DIR).Send()) { }
-                        
-                        if (!scfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
-
-                        if (!scfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
-
-                    } else if (command == "delete") {
-                        if (!sche_.SetCommand(Command::DELETE_DIR).Send()) { }
-
-                        if (!scfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
-                    }
-                }   
-            }
-        }
-    );
-
-    std::thread sync_thread(
-        [this]() {
-            while (true) {
-                ReceiveSyncFromClient();
-            }
-        }
-    );
-
+    //std::thread sync_thread(
+    //    [this]() {
+    //        while (true) {
+    //            ReceiveSyncFromClient();
+    //        }
+    //    }
+    //);
+//
     inotify_thread_.detach();
-    file_exchange_thread.detach();
-    sync_thread.detach();
+    //file_exchange_thread.detach();
+    //sync_thread.detach();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
 
@@ -102,10 +100,17 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
     : header_socket_(std::exchange(other.header_socket_, -1)),
       file_socket_(std::exchange(other.file_socket_, -1)),
+      sync_sc_socket_(std::exchange(other.sync_sc_socket_, -1)),
+      sync_cs_socket_(std::exchange(other.sync_cs_socket_, -1)),
       username_(std::move(other.username_)),
       composite_(std::exchange(other.composite_, nullptr)),
       he_(std::move(other.he_)),
-      fe_(std::move(other.fe_)) {}
+      fe_(std::move(other.fe_)),
+      sche_(std::move(other.sche_)),
+      scfe_(std::move(other.scfe_)),
+      cshe_(std::move(other.cshe_)),
+      csfe_(std::move(other.csfe_)),
+      inotify_({}) {}
 
 bool dropbox::ClientHandler::ReceiveUsername() {
     static thread_local std::array<char, NAME_MAX + 1> buffer{};
@@ -264,10 +269,6 @@ dropbox::ClientHandler::~ClientHandler() {
     std::cout << username_ << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
 
     inotify_.Stop();
-
-    //if (inotify_server_thread_.joinable()) {
-    //    inotify_server_thread_.join();
-    //}
 
     close(header_socket_);
     close(file_socket_);

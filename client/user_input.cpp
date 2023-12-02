@@ -11,46 +11,35 @@
 
 #include "../common/constants.hpp"
 
-dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), client_(std::move(client)) {
-    command_map_ = {{"upload", Command::UPLOAD},
-                    {"download", Command::DOWNLOAD},
-                    {"delete", Command::DELETE},
-                    {"list_server", Command::LIST_SERVER},
-                    {"list_client", Command::LIST_CLIENT},
-                    {"get_sync_dir", Command::GET_SYNC_DIR},
-                    {"exit", Command::EXIT}};
-}
+dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), client_(std::move(client)) { }
 
 void dropbox::UserInput::Start() {
     reading_ = true;
 
-    //std::thread input_thread_([this]() {  // NOLINT
-        while (reading_) {
-            std::cout << "$ ";
-            std::cout.flush();
+    while (reading_) {
+        std::cout << "$ ";
+        std::cout.flush();
 
-            std::string user_input;
-            std::getline(std::cin, user_input);
+        std::string user_input;
+        std::getline(std::cin, user_input);
 
-            input_queue_.push(user_input);
+        input_queue_.push(user_input);
 
-            std::string        input_command;
-            std::istringstream iss(user_input);
+        std::string        input_command;
+        std::istringstream iss(user_input);
 
-            iss >> input_command;
-            iss >> input_path_;
+        iss >> input_command;
+        iss >> input_path_;
 
-            if (!CommandFromStr(input_command).has_value()) {
-                std::cerr << "Unknown command: " << input_command << '\n';
-                continue;
-            }
-
-            const Command kCommand = CommandFromStr(input_command).value();
-            HandleCommand(kCommand);
+        if (!CommandFromStr(input_command).has_value()) {
+            std::cerr << "Unknown command: " << input_command << '\n';
+            continue;
         }
-    //});
 
-    //input_thread_.join();
+        const Command kCommand = CommandFromStr(input_command).value();
+        HandleCommand(kCommand);
+    }
+
 }
 
 void dropbox::UserInput::Stop() { reading_ = false; }

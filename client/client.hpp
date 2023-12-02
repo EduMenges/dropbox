@@ -99,7 +99,6 @@ class Client {
 
     HeaderExchange    he_; ///< What to exchange headers (commands) to the server with.
     FileExchange      fe_; ///< What to exchange files with the server with.
-    DirectoryExchange de_;
 
     HeaderExchange sche_;
     FileExchange   scfe_;
