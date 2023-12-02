@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {  // NOLINT
 
             std::thread input_thread(
                 [&client]() {
-                    dropbox::UserInput(std::move(client)).Start();
+                    dropbox::UserInput(client).Start();
                 }
             );
 

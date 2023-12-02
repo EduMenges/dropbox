@@ -4,14 +4,10 @@
 #include <iostream>
 #include <sstream>
 
-#include <thread>
-
 #include "client.hpp"
 #include "communication/protocol.hpp"
 
-#include "../common/constants.hpp"
-
-dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), client_(std::move(client)) { }
+dropbox::UserInput::UserInput(Client& client) : client_(client), reading_(false) { }
 
 void dropbox::UserInput::Start() {
     reading_ = true;

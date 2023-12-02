@@ -15,7 +15,7 @@ class UserInput {
      * @param client Client to communicate with the server.
      * @pre \p client is working.
      */
-    UserInput(Client&& client);
+    UserInput(Client& client);
 
     /// Starts the user input handling.
     void Start();
@@ -33,7 +33,7 @@ class UserInput {
      */
     void HandleCommand(Command command);
 
-    Client client_;   ///< Client instance to call the methods from.
+    Client& client_;   ///< Client instance to call the methods from.
     bool   reading_;  ///< Whether to retrieve the user input.
 
     std::queue<std::string> input_queue_; ///< Não sei, pergunta pro Arthur.
