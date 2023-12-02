@@ -109,6 +109,8 @@ class Client {
     Inotify inotify_;
     std::thread inotify_client_thread_;
 
+    bool client_sync_;
+
 };
 
 }

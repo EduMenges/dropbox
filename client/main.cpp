@@ -37,9 +37,7 @@ int main(int argc, char* argv[]) {  // NOLINT
 
             std::thread sync_thread(
                 [&client]() {
-                    while (true) {
-                        client.ReceiveSyncFromServer();
-                    }
+                    client.ReceiveSyncFromServer();
                 }
             );
 

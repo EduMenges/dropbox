@@ -116,5 +116,7 @@ class ClientHandler {
     FileExchange      csfe_;
 
     Inotify inotify_;
+
+    bool server_sync_;
 };
 }
