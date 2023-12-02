@@ -18,9 +18,7 @@ class Inotify {
 
     void Start();
     void Stop();
-    std::string GetQueue();
-    bool isQueueEmpty();
-
+    
     std::vector<std::string> inotify_vector_;
    private:
     bool        watching_;
@@ -28,9 +26,6 @@ class Inotify {
     int         length_, i_;
     std::string watch_path_;
     std::string username_;
-
-
-    std::queue<std::string> inotify_queue_;
 
     HeaderExchange    she_;
     FileExchange      sfe_;

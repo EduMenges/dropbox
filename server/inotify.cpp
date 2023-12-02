@@ -61,7 +61,6 @@ void dropbox::Inotify::Start() {
                         std::cout << "The directory " << event->name << " was created/modified.\n";
                     } else {
                         std::cout << "The file " << event->name << " was created/modified.\n";
-                        //inotify_queue_.push("write " + std::string(event->name));
                         inotify_vector_.push_back("write " + std::string(event->name));
                     }
                 } else if (event->mask & IN_DELETE) {
@@ -69,7 +68,6 @@ void dropbox::Inotify::Start() {
                         std::cout << "The directory " << event->name << " was deleted.\n";
                     } else {
                         std::cout << "The file " << event->name << " was deleted.\n";
-                        //inotify_queue_.push("delete " + std::string(event->name));
                         inotify_vector_.push_back("delete " + std::string(event->name));
                     }
                 }
@@ -82,18 +80,3 @@ void dropbox::Inotify::Start() {
 }
 
 void dropbox::Inotify::Stop() { watching_ = false; }
-
-std::string dropbox::Inotify::GetQueue() {
-    if (inotify_queue_.empty()) {
-        return "";
-    }
-
-    std::string front_queue = inotify_queue_.front();
-    inotify_queue_.pop();
-
-    return front_queue;
-}
-
-bool dropbox::Inotify::isQueueEmpty() {
-    return inotify_queue_.empty();
-}

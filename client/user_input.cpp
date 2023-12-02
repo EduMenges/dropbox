@@ -25,18 +25,18 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
     // thread para rodar o recebimento de arquivos do servidor
     // aqui ele de fato criar os arquivos na maquina local toda
     // vez que o sync_dir do servidor é atualizado
-    std::thread file_exchange_thread(
-        [this]() {
-            client_.ReceiveSyncFromServer();
-        }
-    );
-    file_exchange_thread.detach();
+    //std::thread file_exchange_thread(
+    //    [this]() {
+    //        client_.ReceiveSyncFromServer();
+    //    }
+    //);
+    //file_exchange_thread.detach();
 }
 
 void dropbox::UserInput::Start() {
     reading_ = true;
 
-    std::thread input_thread_([this]() {  // NOLINT
+    //std::thread input_thread_([this]() {  // NOLINT
         while (reading_) {
             std::cout << "$ ";
             std::cout.flush();
@@ -60,9 +60,9 @@ void dropbox::UserInput::Start() {
             Command const kCommand = command_map_.at(input_command);
             HandleCommand(kCommand);
         }
-    });
+    //});
 
-    input_thread_.join();
+    //input_thread_.join();
 }
 
 void dropbox::UserInput::Stop() { reading_ = false; }

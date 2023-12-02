@@ -1,6 +1,7 @@
 #include <charconv>
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 #include "client.hpp"
 #include "user_input.hpp"
@@ -27,8 +28,25 @@ int main(int argc, char* argv[]) {  // NOLINT
         try {
             dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
 
-            dropbox::UserInput input_reader(std::move(client));
-            input_reader.Start();
+            std::thread input_thread(
+                [&client]() {
+                    dropbox::UserInput(std::move(client)).Start();
+                }
+            );
+
+            std::thread sync_thread(
+                [&client]() {
+                    while (true) {
+                        client.ReceiveSyncFromServer();
+                    }
+                }
+            );
+
+
+            sync_thread.join(); // essa thread ta parando apos o primeiro comando
+            input_thread.join();
+
+
         } catch (std::exception& e) {
             std::cerr << e.what() << '\n';
             perror(__func__);

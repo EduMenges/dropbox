@@ -47,7 +47,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
             inotify_.Start();
         }
     );
-    inotify_thread.detach();
 
     // Thread que ennvia as informações para o client, client recebe essas infos
     // lá na funcao ReceiveSyncFromServer do client.cpp
@@ -77,16 +76,15 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
                         if (!sfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
 
                     } else if (command == "delete") {
-                        if (!she_.SetCommand(Command::DELETE_DIR).Send()) {
-                            return false;
-                        }
+                        if (!she_.SetCommand(Command::DELETE_DIR).Send()) { }
 
-                        return sfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath();
+                        if (!sfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
                     }
                 }   
             }
         }
     );
+    inotify_thread.detach();
     file_exchange_thread.detach();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';

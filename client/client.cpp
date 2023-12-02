@@ -217,6 +217,5 @@ bool dropbox::Client::ReceiveSyncFromServer() {
         return false;
     }
 
-
     return true;
 }
