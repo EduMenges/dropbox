@@ -16,6 +16,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_CLIENT "Builds the client project" ON)
 option(BUILD_SERVER "Builds the server project" ON)
 
+if (MSVC)
+	add_compile_options(/W4)
+else()
+	add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 add_subdirectory(common)
 link_libraries(utils)
 
