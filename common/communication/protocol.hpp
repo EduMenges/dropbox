@@ -140,4 +140,28 @@ class FileExchange : public EntryExchange {
     static thread_local std::array<char, kPacketSize> buffer;  // NOLINT
 };
 
+class StringExchange : public SocketExchange {
+   public:
+    StringExchange() = default;
+    inline StringExchange(int socket) : SocketExchange(socket) {};
+
+    bool Send() override;
+    bool Receive() override;
+
+    template <typename StrLike>
+    inline StringExchange& SetString(StrLike&& str) noexcept {
+        string_ = std::forward<StrLike>(str);
+        return *this;
+    }
+
+    template <typename StrLike>
+    inline void GetString() const {
+        return StrLike(string_);
+    }
+
+   private:
+    static thread_local std::array<uint8_t, kPacketSize> buffer;
+
+    std::string string_;
+};
 }

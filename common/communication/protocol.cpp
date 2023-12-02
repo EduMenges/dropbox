@@ -9,7 +9,8 @@
 
 #include "constants.hpp"
 
-thread_local std::array<char, dropbox::kPacketSize> dropbox::FileExchange::buffer;
+thread_local std::array<char, dropbox::kPacketSize>    dropbox::FileExchange::buffer;
+thread_local std::array<uint8_t, dropbox::kPacketSize> dropbox::StringExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
     auto bytes_sent = write(socket_, &command_, sizeof(command_));
@@ -28,9 +29,7 @@ bool dropbox::HeaderExchange::Receive() {
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
         return false;
-    }
-    else if (kBytesRead < static_cast<ssize_t>(sizeof(command_)))
-    {
+    } else if (kBytesRead < static_cast<ssize_t>(sizeof(command_))) {
         std::cerr << __func__ << ": received " << kBytesRead << " bytes\n";
     }
 
@@ -132,5 +131,13 @@ bool dropbox::EntryExchange::ReceivePath() {
 
     path_ = received_path.data();
 
+    return true;
+}
+
+bool dropbox::StringExchange::Send() {
+    return false;
+}
+
+bool dropbox::StringExchange::Receive() {
     return true;
 }
