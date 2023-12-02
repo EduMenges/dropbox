@@ -24,4 +24,4 @@ FetchContent_MakeAvailable(tabulate)
 FetchContent_MakeAvailable(date)
 
 target_link_libraries(utils PUBLIC tabulate)
-target_link_libraries(utils PUBLIC date)
+target_link_libraries(utils PRIVATE date)
