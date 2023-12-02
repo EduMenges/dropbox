@@ -19,18 +19,6 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
                     {"list_client", Command::LIST_CLIENT},
                     {"get_sync_dir", Command::GET_SYNC_DIR},
                     {"exit", Command::EXIT}};
-
-    //client_.GetSyncDir(); // move to client
-
-    // thread para rodar o recebimento de arquivos do servidor
-    // aqui ele de fato criar os arquivos na maquina local toda
-    // vez que o sync_dir do servidor é atualizado
-    //std::thread file_exchange_thread(
-    //    [this]() {
-    //        client_.ReceiveSyncFromServer();
-    //    }
-    //);
-    //file_exchange_thread.detach();
 }
 
 void dropbox::UserInput::Start() {
@@ -52,12 +40,12 @@ void dropbox::UserInput::Start() {
             iss >> input_command;
             iss >> input_path_;
 
-            if (!command_map_.contains(input_command)) {
+            if (!CommandFromStr(input_command).has_value()) {
                 std::cerr << "Unknown command: " << input_command << '\n';
                 continue;
             }
 
-            Command const kCommand = command_map_.at(input_command);
+            const Command kCommand = CommandFromStr(input_command).value();
             HandleCommand(kCommand);
         }
     //});
@@ -117,12 +105,12 @@ void dropbox::UserInput::HandleCommand(Command command) {
         case Command::LIST_CLIENT:
             client_.ListClient();
             break;
-        case Command::GET_SYNC_DIR:
-            //std::cerr << "Result: " << client_.GetSyncDir() << '\n';
-            break;
         case Command::EXIT:
             client_.Exit();
             Stop();
+            break;
+        default:
+            std::cerr << "Unexpected command: " << command << '\n';
             break;
     }
 }

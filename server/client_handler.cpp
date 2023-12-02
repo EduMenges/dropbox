@@ -4,12 +4,12 @@
 #include <unistd.h>
 
 #include <filesystem>
-#include <thread>
 #include <vector>
-
+#include <utility>
 
 #include "exceptions.hpp"
 #include "list_directory.hpp"
+
 #include "../common/utils.hpp"
 #include "../common/inotify.hpp"
 #include "../common/constants.hpp"
@@ -27,6 +27,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       cshe_(sync_cs_socket),
       csfe_(sync_cs_socket),
       inotify_({}) {
+
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -38,11 +39,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
     ReceiveGetSyncDir();
 
     // Monitora o diretorio
-    /**
-     * NAO FAÇO IDEIA DO PORQUÊ DISSO
-     * mas tu tem que deixar um terminal do wsl aberto no deretorio que
-     * ele vai escutar no windows, no linux nao sei como ta funcionando
-    */
     inotify_ = Inotify(username_);
     std::thread inotify_thread_(
         [this](){
@@ -100,7 +96,16 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
     sync_thread.detach();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
+
 }
+
+dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
+    : header_socket_(std::exchange(other.header_socket_, -1)),
+      file_socket_(std::exchange(other.file_socket_, -1)),
+      username_(std::move(other.username_)),
+      composite_(std::exchange(other.composite_, nullptr)),
+      he_(std::move(other.he_)),
+      fe_(std::move(other.fe_)) {}
 
 bool dropbox::ClientHandler::ReceiveUsername() {
     static thread_local std::array<char, NAME_MAX + 1> buffer{};
@@ -111,7 +116,7 @@ bool dropbox::ClientHandler::ReceiveUsername() {
 
     size_t username_length = 0;
     if (read(file_socket_, &username_length, sizeof(username_length)) != sizeof(username_length)) {
-        perror(__func__);
+        perror(__func__); //NOLINT
         return false;
     }
 
@@ -128,9 +133,11 @@ bool dropbox::ClientHandler::ReceiveUsername() {
 
 void dropbox::ClientHandler::MainLoop() {
     bool receiving = true;
+    uint8_t attempts = kAttemptAmount;
 
     while (receiving) {
         if (he_.Receive()) {
+            attempts = kAttemptAmount;
             std::cout << username_ << " ordered " << he_.GetCommand() << std::endl;  // NOLINT
             switch (he_.GetCommand()) {
                 case Command::UPLOAD:
@@ -149,7 +156,18 @@ void dropbox::ClientHandler::MainLoop() {
                     ListServer();
                     break;
                 default:
+                    std::cerr << "Unexpected command received: " << he_.GetCommand() << '\n';
                     break;
+            }
+        }
+        else
+        {
+            attempts -= 1;
+            if (attempts == 0) {
+                receiving = false;
+                std::cerr << "Client " << username_ << " with id " << GetId() << " timed out" << '\n';
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             }
         }
     }
@@ -215,7 +233,7 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
     }
 
     for (const auto& file_name : file_names) {
-        //std::cout << file_name << '\n';
+        // std::cout << file_name << '\n';
         if (!he_.SetCommand(Command::SUCCESS).Send()) {
             return false;
         }
@@ -243,7 +261,7 @@ void dropbox::ClientHandler::CreateUserFolder() {
 }
 
 dropbox::ClientHandler::~ClientHandler() {
-    std::cout << username_ << " disconnected" << std::endl;  // NOLINT
+    std::cout << username_ << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
 
     inotify_.Stop();
 
@@ -257,13 +275,13 @@ dropbox::ClientHandler::~ClientHandler() {
     close(sync_cs_socket_);
 }
 
-bool dropbox::ClientHandler::ListServer() {
-    std::string str_table = ListDirectory(SyncDirPath()).str();
+bool dropbox::ClientHandler::ListServer() const {
+    std::string const kStrTable = ListDirectory(SyncDirPath()).str();
 
-    const size_t kTableSize = str_table.size() + 1;
+    const size_t kTableSize = kStrTable.size() + 1;
 
     if (write(header_socket_, &kTableSize, sizeof(kTableSize)) == kInvalidWrite) {
-        perror(__func__);
+        perror(__func__); //NOLINT
         return false;
     }
 
@@ -271,7 +289,8 @@ bool dropbox::ClientHandler::ListServer() {
     while (total_sent != kTableSize) {
         const size_t kBytesToSend = std::min(kPacketSize, kTableSize - total_sent);
 
-        if (write(header_socket_, str_table.c_str() + total_sent, kBytesToSend) == kInvalidWrite) {
+        const ssize_t kBytesSent = write(header_socket_, kStrTable.c_str() + total_sent, kBytesToSend);
+        if (kBytesSent < kBytesToSend) {
             perror(__func__);
             return false;
         }

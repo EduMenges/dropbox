@@ -7,9 +7,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "constants.hpp"
-
-thread_local std::array<char, dropbox::FileExchange::kPacketSize> dropbox::FileExchange::buffer;
+thread_local std::array<char, dropbox::kPacketSize>    dropbox::FileExchange::buffer;
+thread_local std::array<uint8_t, dropbox::kPacketSize> dropbox::StringExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
     auto bytes_sent = write(socket_, &command_, sizeof(command_));
@@ -25,9 +24,11 @@ bool dropbox::HeaderExchange::Send() {
 bool dropbox::HeaderExchange::Receive() {
     const ssize_t kBytesRead = read(socket_, &command_, sizeof(command_));
 
-    if (kBytesRead != sizeof(command_)) {
+    if (kBytesRead == kInvalidRead) {
         perror(__func__);
         return false;
+    } else if (kBytesRead < static_cast<ssize_t>(sizeof(command_))) {
+        std::cerr << __func__ << ": received " << kBytesRead << " bytes\n";
     }
 
     return true;
@@ -131,37 +132,10 @@ bool dropbox::EntryExchange::ReceivePath() {
     return true;
 }
 
-bool dropbox::DirectoryExchange::Send() {
-    /// @todo This
-    return false;
-}
-bool dropbox::DirectoryExchange::Receive() {
-    /// @todo This
+bool dropbox::StringExchange::Send() {
     return false;
 }
 
-std::ostream& dropbox::operator<<(std::ostream& os, dropbox::Command command) {
-    switch (command) {
-        case Command::UPLOAD:
-            os << "upload";
-            break;
-        case Command::DELETE:
-            os << "delete";
-            break;
-        case Command::GET_SYNC_DIR:
-            os << "get_sync_dir";
-            break;
-        case Command::LIST_SERVER:
-            os << "list_server";
-            break;
-        case Command::EXIT:
-            os << "exit";
-            break;
-        case Command::DOWNLOAD:
-            os << "download";
-            break;
-        default:
-            break;
-    }
-    return os;
+bool dropbox::StringExchange::Receive() {
+    return true;
 }

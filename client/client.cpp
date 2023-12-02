@@ -23,18 +23,18 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
         throw SocketCreation();
     }
 
-    const sockaddr_in kServerAddress = {kFamily, htons(port), inet_addr(server_ip_address)};
+    const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}};
 
     if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
         connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
         connect(sync_sc_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
         connect(sync_cs_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
+
         throw Connecting();
     }
 
     he_.SetSocket(header_socket_);
     fe_.SetSocket(file_socket_);
-    de_.SetSocket(file_socket_);
 
     sche_.SetSocket(sync_sc_socket_);
     scfe_.SetSocket(sync_sc_socket_);
@@ -110,7 +110,7 @@ bool dropbox::Client::SendUsername() {
 
     const auto kBytesSent = write(file_socket_, username_.c_str(), username_length);
 
-    if (kBytesSent != username_length) {
+    if (kBytesSent != static_cast<ssize_t>(username_length)) {
         perror(__func__);
         return false;
     }
@@ -153,7 +153,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 
     if (he_.GetCommand() == Command::ERROR) {
         std::cerr << "File not found on the server ";
-        return true;
+        return false;
     }
 
     return fe_.SetPath(std::move(file_name).filename()).Receive();
@@ -169,9 +169,9 @@ bool dropbox::Client::GetSyncDir() {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }
 
-    //if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
-    //    return false;
-    //}
+    // if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
+    //     return false;
+    // }
 
     do {
         if (!he_.Receive()) {
@@ -201,7 +201,7 @@ dropbox::Client::~Client() {
 
 bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
 
-bool dropbox::Client::ListClient() {
+bool dropbox::Client::ListClient() const {
     auto table = ListDirectory(SyncDirPath());
 
     table.print(std::cout);

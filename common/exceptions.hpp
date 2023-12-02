@@ -38,4 +38,11 @@ class Username : public std::exception {
     [[nodiscard]] const char* what() const noexcept override { return "Failure when exchanging username"; }
 };
 
+class FullList : public std::exception {
+    public:
+    FullList() = default;
+
+    [[nodiscard]] const char* what() const noexcept override { return "Client list is full of devices"; }
+};
+
 }

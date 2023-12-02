@@ -14,8 +14,15 @@
 
 namespace dropbox {
 
+/// Client class containing all the methods that the application shall provide.
 class Client {
    public:
+    /**
+     * @param user_name Name of the user.
+     * @param server_ip_address IP of the server.
+     * @param port Port that the server is listening to.
+     * @pre \p server_ip_address is IPV4.
+     */
     Client(std::string&& user_name, const char* server_ip_address, in_port_t port);
 
     /// Clients are not copiable due to side effect in socket closing.
@@ -25,23 +32,56 @@ class Client {
 
     ~Client();
 
+    /**
+     * Sends the username to the server.
+     * @return Status of the operation.
+     */
     bool SendUsername();
 
+    /**
+     * Downloads the directory and start sync with the server.
+     * @return Status of the operation.
+     */
     bool GetSyncDir();
 
-    bool ListClient();
+    /**
+     * Lists the files available on the client's \c sync_dir.
+     * @return Status of the operation.
+     */
+    bool ListClient() const;
 
+    /**
+     * Lists the files available on the client's \c sync_dir.
+     * @return Status of the operation.
+     */
     bool ListServer();
 
+    /**
+     * Downloads a file from the server into \c cwd.
+     * @param file_name File to be downloaded.
+     * @return Status of the operation.
+     */
     bool Download(std::filesystem::path&& file_name);
 
+    /**
+     * Deletes a file from the server.
+     * @param file_name File to be deleted.
+     * @return Status of the operation.
+     */
     bool Delete(std::filesystem::path&& file_name);
 
+    /**
+     * Ends main loop and communication with server.
+     * @return Status of the operation.
+     */
     bool Exit();
 
     bool ReceiveSyncFromServer();
 
-    inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
+    /**
+     * @return Sync dir path concatenated with the username.
+     */
+    [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
 
     /**
      * @brief Uploads a file to the server.
@@ -57,8 +97,8 @@ class Client {
     int         sync_sc_socket_;    ///< Socket only for sync server -> client
     int         sync_cs_socket_;    ///< Socket only for sync client -> server
 
-    HeaderExchange    he_;
-    FileExchange      fe_;
+    HeaderExchange    he_; ///< What to exchange headers (commands) to the server with.
+    FileExchange      fe_; ///< What to exchange files with the server with.
     DirectoryExchange de_;
 
     HeaderExchange sche_;
@@ -69,6 +109,7 @@ class Client {
 
     Inotify inotify_;
     std::thread inotify_client_thread_;
+
 };
 
 }
