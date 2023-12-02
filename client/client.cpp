@@ -251,8 +251,8 @@ bool dropbox::Client::ReceiveSyncFromServer() {
     
 
     if (sche_.GetCommand() == Command::WRITE_DIR) {
-        //inotify_.Stop();
         inotify_.Pause();
+
         printf("SERVER -> CLIENT: modified\n");
         if (!scfe_.ReceivePath()) {
             return false;
@@ -262,25 +262,11 @@ bool dropbox::Client::ReceiveSyncFromServer() {
             return false;
         }
 
-        // Inotify do client captura o arquivo que o servidor sincronizou
-        // essa informacao e armazenada no inotify_vector e em outra thread
-        // eh enviada para o servidor porem como ele veio do servidor
-        // vamos dar um pop nesse vector
-        //usleep(1000);
-        //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-       //inotify_ = Inotify("arthur");
-       //std::thread inotify_client_thread_(
-       //    [this]() {
-       //        inotify_.Start();
-       //    }
-       //);
-       //inotify_client_thread_.detach();
        inotify_.Resume();
 
         return true;
         
     } else if (sche_.GetCommand() == Command::DELETE_DIR) {
-        //inotify_.Stop();
         printf("SERVER -> CLIENT: delete\n");
         if (!scfe_.ReceivePath()) {
             return false;
@@ -291,16 +277,7 @@ bool dropbox::Client::ReceiveSyncFromServer() {
         if (std::filesystem::exists(file_path)) {
             std::filesystem::remove(file_path);
             
-            // Mesma coisa aqui
-            //usleep(1000);
-            //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-            //inotify_ = Inotify("arthur");
-            //std::thread inotify_client_thread_(
-            //    [this]() {
-            //        inotify_.Start();
-            //    }
-            //);
-            //inotify_client_thread_.detach();
+            //
 
             return true;
         }

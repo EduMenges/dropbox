@@ -289,8 +289,8 @@ bool dropbox::ClientHandler::ReceiveSyncFromClient() {
 
 
     if (cshe_.GetCommand() == Command::WRITE_DIR) {
-        //inotify_.Stop();
         inotify_.Pause();
+
         printf("CLIENT -> SERVER: modified\n");
         if (!csfe_.ReceivePath()) {
             return false;
@@ -301,21 +301,11 @@ bool dropbox::ClientHandler::ReceiveSyncFromClient() {
             return false;
         }
 
-        //usleep(1000);
-        //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-        //inotify_ = Inotify("arthur");
-        //std::thread inotify_thread_(
-        //    [this]() {
-        //        inotify_.Start();
-        //    }
-        //);
-        //inotify_thread_.detach();
         inotify_.Resume();
 
         return true;
         
     } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
-        //inotify_.Stop();
         printf("CLIENT -> SERVER: delete\n");
         if (!csfe_.ReceivePath()) {
             return false;
@@ -326,15 +316,7 @@ bool dropbox::ClientHandler::ReceiveSyncFromClient() {
         if (std::filesystem::exists(file_path)) {
             std::filesystem::remove(file_path);
             
-            //usleep(1000);
-            //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-            //inotify_ = Inotify("arthur");
-            //std::thread inotify_thread_(
-            //    [this]() {
-            //        inotify_.Start();
-            //    }
-            //);
-            //inotify_thread_.detach();
+            //
 
             return true;
         }
