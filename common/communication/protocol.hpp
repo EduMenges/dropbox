@@ -8,22 +8,9 @@
 #include <iostream>
 
 #include "constants.hpp"
+#include "communication/commands.hpp"
 
 namespace dropbox {
-
-/// Possible user actions
-enum class Command {
-    UPLOAD,        ///< Uploads a file at the root directory.
-    DELETE,        ///< Deletes a file at the root directory.
-    USERNAME,      ///< Username receiver.
-    GET_SYNC_DIR,  ///< Downloads the \c sync_dir directory and starts syncing.
-    EXIT,          ///< Ends connection with server
-    LIST_CLIENT,   ///< Lists the files from the client
-    LIST_SERVER,   ///< Lists the files from the server
-    DOWNLOAD,      ///< Downloads a file to the \c cwd.
-    ERROR,         ///< An error occurred.
-    SUCCESS        ///< Operation was a success.
-};
 
 /// Interface for exchanging information on both sides.
 class Exchange {
@@ -37,21 +24,25 @@ class Exchange {
     [[nodiscard]] virtual bool Receive() = 0;
 };
 
+/// Exchanges between sockets.
 class SocketExchange : public Exchange {
    public:
     inline constexpr SocketExchange() = default;
 
-    inline constexpr SocketExchange(int socket) : socket_(socket) {};
+    inline constexpr SocketExchange(int socket) noexcept : socket_(socket){};
 
-    inline constexpr SocketExchange(SocketExchange&& other)  noexcept : socket_(std::exchange(other.socket_, kInvalidSocket)) {};
+    inline constexpr SocketExchange(SocketExchange&& other) noexcept
+        : socket_(std::exchange(other.socket_, kInvalidSocket)){};
 
+    /**
+     * Sets the internal socket.
+     * @param socket Value to be the new socket.
+     */
     inline void constexpr SetSocket(int socket) noexcept { socket_ = socket; }
 
    protected:
-    int socket_{-1};    ///< Where send and receive from.
+    int socket_{-1};  ///< Where send and receive from.
 };
-
-std::ostream& operator<<(std::ostream& os, Command command);
 
 /// Exchanges the header.
 class HeaderExchange : public SocketExchange {
@@ -64,15 +55,24 @@ class HeaderExchange : public SocketExchange {
 
     inline constexpr HeaderExchange(HeaderExchange&& other) noexcept = default;
 
+    /**
+     * Sets the internal command.
+     * @param new_command New command to set the internal with.
+     * @return Instance of \c this to ease out method chaining.
+     */
     inline constexpr HeaderExchange& SetCommand(Command new_command) noexcept {
         command_ = new_command;
         return *this;
     }
 
-    [[nodiscard]] bool Send() override;
-    [[nodiscard]] bool Receive() override;
-
+    /// Getter for the internal command.
     [[nodiscard]] inline constexpr Command GetCommand() const noexcept { return this->command_; }
+
+    /// Sends \c this.
+    [[nodiscard]] bool Send() override;
+
+    /// Receives in \c this.
+    [[nodiscard]] bool Receive() override;
 
    private:
     Command command_;  ///< Command to be exchanged.
@@ -84,21 +84,43 @@ class EntryExchange : public SocketExchange {
     inline EntryExchange() : SocketExchange(-1) {}
     inline EntryExchange(int socket) : SocketExchange(socket) {}
 
+    /**
+     * Sends the internal path.
+     * @return Operation status.
+     */
     [[nodiscard]] inline bool SendPath() const { return SendPath(path_); }
 
+    /**
+     * Receives a path.
+     * @return Operation status.
+     */
     [[nodiscard]] bool ReceivePath();
 
+    /**
+     * Sends a path.
+     * @param path Path to be sent.
+     * @return Operation status.
+     */
     [[nodiscard]] bool SendPath(const std::filesystem::path& path) const;
 
+    /**
+     * Sets the internal path.
+     * @param path Path to be setted.
+     * @return Instance of \c this for method chaining.
+     */
     inline EntryExchange& SetPath(std::filesystem::path&& path) {
         path_ = std::move(path);
         return *this;
     }
 
+    /**
+     * Getter for internal path.
+     * @return Immutable internal path.
+     */
     [[nodiscard]] inline const std::filesystem::path& GetPath() const { return path_; }
 
    protected:
-    std::filesystem::path path_;    ///< The path to be exchanged.
+    std::filesystem::path path_;  ///< The path to be exchanged.
 };
 
 /// Exchange whole files.
@@ -107,13 +129,13 @@ class FileExchange : public EntryExchange {
     FileExchange() = default;
     inline FileExchange(int socket) : EntryExchange(socket){};
 
+    /// Sends the file under \ref path_
     [[nodiscard]] bool Send() override;
+
+    /// Receives the file under \ref path_
     [[nodiscard]] bool Receive() override;
 
    private:
-    /// Max size of a single packet exchange.
-    static constexpr size_t kPacketSize = 64U * 1024U;
-
     /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;  // NOLINT
 };

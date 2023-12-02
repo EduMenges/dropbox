@@ -11,8 +11,15 @@
 
 namespace dropbox {
 
+/// Client class containing all the methods that the application shall provide.
 class Client {
    public:
+    /**
+     * @param user_name Name of the user.
+     * @param server_ip_address IP of the server.
+     * @param port Port that the server is listening to.
+     * @pre \p server_ip_address is IPV4.
+     */
     Client(std::string&& user_name, const char* server_ip_address, in_port_t port);
 
     /// Clients are not copiable due to side effect in socket closing.
@@ -22,21 +29,54 @@ class Client {
 
     ~Client();
 
+    /**
+     * Sends the username to the server.
+     * @return Status of the operation.
+     */
     bool SendUsername();
 
+    /**
+     * Downloads the directory and start sync with the server.
+     * @return Status of the operation.
+     */
     bool GetSyncDir();
 
+    /**
+     * Lists the files available on the client's \c sync_dir.
+     * @return Status of the operation.
+     */
     bool ListClient() const;
 
+    /**
+     * Lists the files available on the client's \c sync_dir.
+     * @return Status of the operation.
+     */
     bool ListServer();
 
+    /**
+     * Downloads a file from the server into \c cwd.
+     * @param file_name File to be downloaded.
+     * @return Status of the operation.
+     */
     bool Download(std::filesystem::path&& file_name);
 
+    /**
+     * Deletes a file from the server.
+     * @param file_name File to be deleted.
+     * @return Status of the operation.
+     */
     bool Delete(std::filesystem::path&& file_name);
 
+    /**
+     * Ends main loop and communication with server.
+     * @return Status of the operation.
+     */
     bool Exit();
 
-    inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
+    /**
+     * @return Sync dir path concatenated with the username.
+     */
+    [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
 
     /**
      * @brief Uploads a file to the server.
@@ -49,8 +89,8 @@ class Client {
     int         header_socket_;  ///< Socket to exchange headers.
     int         file_socket_;    ///< Socket to exchange files.
 
-    HeaderExchange    he_;
-    FileExchange      fe_;
+    HeaderExchange he_; ///< What to exchange headers (commands) to the server with.
+    FileExchange   fe_; ///< What to exchange files with the server with.
 };
 
 }

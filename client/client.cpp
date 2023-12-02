@@ -18,10 +18,12 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
         throw SocketCreation();
     }
 
-    const sockaddr_in kServerAddress = {kFamily, htons(port), inet_addr(server_ip_address)};
+    const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}};
 
-    if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
-        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
+    if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) ==
+            kInvalidConnect ||
+        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) ==
+            kInvalidConnect) {
         throw Connecting();
     }
 
@@ -47,7 +49,7 @@ bool dropbox::Client::SendUsername() {
 
     const auto kBytesSent = write(file_socket_, username_.c_str(), username_length);
 
-    if (kBytesSent != username_length) {
+    if (kBytesSent != static_cast<ssize_t>(username_length)) {
         perror(__func__);
         return false;
     }
@@ -90,7 +92,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 
     if (he_.GetCommand() == Command::ERROR) {
         std::cerr << "File not found on the server ";
-        return true;
+        return false;
     }
 
     return fe_.SetPath(std::move(file_name).filename()).Receive();

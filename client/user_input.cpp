@@ -7,15 +7,7 @@
 #include "client.hpp"
 #include "communication/protocol.hpp"
 
-dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), client_(std::move(client)) {
-    command_map_ = {{"upload", Command::UPLOAD},
-                    {"download", Command::DOWNLOAD},
-                    {"delete", Command::DELETE},
-                    {"list_server", Command::LIST_SERVER},
-                    {"list_client", Command::LIST_CLIENT},
-                    {"get_sync_dir", Command::GET_SYNC_DIR},
-                    {"exit", Command::EXIT}};
-
+dropbox::UserInput::UserInput(dropbox::Client&& client) : client_(std::move(client)), reading_(false) {
     client_.GetSyncDir();
 }
 
@@ -38,12 +30,12 @@ void dropbox::UserInput::Start() {
             iss >> input_command;
             iss >> input_path_;
 
-            if (!command_map_.contains(input_command)) {
+            if (!CommandFromStr(input_command).has_value()) {
                 std::cerr << "Unknown command: " << input_command << '\n';
                 continue;
             }
 
-            Command const kCommand = command_map_.at(input_command);
+            const Command kCommand = CommandFromStr(input_command).value();
             HandleCommand(kCommand);
         }
     });
@@ -103,12 +95,12 @@ void dropbox::UserInput::HandleCommand(Command command) {
         case Command::LIST_CLIENT:
             client_.ListClient();
             break;
-        case Command::GET_SYNC_DIR:
-            //std::cerr << "Result: " << client_.GetSyncDir() << '\n';
-            break;
         case Command::EXIT:
             client_.Exit();
             Stop();
+            break;
+        default:
+            std::cerr << "Unexpected command: " << command << '\n';
             break;
     }
 }

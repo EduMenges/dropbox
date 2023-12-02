@@ -13,12 +13,13 @@ using dropbox::ArgV;
 using enum ArgV;
 
 int main(int argc, char* argv[]) {  // NOLINT
-    const bool kHasAllParameters = static_cast<ArgV>(argc) != TOTAL;
-    if (kHasAllParameters) {
+    const bool kHasAllParameters = static_cast<ArgV>(argc) == TOTAL;
+    if (!kHasAllParameters) {
         std::cerr << "Usage: <username> <server_ip_address> <port>\n";
         return EXIT_FAILURE;
     }
 
+    // Converting port from text to number
     in_port_t port = 0;
     auto [ptr, ec] = std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
 

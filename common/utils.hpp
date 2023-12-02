@@ -1,16 +1,13 @@
 #pragma once
 
-#include <cstddef>
 #include <filesystem>
 
 #include "constants.hpp"
 
 namespace dropbox {
 
-template <typename T>
-size_t TotalSize(const T& collection) {
-    return sizeof(T) * collection.size();
-}
+/// Sync dir prefix to concatenate the paths with.
+static constexpr const char* kSyncDirPrefix = "./sync_dir_";
 
 /// Path to the sync dir based on an username.
 inline std::filesystem::path SyncDirWithPrefix(const std::string& username) {

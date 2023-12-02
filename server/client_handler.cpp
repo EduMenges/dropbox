@@ -15,9 +15,9 @@
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
     : header_socket_(header_socket),
       file_socket_(file_socket),
+      composite_(nullptr),
       he_(header_socket),
-      fe_(file_socket),
-      composite_(nullptr) {
+      fe_(file_socket) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -37,12 +37,12 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket)
 }
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
-    : composite_(std::exchange(other.composite_, nullptr)),
+    : header_socket_(std::exchange(other.header_socket_, -1)),
       file_socket_(std::exchange(other.file_socket_, -1)),
-      header_socket_(std::exchange(other.header_socket_, -1)),
-      fe_(std::move(other.fe_)),
+      username_(std::move(other.username_)),
+      composite_(std::exchange(other.composite_, nullptr)),
       he_(std::move(other.he_)),
-      username_(std::move(other.username_)) {}
+      fe_(std::move(other.fe_)) {}
 
 bool dropbox::ClientHandler::ReceiveUsername() {
     static thread_local std::array<char, NAME_MAX + 1> buffer{};
@@ -89,16 +89,11 @@ void dropbox::ClientHandler::MainLoop() {
                 case Command::EXIT:
                     receiving = false;
                     break;
-                case Command::GET_SYNC_DIR:
-                    // if (ReceiveGetSyncDir()) {
-                    //     std::cout << "Starting to listen " << SyncDirWithPrefix(username_) << " (server side)" <<
-                    //     '\n';
-                    // }
-                    break;
                 case Command::LIST_SERVER:
                     ListServer();
                     break;
                 default:
+                    std::cerr << "Unexpected command received: " << he_.GetCommand() << '\n';
                     break;
             }
         }

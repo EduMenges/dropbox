@@ -29,7 +29,7 @@ bool dropbox::HeaderExchange::Receive() {
         perror(__func__);
         return false;
     }
-    else if (kBytesRead < sizeof(command_))
+    else if (kBytesRead < static_cast<ssize_t>(sizeof(command_)))
     {
         std::cerr << __func__ << ": received " << kBytesRead << " bytes\n";
     }
@@ -133,30 +133,4 @@ bool dropbox::EntryExchange::ReceivePath() {
     path_ = received_path.data();
 
     return true;
-}
-
-std::ostream& dropbox::operator<<(std::ostream& os, dropbox::Command command) {
-    switch (command) {
-        case Command::UPLOAD:
-            os << "upload";
-            break;
-        case Command::DELETE:
-            os << "delete";
-            break;
-        case Command::GET_SYNC_DIR:
-            os << "get_sync_dir";
-            break;
-        case Command::LIST_SERVER:
-            os << "list_server";
-            break;
-        case Command::EXIT:
-            os << "exit";
-            break;
-        case Command::DOWNLOAD:
-            os << "download";
-            break;
-        default:
-            break;
-    }
-    return os;
 }

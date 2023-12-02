@@ -9,18 +9,18 @@
 #include "constants.hpp"
 #include "exceptions.hpp"
 
-dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType, 0)), client_pool_() {
-    if (kReceiverSocket == kInvalidSocket) {
+dropbox::Server::Server(in_port_t port) : receiver_socket_(socket(kDomain, kType, 0)) {
+    if (receiver_socket_ == kInvalidSocket) {
         throw SocketCreation();
     }
 
-    const sockaddr_in kReceiverAddress = {kFamily, htons(port), INADDR_ANY};
+    const sockaddr_in kReceiverAddress = {kFamily, htons(port), {INADDR_ANY}};
 
-    if (bind(kReceiverSocket, reinterpret_cast<const sockaddr*>(&kReceiverAddress), sizeof(kReceiverAddress)) == -1) {
+    if (bind(receiver_socket_, reinterpret_cast<const sockaddr*>(&kReceiverAddress), sizeof(kReceiverAddress)) == -1) {
         throw Binding();
     }
 
-    if (listen(kReceiverSocket, kBacklog) == -1) {
+    if (listen(receiver_socket_, kBacklog) == -1) {
         throw Listening();
     }
 }
@@ -30,18 +30,20 @@ dropbox::Server::Server(in_port_t port) : kReceiverSocket(socket(kDomain, kType,
     socklen_t   client_length = sizeof(client_address);
 
     while (true) {
-        const int kHeaderSocket = accept(kReceiverSocket, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kFileSocket   = accept(kReceiverSocket, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        const int kHeaderSocket =
+            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        const int kFileSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
 
         NewClient(kHeaderSocket, kFileSocket);
     }
 }
 
-dropbox::Server::~Server() { close(kReceiverSocket); }
+dropbox::Server::~Server() { close(receiver_socket_); }
 
 void dropbox::Server::NewClient(int header_socket, int file_socket) {
     std::thread new_client_thread(
         [](int header_socket, int file_socket, ClientPool& pool) {
+            // Immediately stops the client building if any sockets are invalid.
             if (header_socket == kInvalidSocket) {
                 if (file_socket == kInvalidSocket) {
                     close(header_socket);
