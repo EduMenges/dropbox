@@ -20,7 +20,7 @@ dropbox::UserInput::UserInput(dropbox::Client&& client) : reading_(false), clien
                     {"get_sync_dir", Command::GET_SYNC_DIR},
                     {"exit", Command::EXIT}};
 
-    client_.GetSyncDir();
+    //client_.GetSyncDir(); // move to client
 
     // thread para rodar o recebimento de arquivos do servidor
     // aqui ele de fato criar os arquivos na maquina local toda

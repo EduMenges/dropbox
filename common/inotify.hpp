@@ -14,20 +14,18 @@
 namespace dropbox {
 class Inotify {
    public:
-    Inotify(const std::string& username, int sync_socket);
+    Inotify(const std::string& username);
 
     void Start();
     void Stop();
     
     std::vector<std::string> inotify_vector_;
+    
    private:
     bool        watching_;
     int         fd_, wd_;
     int         length_, i_;
     std::string watch_path_;
     std::string username_;
-
-    HeaderExchange    she_;
-    FileExchange      sfe_;
 };
 }

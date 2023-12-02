@@ -14,12 +14,10 @@
 // The fcntl() function is used so that when we read using the fd descriptor, the thread will not be blocked.
 #include <fcntl.h>
 
-dropbox::Inotify::Inotify(const std::string &username, int sync_socket) 
+dropbox::Inotify::Inotify(const std::string &username) 
     : i_(0),
       watching_(false),
-      username_(username),
-      she_(sync_socket),
-      sfe_(sync_socket) {
+      username_(username) {
 
     watch_path_ = SyncDirWithPrefix(username_);
 
@@ -33,7 +31,7 @@ dropbox::Inotify::Inotify(const std::string &username, int sync_socket)
     wd_ = inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE);
 
     if (wd_ == -1) {
-        std::cerr << "Could not watch: " << watch_path_ << '\n';
+        //std::cerr << "Could not watch: " << watch_path_ << '\n';
     } else {
         std::cerr << "Watching: " << watch_path_ << '\n';
     }

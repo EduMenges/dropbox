@@ -9,6 +9,8 @@
 
 #include "utils.hpp"
 
+#include "../common/inotify.hpp"
+
 namespace dropbox {
 
 class Client {
@@ -51,14 +53,20 @@ class Client {
     int         header_socket_;  ///< Socket to exchange headers.
     int         file_socket_;    ///< Socket to exchange files.
 
-    int         sync_socket_;    ///< Socket only for sync
+    int         sync_sc_socket_;    ///< Socket only for sync server -> client
+    int         sync_cs_socket_;    ///< Socket only for sync client -> server
 
     HeaderExchange    he_;
     FileExchange      fe_;
     DirectoryExchange de_;
 
-    HeaderExchange she_;
-    FileExchange   sfe_;
+    HeaderExchange sche_;
+    FileExchange   scfe_;
+
+    HeaderExchange cshe_;
+    FileExchange   csfe_;
+
+    Inotify inotify_;
 };
 
 }

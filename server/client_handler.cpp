@@ -14,16 +14,19 @@
 #include "../common/inotify.hpp"
 #include "../common/constants.hpp"
 
-dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_socket)
+dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket)
     : header_socket_(header_socket),
       file_socket_(file_socket),
-      sync_socket_(sync_socket),
+      sync_sc_socket_(sync_sc_socket),
+      sync_cs_socket_(sync_cs_socket),
       he_(header_socket),
       fe_(file_socket),
       de_(file_socket),
-      she_(sync_socket),
-      sfe_(sync_socket),
-      inotify_({}, {}) {
+      sche_(sync_sc_socket),
+      scfe_(sync_sc_socket),
+      cshe_(sync_cs_socket),
+      csfe_(sync_cs_socket),
+      inotify_({}) {
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -40,7 +43,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
      * mas tu tem que deixar um terminal do wsl aberto no deretorio que
      * ele vai escutar no windows, no linux nao sei como ta funcionando
     */
-    inotify_ = Inotify(username_, sync_socket);
+    inotify_ = Inotify(username_);
     std::thread inotify_thread(
         [this](){
             inotify_.Start();
@@ -65,26 +68,36 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
                     iss >> command;
                     iss >> file;
 
-                    std::cout << "Modificacoes no client -> operacao: " << command << " arquivo: " << file << '\n';
+                    std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
 
                     if (command == "write") {
-                        if (!she_.SetCommand(Command::WRITE_DIR).Send()) { }
+                        if (!sche_.SetCommand(Command::WRITE_DIR).Send()) { }
                         
-                        if (!sfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
+                        if (!scfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
 
-                        if (!sfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
+                        if (!scfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
 
                     } else if (command == "delete") {
-                        if (!she_.SetCommand(Command::DELETE_DIR).Send()) { }
+                        if (!sche_.SetCommand(Command::DELETE_DIR).Send()) { }
 
-                        if (!sfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
+                        if (!scfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
                     }
                 }   
             }
         }
     );
+
+    std::thread sync_thread(
+        [this]() {
+            while (true) {
+                ReceiveSyncFromClient();
+            }
+        }
+    );
+
     inotify_thread.detach();
     file_exchange_thread.detach();
+    sync_thread.detach();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
 }
@@ -240,7 +253,8 @@ dropbox::ClientHandler::~ClientHandler() {
 
     close(header_socket_);
     close(file_socket_);
-    close(sync_socket_);
+    close(sync_sc_socket_);
+    close(sync_cs_socket_);
 }
 
 bool dropbox::ClientHandler::ListServer() {
@@ -263,6 +277,49 @@ bool dropbox::ClientHandler::ListServer() {
         }
 
         total_sent += kTableSize;
+    }
+
+    return true;
+}
+
+bool dropbox::ClientHandler::ReceiveSyncFromClient() {
+    if (!cshe_.Receive()) {
+        return false;
+    }
+
+    if (cshe_.GetCommand() == Command::WRITE_DIR) {
+        printf("CLIENT -> SERVER: modified\n");
+        if (!csfe_.ReceivePath()) {
+            return false;
+        }
+        std::cout << csfe_.GetPath() << '\n';
+
+        if (!csfe_.Receive()) {
+            return false;
+        }
+
+        //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+
+        return true;
+        
+    } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
+        
+        printf("CLIENT -> SERVER: delete\n");
+        if (!csfe_.ReceivePath()) {
+            return false;
+        }
+
+        const std::filesystem::path& file_path = csfe_.GetPath();
+
+        if (std::filesystem::exists(file_path)) {
+            std::filesystem::remove(file_path);
+            
+            //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+
+            return true;
+        }
+
+        return false;
     }
 
     return true;

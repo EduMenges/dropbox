@@ -5,17 +5,23 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <thread>
 
 #include "connections.hpp"
 #include "exceptions.hpp"
 #include "list_directory.hpp"
 #include "../common/constants.hpp"
 
+#include <semaphore>
+#include "sem.cpp"
+
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
       header_socket_(socket(kDomain, kType, kProtocol)),
       file_socket_(socket(kDomain, kType, kProtocol)),
-      sync_socket_(socket(kDomain, kType, kProtocol)) {
+      sync_sc_socket_(socket(kDomain, kType, kProtocol)),
+      sync_cs_socket_(socket(kDomain, kType, kProtocol)),
+      inotify_({}) {
     if (header_socket_ == kInvalidSocket || file_socket_ == kInvalidSocket) {
         throw SocketCreation();
     }
@@ -24,7 +30,8 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
         connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
-        connect(sync_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
+        connect(sync_sc_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
+        connect(sync_cs_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
         throw Connecting();
     }
 
@@ -32,13 +39,64 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
     fe_.SetSocket(file_socket_);
     de_.SetSocket(file_socket_);
 
-    she_.SetSocket(sync_socket_);
-    sfe_.SetSocket(sync_socket_);
+    sche_.SetSocket(sync_sc_socket_);
+    scfe_.SetSocket(sync_sc_socket_);
+    
+    cshe_.SetSocket(sync_cs_socket_);
+    csfe_.SetSocket(sync_cs_socket_);
 
 
     if (!SendUsername()) {
         throw Username();
     }
+
+    GetSyncDir();
+
+    // Watching local sync
+    inotify_ = Inotify(username_);
+    std::thread inotify_client_thread(
+        [this]() {
+            inotify_.Start();
+        }
+    );
+
+    // Thread que manda as atualizações do local para o server
+    std::thread file_exchange_thread(
+        [this](auto username_) {
+            while (true) {
+                if (!inotify_.inotify_vector_.empty()) {
+                    std::string queue = inotify_.inotify_vector_.front();
+                    inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+                    std::istringstream iss(queue);
+
+                    std::string command;
+                    std::string file;
+
+                    iss >> command;
+                    iss >> file;
+
+                    std::cout << "Must att in Server | op:" << command << " in:" << file << '\n';
+
+                    if (command == "write") {
+                        if (!cshe_.SetCommand(Command::WRITE_DIR).Send()) { }
+                        
+                        if (!csfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
+
+                        if (!csfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
+
+                    } else if (command == "delete") {
+                        if (!cshe_.SetCommand(Command::DELETE_DIR).Send()) { }
+
+                        if (!csfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
+                    }
+                }   
+            }
+        }, username_
+    );
+    inotify_client_thread.detach();
+    file_exchange_thread.detach();
+
+
 }
 
 bool dropbox::Client::SendUsername() {
@@ -186,31 +244,45 @@ bool dropbox::Client::ListServer() {
     return true;
 }
 
-// Responsável por receber a informação do servidor, quando o inotify recebe att do diretorio
-// Essa funcao é usada em uma thread dentro do construtor do user_input.cpp (só teste)
 bool dropbox::Client::ReceiveSyncFromServer() {
-    if (!she_.Receive()) {
+    if (!sche_.Receive()) {
         return false;
     }
+    
+    if (sche_.GetCommand() == Command::WRITE_DIR) {
 
-    if (she_.GetCommand() == Command::WRITE_DIR) {
-        printf("Servidor enviou para o client modificao de arquivo\n");
-        if (!sfe_.ReceivePath()) {
+        printf("SERVER -> CLIENT: modified\n");
+        if (!scfe_.ReceivePath()) {
             return false;
         }
 
-        return sfe_.Receive();
+        if (!scfe_.Receive()) {
+            return false;
+        }
+
+        // Inotify do client captura o arquivo que o servidor sincronizou
+        // essa informacao e armazenada no inotify_vector e em outra thread
+        // eh enviada para o servidor porem como ele veio do servidor
+        // vamos dar um pop nesse vector
+        //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+
+        return true;
         
-    } else if (she_.GetCommand() == Command::DELETE_DIR) {
-        printf("Servidor enviou para o client del de arquivo\n");
-        if (!sfe_.ReceivePath()) {
+    } else if (sche_.GetCommand() == Command::DELETE_DIR) {
+        
+        printf("SERVER -> CLIENT: delete\n");
+        if (!scfe_.ReceivePath()) {
             return false;
         }
 
-        const std::filesystem::path& file_path = sfe_.GetPath();
+        const std::filesystem::path& file_path = scfe_.GetPath();
 
         if (std::filesystem::exists(file_path)) {
             std::filesystem::remove(file_path);
+            
+            // Mesma coisa aqui
+            //inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+
             return true;
         }
 
