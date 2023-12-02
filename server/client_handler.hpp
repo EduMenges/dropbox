@@ -6,7 +6,7 @@
 
 #include "communication/protocol.hpp"
 #include "utils.hpp"
-#include "inotify.hpp"
+#include "../common/inotify.hpp"
 
 namespace dropbox {
 class ClientHandler {

@@ -8,11 +8,10 @@
 #include <vector>
 
 
-#include "../common/utils.hpp"
 #include "exceptions.hpp"
-#include "inotify.hpp"
 #include "list_directory.hpp"
-
+#include "../common/utils.hpp"
+#include "../common/inotify.hpp"
 #include "../common/constants.hpp"
 
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_socket)

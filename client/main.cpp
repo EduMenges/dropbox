@@ -42,8 +42,7 @@ int main(int argc, char* argv[]) {  // NOLINT
                 }
             );
 
-
-            sync_thread.join(); // essa thread ta parando apos o primeiro comando
+            sync_thread.join();
             input_thread.join();
 
 
