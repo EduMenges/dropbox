@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(dropbox)
+project(dropbox LANGUAGES CXX)
 
 include(CheckIncludeFiles)
 CHECK_INCLUDE_FILES("sys/socket.h;arpa/inet.h;netinet/in.h" SOCKET_HEADERS)

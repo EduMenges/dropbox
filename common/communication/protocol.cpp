@@ -7,8 +7,6 @@
 #include <fstream>
 #include <iostream>
 
-#include "constants.hpp"
-
 thread_local std::array<char, dropbox::kPacketSize>    dropbox::FileExchange::buffer;
 thread_local std::array<uint8_t, dropbox::kPacketSize> dropbox::StringExchange::buffer;
 
