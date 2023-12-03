@@ -295,7 +295,7 @@ void dropbox::ClientHandler::StartFileExchange() {
 void dropbox::ClientHandler::ReceiveSyncFromClient() {
     server_sync_ = true;
 
-    fcntl(sync_cs_socket_, F_SETFL, O_NONBLOCK);
+    //fcntl(sync_cs_socket_, F_SETFL, O_NONBLOCK);
 
     while (server_sync_) {
         if (cshe_.Receive()) {
@@ -312,6 +312,7 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
                 inotify_.Resume();
 
             } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
+                inotify_.Pause();
                 std::cout << "CLIENT -> SERVER: delete\n";
                 if (!csfe_.ReceivePath()) {
                 }
@@ -323,9 +324,10 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
 
                     //
                 }
+                inotify_.Resume();
             }
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }

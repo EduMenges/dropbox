@@ -26,7 +26,7 @@ bool dropbox::HeaderExchange::Receive() {
     const ssize_t kBytesRead = read(socket_, &command_, sizeof(command_));
 
     if (kBytesRead == kInvalidRead) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+        if (errno == EAGAIN) {
             return true;
         } else {
             perror("HeaderExchange::Receive");
