@@ -7,6 +7,9 @@
 #include <iostream>
 #include <thread>
 
+#include <sys/fcntl.h>
+#include <chrono>
+
 #include "connections.hpp"
 #include "exceptions.hpp"
 #include "list_directory.hpp"
@@ -236,6 +239,9 @@ bool dropbox::Client::ListServer() {
 }
 
 void dropbox::Client::ReceiveSyncFromServer() {
+
+    fcntl(sync_sc_socket_, F_SETFL, O_NONBLOCK);
+
     while (client_sync_) {
         if (sche_.Receive()) {
             if (sche_.GetCommand() == Command::WRITE_DIR) {
@@ -263,6 +269,8 @@ void dropbox::Client::ReceiveSyncFromServer() {
                     //
                 }
             }
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }

@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <sys/fcntl.h>
+
 #include "exceptions.hpp"
 #include "list_directory.hpp"
 
@@ -292,6 +294,9 @@ void dropbox::ClientHandler::StartFileExchange() {
 
 void dropbox::ClientHandler::ReceiveSyncFromClient() {
     server_sync_ = true;
+
+    fcntl(sync_cs_socket_, F_SETFL, O_NONBLOCK);
+
     while (server_sync_) {
         if (cshe_.Receive()) {
             if (cshe_.GetCommand() == Command::WRITE_DIR) {
@@ -319,6 +324,8 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
                     //
                 }
             }
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }
