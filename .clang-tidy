@@ -49,48 +49,38 @@ Checks: <
   -readability-else-after-return
   -readability-identifier-length
 
+FormatStyle: file
+
 CheckOptions:
-  - key: readability-identifier-naming.MacroDefinitionCase
-    value: UPPER_CASE
+  hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: true
 
-  - key: readability-identifier-naming.NamespaceCase
-    value: lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
 
-  - key: readability-identifier-naming.ClassCase
-    value: CamelCase
+  readability-identifier-naming.NamespaceCase: lower_case
 
-  - key: readability-identifier-naming.EnumCase
-    value: CamelCase
+  readability-identifier-naming.ClassCase: CamelCase
 
-  - key: readability-identifier-naming.UnionCase
-    value: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
 
-  - key: readability-identifier-naming.TypedefCase
-    value: CamelCase
+  readability-identifier-naming.UnionCase: CamelCase
 
-  - key: readability-identifier-naming.MemberCase
-    value: lower_case
+  readability-identifier-naming.TypedefCase: CamelCase
 
-  - key: readability-identifier-naming.MemberSuffix
-    value: _
+  readability-identifier-naming.MemberCase: lower_case
 
-  - key: readability-identifier-naming.EnumConstantCase
-    value: UPPER_CASE
+  readability-identifier-naming.MemberSuffix: _
 
-  - key: readability-identifier-naming.FunctionCase
-    value: CamelCase
+  readability-identifier-naming.EnumConstantCase: UPPER_CASE
 
-  - key: readability-identifier-naming.MethodCase
-    value: CamelCase
+  readability-identifier-naming.FunctionCase: CamelCase
 
-  - key: readability-identifier-naming.ParameterCase
-    value: lower_case
+  readability-identifier-naming.MethodCase: CamelCase
 
-  - key: readability-identifier-naming.VariableCase
-    value: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
 
-  - key: readability-identifier-naming.ConstantCase
-    value: CamelCase
+  readability-identifier-naming.VariableCase: lower_case
 
-  - key: readability-identifier-naming.ConstantPrefix
-    value: k
+  readability-identifier-naming.ConstantCase: CamelCase
+
+  readability-identifier-naming.ConstantPrefix: k
+
