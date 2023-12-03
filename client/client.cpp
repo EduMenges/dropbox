@@ -68,17 +68,17 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
                     if (!cshe_.SetCommand(Command::WRITE_DIR).Send()) {
                     }
 
-                    if (!csfe_.SetPath(SyncDirWithPrefix(username_) / file).SendPath()) {
+                    if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
                     }
 
-                    if (!csfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
+                    if (!csfe_.SetPath(std::move(SyncDirPath() / file)).Send()) {
                     }
 
                 } else if (command == "delete") {
                     if (!cshe_.SetCommand(Command::DELETE_DIR).Send()) {
                     }
 
-                    if (!csfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {
+                    if (!csfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
                     }
                 }
             }
@@ -116,7 +116,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
         return false;
     }
 
-    if (!fe_.SetPath(SyncDirWithPrefix(username_) / path.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirPath() / path.filename()).SendPath()) {
         return false;
     }
 
@@ -128,7 +128,7 @@ bool dropbox::Client::Delete(std::filesystem::path &&file_path) {
         return false;
     }
 
-    return fe_.SetPath(SyncDirWithPrefix(username_) / std::move(file_path).filename()).SendPath();
+    return fe_.SetPath(SyncDirPath() / std::move(file_path).filename()).SendPath();
 }
 
 bool dropbox::Client::Download(std::filesystem::path &&file_name) {
@@ -136,7 +136,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return false;
     }
 
-    if (!fe_.SetPath(SyncDirWithPrefix(username_) / file_name.filename()).SendPath()) {
+    if (!fe_.SetPath(SyncDirPath() / file_name.filename()).SendPath()) {
         return false;
     }
 
@@ -154,10 +154,10 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 
 bool dropbox::Client::GetSyncDir() {
     try {
-        if (std::filesystem::exists(SyncDirWithPrefix(username_))) {
-            std::filesystem::remove_all(SyncDirWithPrefix(username_));
+        if (std::filesystem::exists(SyncDirPath())) {
+            std::filesystem::remove_all(SyncDirPath());
         }
-        std::filesystem::create_directory(SyncDirWithPrefix(username_));
+        std::filesystem::create_directory(SyncDirPath());
     } catch (const std::exception &e) {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }

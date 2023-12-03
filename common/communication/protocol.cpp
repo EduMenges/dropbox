@@ -26,7 +26,7 @@ bool dropbox::HeaderExchange::Receive() {
     const ssize_t kBytesRead = read(socket_, &command_, sizeof(command_));
 
     if (kBytesRead == kInvalidRead) {
-        perror(__func__);
+        perror("HeaderExchange::Receive");
         return false;
     } else if (kBytesRead < SSizeOf(command_)) {
         std::cerr << __func__ << ": received " << kBytesRead << " bytes\n";
@@ -82,7 +82,7 @@ bool dropbox::FileExchange::Receive() {
     uintmax_t remaining_size = 0;
 
     if (read(socket_, &remaining_size, sizeof(remaining_size)) < SSizeOf(remaining_size)) {
-        perror(__func__);
+        perror("FileExchange::Receive");
         return false;
     }
 

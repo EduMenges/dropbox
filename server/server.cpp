@@ -69,15 +69,15 @@ void dropbox::Server::NewClient(int header_socket, int file_socket, int sync_sc_
                 ClientHandler& handler = pool.Insert(std::move(new_handler));
 
                 std::thread inotify_thread([&handler]() { handler.StartInotify(); });
-                inotify_thread.detach();
                 std::thread file_exchange_thread([&handler]() { handler.StartFileExchange(); });
-                file_exchange_thread.detach();
                 std::thread sync_thread([&handler]() { handler.ReceiveSyncFromClient(); });
-                sync_thread.detach();
 
                 handler.MainLoop();
                 handler.GetComposite()->Remove(handler.GetId());
 
+                inotify_thread.join();
+                file_exchange_thread.join();
+                sync_thread.join();
             } catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;  // NOLINT
             }

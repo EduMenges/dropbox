@@ -53,7 +53,7 @@ void dropbox::Inotify::Start() {
         
         i_      = 0;  // precisa resetar aqui
         while (i_ < length_ && !pause_) {
-            struct inotify_event *event = (struct inotify_event *)&buffer_[i_];
+            struct inotify_event *event = reinterpret_cast<struct inotify_event *>(&buffer_[i_]);
             if (event->len) {
                 if (event->mask & IN_CLOSE_WRITE) {
                     if (event->mask & IN_ISDIR) {
