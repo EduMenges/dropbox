@@ -4,9 +4,6 @@
 
 namespace dropbox {
 
-/// Arthur inventou (?)
-static constexpr const char* kSyncDirPath = "./server/dir/";
-
 constexpr int     kInvalidSocket = -1; ///< Invalid socket.
 constexpr int     kInvalidConnect = -1; ///< Invalid connect.
 constexpr ssize_t kInvalidWrite  = -1; ///< Invalid write.

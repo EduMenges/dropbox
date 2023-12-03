@@ -9,8 +9,7 @@
 #include <thread>
 
 #include "utils.hpp"
-
-#include "../common/inotify.hpp"
+#include "inotify.hpp"
 
 namespace dropbox {
 

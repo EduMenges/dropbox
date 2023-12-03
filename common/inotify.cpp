@@ -1,12 +1,9 @@
 #include "inotify.hpp"
 
-#include <signal.h>
-#include <stdlib.h>
 #include <sys/inotify.h>
 #include <unistd.h>
 
 #include <cstring>
-
 #include <iostream>
 
 #include "utils.hpp"
@@ -14,20 +11,15 @@
 // The fcntl() function is used so that when we read using the fd descriptor, the thread will not be blocked.
 #include <fcntl.h>
 
-dropbox::Inotify::Inotify(const std::string &username)
-    : watching_(false),
-      pause_(false),
-      i_(0),
-      username_(username) {
-
+dropbox::Inotify::Inotify(const std::string &username) : watching_(false), pause_(false), i_(0), username_(username) {
     watch_path_ = SyncDirWithPrefix(username_);
 
     fd_ = inotify_init();
 
-    //if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0) {
-    //    std::cerr << "Error checking for fcntl" << '\n';
-    //    return;
-    //}
+    // if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0) {
+    //     std::cerr << "Error checking for fcntl" << '\n';
+    //     return;
+    // }
 
     wd_ = inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE);
 
@@ -40,7 +32,7 @@ dropbox::Inotify::Inotify(const std::string &username)
 
 void dropbox::Inotify::Start() {
     watching_ = true;
-    
+
     while (watching_) {
         char buffer_[BUF_LEN];
 
@@ -50,8 +42,8 @@ void dropbox::Inotify::Start() {
             std::cerr << "Error: " << strerror(errno) << '\n';
             return;
         }
-        
-        i_      = 0;  // precisa resetar aqui
+
+        i_ = 0;  // precisa resetar aqui
         while (i_ < length_ && !pause_) {
             struct inotify_event *event = reinterpret_cast<struct inotify_event *>(&buffer_[i_]);
             if (event->len) {

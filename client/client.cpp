@@ -7,9 +7,6 @@
 #include <iostream>
 #include <thread>
 
-#include <sys/fcntl.h>
-#include <chrono>
-
 #include "connections.hpp"
 #include "exceptions.hpp"
 #include "list_directory.hpp"
