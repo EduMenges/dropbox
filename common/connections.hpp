@@ -12,7 +12,7 @@ constexpr int kProtocol = 0;
 
 inline void MultipleConnect(const sockaddr_in * kServerAddress, int socket) noexcept(false)
 {
-    if (connect(socket,  reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(sockaddr_in)) == kInvalidConnect)
+    if (connect(socket,  reinterpret_cast<const sockaddr *>(kServerAddress), sizeof(sockaddr_in)) == kInvalidConnect)
     {
         throw Connecting();
     }
