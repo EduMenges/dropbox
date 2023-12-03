@@ -13,4 +13,10 @@ static constexpr const char* kSyncDirPrefix = "./sync_dir_";
 inline std::filesystem::path SyncDirWithPrefix(const std::string& username) {
     return std::filesystem::path(kSyncDirPrefix).concat(username);
 }
+
+template <typename T>
+ssize_t SSizeOf(const T& _instance)
+{
+    return static_cast<ssize_t>(sizeof(T));
+}
 }

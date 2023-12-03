@@ -13,6 +13,10 @@ namespace dropbox {
 /// Handles one device of a client.
 class ClientHandler {
    public:
+    using id_type = int;
+
+    static constexpr id_type kInvalidId = kInvalidSocket;
+
     /**
      * Constructor.
      * @param header_socket Socket to use in header communications.
@@ -21,8 +25,6 @@ class ClientHandler {
      */
     ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket);
 
-    using id_type = int;
-    
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
 
@@ -108,7 +110,7 @@ class ClientHandler {
     std::string username_;      ///< Username of the client.
 
 
-    CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
+    CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
 
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
@@ -122,6 +124,6 @@ class ClientHandler {
 
     Inotify inotify_;
 
-    bool server_sync_;
+    bool server_sync_{};
 };
 }

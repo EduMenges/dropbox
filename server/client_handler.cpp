@@ -4,16 +4,11 @@
 #include <unistd.h>
 
 #include <filesystem>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "exceptions.hpp"
 #include "list_directory.hpp"
-
-#include "../common/utils.hpp"
-#include "../common/inotify.hpp"
-#include "../common/constants.hpp"
-#include "../common/communication/commands.hpp"
 
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket)
     : header_socket_(header_socket),
@@ -28,7 +23,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       csfe_(sync_cs_socket),
       inotify_({}),
       server_sync_(true) {
-
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -40,7 +34,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
     ReceiveGetSyncDir();
 
     std::cout << "NEW CLIENT: " << username_ << '\n';
-
 }
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
@@ -56,7 +49,8 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       scfe_(std::move(other.scfe_)),
       cshe_(std::move(other.cshe_)),
       csfe_(std::move(other.csfe_)),
-      inotify_({}) {}
+      inotify_({}),
+      server_sync_(std::exchange(other.server_sync_, false)) {}
 
 bool dropbox::ClientHandler::ReceiveUsername() {
     static thread_local std::array<char, NAME_MAX + 1> buffer{};
@@ -67,13 +61,13 @@ bool dropbox::ClientHandler::ReceiveUsername() {
 
     size_t username_length = 0;
     if (read(file_socket_, &username_length, sizeof(username_length)) != sizeof(username_length)) {
-        perror(__func__); //NOLINT
+        perror(__func__);  // NOLINT
         return false;
     }
 
     const auto kBytesReceived = read(file_socket_, buffer.data(), username_length);
 
-    if (kBytesReceived != username_length) {
+    if (kBytesReceived != SSizeOf(username_length)) {
         perror(__func__);  // NOLINT
         return false;
     }
@@ -83,8 +77,8 @@ bool dropbox::ClientHandler::ReceiveUsername() {
 }
 
 void dropbox::ClientHandler::MainLoop() {
-    bool receiving = true;
-    uint8_t attempts = kAttemptAmount;
+    bool    receiving = true;
+    uint8_t attempts  = kAttemptAmount;
 
     while (receiving) {
         if (he_.Receive()) {
@@ -102,7 +96,7 @@ void dropbox::ClientHandler::MainLoop() {
                     break;
                 case Command::EXIT:
                     server_sync_ = false;
-                    receiving = false;
+                    receiving    = false;
                     break;
                 case Command::LIST_SERVER:
                     ListServer();
@@ -111,15 +105,14 @@ void dropbox::ClientHandler::MainLoop() {
                     std::cerr << "Unexpected command received: " << he_.GetCommand() << '\n';
                     break;
             }
-        }
-        else
-        {
+        } else {
             attempts -= 1;
             if (attempts == 0) {
                 receiving = false;
                 std::cerr << "Client " << username_ << " with id " << GetId() << " timed out" << '\n';
             } else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                std::cerr << "Could not get response from " << username_ << ' ' << GetId() << ", sleeping\n";
+                std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }
     }
@@ -170,7 +163,7 @@ bool dropbox::ClientHandler::ReceiveDownload() {
 }
 
 bool dropbox::ClientHandler::ReceiveGetSyncDir() {
-    const std::filesystem::path        kSyncPath = SyncDirWithPrefix(username_);
+    const std::filesystem::path        kSyncPath = SyncDirPath();
     std::vector<std::filesystem::path> file_names;
 
     try {
@@ -204,8 +197,8 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
 
 void dropbox::ClientHandler::CreateUserFolder() {
     try {
-        if (!std::filesystem::exists(SyncDirWithPrefix(username_))) {
-            std::filesystem::create_directory(SyncDirWithPrefix(username_));
+        if (!std::filesystem::exists(SyncDirPath())) {
+            std::filesystem::create_directory(SyncDirPath());
         }
     } catch (const std::exception& e) {
         std::cerr << "Error creating directory " << e.what() << '\n';
@@ -213,7 +206,9 @@ void dropbox::ClientHandler::CreateUserFolder() {
 }
 
 dropbox::ClientHandler::~ClientHandler() {
-    std::cout << username_ << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
+    if (GetId() != kInvalidId) {
+        std::cout << username_ << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
+    }
 
     inotify_.Stop();
 
@@ -231,7 +226,7 @@ bool dropbox::ClientHandler::ListServer() const {
     const size_t kTableSize = kStrTable.size() + 1;
 
     if (write(header_socket_, &kTableSize, sizeof(kTableSize)) == kInvalidWrite) {
-        perror(__func__); //NOLINT
+        perror(__func__);  // NOLINT
         return false;
     }
 
@@ -240,7 +235,7 @@ bool dropbox::ClientHandler::ListServer() const {
         const size_t kBytesToSend = std::min(kPacketSize, kTableSize - total_sent);
 
         const ssize_t kBytesSent = write(header_socket_, kStrTable.c_str() + total_sent, kBytesToSend);
-        if (kBytesSent < kBytesToSend) {
+        if (kBytesSent < static_cast<ssize_t>(kBytesToSend)) {
             perror(__func__);
             return false;
         }
@@ -275,48 +270,53 @@ void dropbox::ClientHandler::StartFileExchange() {
             std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
 
             if (command == "write") {
-                if (!sche_.SetCommand(Command::WRITE_DIR).Send()) { }
-                
-                if (!scfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
+                if (!sche_.SetCommand(Command::WRITE_DIR).Send()) {
+                }
 
-                if (!scfe_.SetPath(SyncDirWithPrefix(username_) / file).Send()) { }
+                if (!scfe_.SetPath(SyncDirPath() / file).SendPath()) {
+                }
+
+                if (!scfe_.SetPath(SyncDirPath() / file).Send()) {
+                }
 
             } else if (command == "delete") {
-                if (!sche_.SetCommand(Command::DELETE_DIR).Send()) { }
+                if (!sche_.SetCommand(Command::DELETE_DIR).Send()) {
+                }
 
-                if (!scfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
+                if (!scfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
+                }
             }
-        }   
+        }
     }
-
 }
 
 void dropbox::ClientHandler::ReceiveSyncFromClient() {
     server_sync_ = true;
     while (server_sync_) {
         if (cshe_.Receive()) {
-
             if (cshe_.GetCommand() == Command::WRITE_DIR) {
                 inotify_.Pause();
 
-                printf("CLIENT -> SERVER: modified\n");
-                if (!csfe_.ReceivePath()) { }
+                std::cout << "CLIENT -> SERVER: modified\n";
+                if (!csfe_.ReceivePath()) {
+                }
 
-                if (!csfe_.Receive()) { }
+                if (!csfe_.Receive()) {
+                }
 
                 inotify_.Resume();
-                
+
             } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
-                printf("CLIENT -> SERVER: delete\n");
-                if (!csfe_.ReceivePath()) { }
+                std::cout << "CLIENT -> SERVER: delete\n";
+                if (!csfe_.ReceivePath()) {
+                }
 
                 const std::filesystem::path& file_path = csfe_.GetPath();
 
                 if (std::filesystem::exists(file_path)) {
                     std::filesystem::remove(file_path);
-                    
-                    //
 
+                    //
                 }
             }
         }
