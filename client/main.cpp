@@ -31,21 +31,18 @@ int main(int argc, char* argv[]) {  // NOLINT
 
             std::thread input_thread(
                 [&client]() {
-                    dropbox::UserInput(std::move(client)).Start();
+                    dropbox::UserInput(client).Start();
                 }
             );
 
             std::thread sync_thread(
                 [&client]() {
-                    while (true) {
-                        client.ReceiveSyncFromServer();
-                    }
+                    client.ReceiveSyncFromServer();
                 }
             );
 
-            sync_thread.join();
             input_thread.join();
-
+            sync_thread.join();
 
         } catch (std::exception& e) {
             std::cerr << e.what() << '\n';

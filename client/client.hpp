@@ -76,7 +76,7 @@ class Client {
      */
     bool Exit();
 
-    bool ReceiveSyncFromServer();
+    void ReceiveSyncFromServer();
 
     /**
      * @return Sync dir path concatenated with the username.
@@ -99,7 +99,6 @@ class Client {
 
     HeaderExchange    he_; ///< What to exchange headers (commands) to the server with.
     FileExchange      fe_; ///< What to exchange files with the server with.
-    DirectoryExchange de_;
 
     HeaderExchange sche_;
     FileExchange   scfe_;
@@ -109,6 +108,8 @@ class Client {
 
     Inotify inotify_;
     std::thread inotify_client_thread_;
+
+    bool client_sync_;
 
 };
 

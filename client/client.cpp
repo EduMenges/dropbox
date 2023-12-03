@@ -11,6 +11,7 @@
 #include "exceptions.hpp"
 #include "list_directory.hpp"
 #include "../common/constants.hpp"
+#include "../common/communication/commands.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
@@ -18,15 +19,16 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       file_socket_(socket(kDomain, kType, kProtocol)),
       sync_sc_socket_(socket(kDomain, kType, kProtocol)),
       sync_cs_socket_(socket(kDomain, kType, kProtocol)),
-      inotify_({}) {
-    if (header_socket_ == kInvalidSocket || file_socket_ == kInvalidSocket) {
+      inotify_({}),
+      client_sync_(true) {
+    if (header_socket_ == kInvalidSocket || file_socket_ == kInvalidSocket || sync_sc_socket_ == kInvalidSocket || sync_cs_socket_ == kInvalidSocket) {
         throw SocketCreation();
     }
 
     const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}};
 
-    if (connect(header_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
-        connect(file_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
+    if (connect(header_socket_,  reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
+        connect(file_socket_,    reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
         connect(sync_sc_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1 ||
         connect(sync_cs_socket_, reinterpret_cast<const sockaddr *>(&kServerAddress), sizeof(kServerAddress)) == -1) {
 
@@ -59,8 +61,8 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     // Thread que manda as atualizações do local para o server
     std::thread file_exchange_thread(
-        [this](auto username_) {
-            while (true) {
+        [this](auto username_, auto client_sync_) {
+            while (client_sync_) {
                 if (!inotify_.inotify_vector_.empty()) {
                     std::string queue = inotify_.inotify_vector_.front();
                     inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
@@ -88,7 +90,7 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
                     }
                 }   
             }
-        }, username_
+        }, username_, client_sync_
     );
     inotify_client_thread_.detach();
     file_exchange_thread.detach();
@@ -169,10 +171,6 @@ bool dropbox::Client::GetSyncDir() {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }
 
-    // if (!he_.SetCommand(Command::GET_SYNC_DIR).Send()) {
-    //     return false;
-    // }
-
     do {
         if (!he_.Receive()) {
             return false;
@@ -193,13 +191,17 @@ bool dropbox::Client::GetSyncDir() {
 }
 
 dropbox::Client::~Client() {
+    client_sync_ = false;
     close(header_socket_);
     close(file_socket_);
-
-    
+    close(sync_sc_socket_);
+    close(sync_cs_socket_);
 }
 
-bool dropbox::Client::Exit() { return he_.SetCommand(Command::EXIT).Send(); }
+bool dropbox::Client::Exit() {
+    client_sync_ = false;
+    return he_.SetCommand(Command::EXIT).Send();
+}
 
 bool dropbox::Client::ListClient() const {
     auto table = ListDirectory(SyncDirPath());
@@ -242,46 +244,35 @@ bool dropbox::Client::ListServer() {
     return true;
 }
 
-bool dropbox::Client::ReceiveSyncFromServer() {
-    if (!sche_.Receive()) {
-        return false;
+void dropbox::Client::ReceiveSyncFromServer() {
+    while(client_sync_){
+        if (sche_.Receive()) {
+
+            if (sche_.GetCommand() == Command::WRITE_DIR) {
+                inotify_.Pause();
+
+                printf("SERVER -> CLIENT: modified\n");
+                if (!scfe_.ReceivePath()) { }
+
+                if (!scfe_.Receive()) { }
+
+                inotify_.Resume();
+                
+            } else if (sche_.GetCommand() == Command::DELETE_DIR) {
+                printf("SERVER -> CLIENT: delete\n");
+                if (!scfe_.ReceivePath()) { }
+
+                const std::filesystem::path& file_path = scfe_.GetPath();
+
+                if (std::filesystem::exists(file_path)) {
+                    std::filesystem::remove(file_path);
+                    
+                    //
+
+                }
+
+            }
+
+        }
     }
-    
-
-    if (sche_.GetCommand() == Command::WRITE_DIR) {
-        inotify_.Pause();
-
-        printf("SERVER -> CLIENT: modified\n");
-        if (!scfe_.ReceivePath()) {
-            return false;
-        }
-
-        if (!scfe_.Receive()) {
-            return false;
-        }
-
-       inotify_.Resume();
-
-        return true;
-        
-    } else if (sche_.GetCommand() == Command::DELETE_DIR) {
-        printf("SERVER -> CLIENT: delete\n");
-        if (!scfe_.ReceivePath()) {
-            return false;
-        }
-
-        const std::filesystem::path& file_path = scfe_.GetPath();
-
-        if (std::filesystem::exists(file_path)) {
-            std::filesystem::remove(file_path);
-            
-            //
-
-            return true;
-        }
-
-        return false;
-    }
-
-    return true;
 }
