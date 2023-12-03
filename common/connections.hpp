@@ -28,4 +28,6 @@ template <typename... Sockets>
 inline constexpr bool InvalidSockets(int socket, Sockets... sockets) noexcept {
     return InvalidSockets(socket) || InvalidSockets(sockets...);
 }
+
+bool SetNonblocking(int socket);
 }
