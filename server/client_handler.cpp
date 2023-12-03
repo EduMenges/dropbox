@@ -69,7 +69,7 @@ bool dropbox::ClientHandler::ReceiveUsername() {
 
     const auto kBytesReceived = read(file_socket_, buffer.data(), username_length);
 
-    if (kBytesReceived != username_length) {
+    if (kBytesReceived != static_cast<ssize_t>(username_length)) {
         perror(__func__);  // NOLINT
         return false;
     }

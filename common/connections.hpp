@@ -1,8 +1,10 @@
 #pragma once
 
+#include <netinet/in.h>
 #include <sys/socket.h>
 
 #include "exceptions.hpp"
+#include "constants.hpp"
 
 namespace dropbox {
 constexpr int kDomain   = AF_INET;
