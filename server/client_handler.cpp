@@ -4,16 +4,11 @@
 #include <unistd.h>
 
 #include <filesystem>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "exceptions.hpp"
 #include "list_directory.hpp"
-
-#include "../common/utils.hpp"
-#include "../common/inotify.hpp"
-#include "../common/constants.hpp"
-#include "../common/communication/commands.hpp"
 
 dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket)
     : header_socket_(header_socket),
@@ -73,7 +68,7 @@ bool dropbox::ClientHandler::ReceiveUsername() {
 
     const auto kBytesReceived = read(file_socket_, buffer.data(), username_length);
 
-    if (kBytesReceived != username_length) {
+    if (kBytesReceived != SSizeOf(username_length)) {
         perror(__func__);  // NOLINT
         return false;
     }
@@ -119,7 +114,8 @@ void dropbox::ClientHandler::MainLoop() {
                 receiving = false;
                 std::cerr << "Client " << username_ << " with id " << GetId() << " timed out" << '\n';
             } else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                std::cerr << "Could not get response from " << username_ << ' ' << GetId() << ", sleeping\n";
+                std::this_thread::sleep_for(std::chrono::seconds (1));
             }
         }
     }
@@ -240,7 +236,7 @@ bool dropbox::ClientHandler::ListServer() const {
         const size_t kBytesToSend = std::min(kPacketSize, kTableSize - total_sent);
 
         const ssize_t kBytesSent = write(header_socket_, kStrTable.c_str() + total_sent, kBytesToSend);
-        if (kBytesSent < kBytesToSend) {
+        if (kBytesSent < static_cast<ssize_t>(kBytesToSend)) {
             perror(__func__);
             return false;
         }

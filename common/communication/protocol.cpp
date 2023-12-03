@@ -7,6 +7,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "utils.hpp"
+
 thread_local std::array<char, dropbox::kPacketSize>    dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send() {
@@ -26,7 +28,7 @@ bool dropbox::HeaderExchange::Receive() {
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
         return false;
-    } else if (kBytesRead < static_cast<ssize_t>(sizeof(command_))) {
+    } else if (kBytesRead < SSizeOf(command_)) {
         std::cerr << __func__ << ": received " << kBytesRead << " bytes\n";
     }
 
@@ -44,7 +46,7 @@ bool dropbox::FileExchange::Send() {
 
     // Sending size
     uintmax_t file_size = std::filesystem::file_size(path_);
-    if (write(socket_, &file_size, sizeof(file_size)) != sizeof(file_size)) {
+    if (write(socket_, &file_size, sizeof(file_size)) != SSizeOf(file_size)) {
         perror(__func__);
         return false;
     }
@@ -79,7 +81,7 @@ bool dropbox::FileExchange::Receive() {
     // Receiving file size
     uintmax_t remaining_size = 0;
 
-    if (read(socket_, &remaining_size, sizeof(remaining_size)) < sizeof(remaining_size)) {
+    if (read(socket_, &remaining_size, sizeof(remaining_size)) < SSizeOf(remaining_size)) {
         perror(__func__);
         return false;
     }
@@ -105,7 +107,7 @@ bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) const {
 
     const auto kBytesSent = write(socket_, path.c_str(), kPathLen);
 
-    if (kBytesSent != kPathLen) {
+    if (kBytesSent != static_cast<ssize_t>(kPathLen)) {
         perror(__func__);
         return false;
     }
@@ -121,7 +123,7 @@ bool dropbox::EntryExchange::ReceivePath() {
 
     const ssize_t kBytesReceived = read(socket_, received_path.data(), path_len);
 
-    if (kBytesReceived != path_len) {
+    if (kBytesReceived != static_cast<ssize_t>(path_len)) {
         perror(__func__);
         return false;
     }

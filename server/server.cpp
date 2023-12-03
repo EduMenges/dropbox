@@ -30,13 +30,15 @@ dropbox::Server::Server(in_port_t port) : receiver_socket_(socket(kDomain, kType
     socklen_t   client_length = sizeof(client_address);
 
     while (true) {
-        const int kHeaderSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kFileSocket   = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kSyncSCSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kSyncCSSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        const int kHeaderSocket =
+            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        const int kFileSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        const int kSyncSCSocket =
+            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        const int kSyncCSSocket =
+            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
 
         NewClient(kHeaderSocket, kFileSocket, kSyncSCSocket, kSyncCSSocket);
-
     }
 }
 
@@ -50,11 +52,13 @@ void dropbox::Server::NewClient(int header_socket, int file_socket, int sync_sc_
                 if (file_socket == kInvalidSocket) {
                     if (sync_sc_socket == kInvalidSocket) {
                         if (sync_cs_socket == kInvalidSocket) {
-                            close(header_socket);
+                            close(sync_sc_socket);
                         }
+                        close(file_socket);
                     }
+                    close(header_socket);
                 }
-                
+
                 std::cerr << "Could not accept new client connection\n";
                 return;
             }
@@ -64,28 +68,16 @@ void dropbox::Server::NewClient(int header_socket, int file_socket, int sync_sc_
 
                 ClientHandler& handler = pool.Insert(std::move(new_handler));
 
-                std::thread inotify_thread(
-                    [&handler]() {
-                        handler.StartInotify();
-                    }
-                );
+                std::thread inotify_thread([&handler]() { handler.StartInotify(); });
                 inotify_thread.detach();
-                std::thread file_exchange_thread(
-                    [&handler](){
-                        handler.StartFileExchange();
-                    }
-                );
+                std::thread file_exchange_thread([&handler]() { handler.StartFileExchange(); });
                 file_exchange_thread.detach();
-                std::thread sync_thread(
-                    [&handler]() {       
-                        handler.ReceiveSyncFromClient();
-                    }
-                );
+                std::thread sync_thread([&handler]() { handler.ReceiveSyncFromClient(); });
                 sync_thread.detach();
 
                 handler.MainLoop();
                 handler.GetComposite()->Remove(handler.GetId());
-                
+
             } catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;  // NOLINT
             }
