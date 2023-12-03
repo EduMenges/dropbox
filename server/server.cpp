@@ -74,11 +74,11 @@ void dropbox::Server::NewClient(int header_socket, int file_socket, int sync_sc_
 
                 handler.MainLoop();
 
+                handler.GetComposite()->Remove(handler.GetId());
+
                 inotify_thread.join();
                 file_exchange_thread.join();
                 sync_thread.join();
-
-                handler.GetComposite()->Remove(handler.GetId());
             } catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;  // NOLINT
             }
