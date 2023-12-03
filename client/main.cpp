@@ -29,9 +29,15 @@ int main(int argc, char* argv[]) {  // NOLINT
         try {
             dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
 
-            std::thread input_thread(
+            std::thread inotify_thread(
                 [&client]() {
-                    dropbox::UserInput(client).Start();
+                    client.StartInotify();
+                }
+            );
+
+            std::thread file_exchange_thread(
+                [&client]() {
+                    client.StartFileExchange();
                 }
             );
 
@@ -41,7 +47,10 @@ int main(int argc, char* argv[]) {  // NOLINT
                 }
             );
 
-            input_thread.join();
+            dropbox::UserInput(client).Start();
+
+            inotify_thread.join();
+            file_exchange_thread.join();
             sync_thread.join();
 
         } catch (std::exception& e) {

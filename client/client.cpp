@@ -44,52 +44,6 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
     }
 
     GetSyncDir();
-
-    // Watching local sync
-    inotify_ = Inotify(username_);
-    std::thread inotify_client_thread_([this]() {
-        inotify_.Start(); });
-
-    // Thread que manda as atualizações do local para o server
-    std::thread file_exchange_thread(
-        [this](auto username_, auto client_sync_) {
-        while (client_sync_) {
-            if (!inotify_.inotify_vector_.empty()) {
-                std::string queue = inotify_.inotify_vector_.front();
-                inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-                std::istringstream iss(queue);
-
-                std::string command;
-                std::string file;
-
-                iss >> command;
-                iss >> file;
-
-                std::cout << "Must att in Server | op:" << command << " in:" << file << '\n';
-
-                if (command == "write") {
-                    if (!cshe_.SetCommand(Command::WRITE_DIR).Send()) {
-                    }
-
-                    if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
-                    }
-
-                    if (!csfe_.SetPath(std::move(SyncDirPath() / file)).Send()) {
-                    }
-
-                } else if (command == "delete") {
-                    if (!cshe_.SetCommand(Command::DELETE_DIR).Send()) {
-                    }
-
-                    if (!csfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
-                    }
-                }
-            }
-        }
-        },
-        username_, client_sync_);
-    inotify_client_thread_.detach();
-    file_exchange_thread.detach();
 }
 
 bool dropbox::Client::SendUsername() {
@@ -236,6 +190,48 @@ bool dropbox::Client::ListServer() {
     std::cout << '\n';
 
     return true;
+}
+
+void dropbox::Client::StartInotify() {
+    // Monitora o diretorio
+    inotify_ = Inotify(username_);
+    inotify_.Start();
+}
+
+void dropbox::Client::StartFileExchange() {
+    while (client_sync_) {
+        if (!inotify_.inotify_vector_.empty()) {
+            std::string queue = inotify_.inotify_vector_.front();
+            inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+            std::istringstream iss(queue);
+
+            std::string command;
+            std::string file;
+
+            iss >> command;
+            iss >> file;
+
+            std::cout << "Must att in Server | op:" << command << " in:" << file << '\n';
+
+            if (command == "write") {
+                if (!cshe_.SetCommand(Command::WRITE_DIR).Send()) {
+                }
+
+                if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
+                }
+
+                if (!csfe_.SetPath(std::move(SyncDirPath() / file)).Send()) {
+                }
+
+            } else if (command == "delete") {
+                if (!cshe_.SetCommand(Command::DELETE_DIR).Send()) {
+                }
+
+                if (!csfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
+                }
+            }
+        }
+    }
 }
 
 void dropbox::Client::ReceiveSyncFromServer() {

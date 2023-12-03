@@ -78,6 +78,10 @@ class Client {
 
     void ReceiveSyncFromServer();
 
+    void StartInotify();
+
+    void StartFileExchange();
+
     /**
      * @return Sync dir path concatenated with the username.
      */
