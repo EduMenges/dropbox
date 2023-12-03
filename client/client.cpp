@@ -244,47 +244,35 @@ bool dropbox::Client::ListServer() {
     return true;
 }
 
-bool dropbox::Client::ReceiveSyncFromServer() {
+void dropbox::Client::ReceiveSyncFromServer() {
     while(client_sync_){
-        if (!sche_.Receive()) {
-            return false;
-        }
-        
-        if (sche_.GetCommand() == Command::WRITE_DIR) {
-            inotify_.Pause();
+        if (sche_.Receive()) {
 
-            printf("SERVER -> CLIENT: modified\n");
-            if (!scfe_.ReceivePath()) {
-                return false;
-            }
+            if (sche_.GetCommand() == Command::WRITE_DIR) {
+                inotify_.Pause();
 
-            if (!scfe_.Receive()) {
-                return false;
-            }
+                printf("SERVER -> CLIENT: modified\n");
+                if (!scfe_.ReceivePath()) { }
 
-        inotify_.Resume();
+                if (!scfe_.Receive()) { }
 
-            return true;
-            
-        } else if (sche_.GetCommand() == Command::DELETE_DIR) {
-            printf("SERVER -> CLIENT: delete\n");
-            if (!scfe_.ReceivePath()) {
-                return false;
-            }
-
-            const std::filesystem::path& file_path = scfe_.GetPath();
-
-            if (std::filesystem::exists(file_path)) {
-                std::filesystem::remove(file_path);
+                inotify_.Resume();
                 
-                //
+            } else if (sche_.GetCommand() == Command::DELETE_DIR) {
+                printf("SERVER -> CLIENT: delete\n");
+                if (!scfe_.ReceivePath()) { }
 
-                return true;
+                const std::filesystem::path& file_path = scfe_.GetPath();
+
+                if (std::filesystem::exists(file_path)) {
+                    std::filesystem::remove(file_path);
+                    
+                    //
+
+                }
+
             }
 
-            return false;
         }
-
-        return true;
     }
 }

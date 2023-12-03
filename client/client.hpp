@@ -76,7 +76,7 @@ class Client {
      */
     bool Exit();
 
-    bool ReceiveSyncFromServer();
+    void ReceiveSyncFromServer();
 
     /**
      * @return Sync dir path concatenated with the username.

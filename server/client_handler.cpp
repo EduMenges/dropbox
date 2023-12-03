@@ -39,58 +39,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
     // Puxa o diretorio para a maquina do client
     ReceiveGetSyncDir();
 
-    // Monitora o diretorio
-    inotify_ = Inotify(username_);
-    std::thread inotify_thread_(
-        [this](){
-            inotify_.Start();
-        }
-    );
-
-    // Troca os arquivos sv -> client
-    std::thread file_exchange_thread(
-        [this](auto server_sync_) {
-            while (server_sync_) {
-                if (!inotify_.inotify_vector_.empty()) {
-                    std::string queue = inotify_.inotify_vector_.front();
-                    inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-                    std::istringstream iss(queue);
-
-                    std::string command;
-                    std::string file;
-
-                    iss >> command;
-                    iss >> file;
-
-                    std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
-
-                    if (command == "write") {
-                        if (!sche_.SetCommand(Command::WRITE_DIR).Send()) { }
-                        
-                        if (!scfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
-
-                        if (!scfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) { }
-
-                    } else if (command == "delete") {
-                        if (!sche_.SetCommand(Command::DELETE_DIR).Send()) { }
-
-                        if (!scfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
-                    }
-                }   
-            }
-        }, server_sync_
-    );
-
-    std::thread sync_thread(
-        [this]() {       
-            ReceiveSyncFromClient();
-        }
-    );
-
-    inotify_thread_.detach();
-    file_exchange_thread.detach();
-    sync_thread.detach();
-
     std::cout << "NEW CLIENT: " << username_ << '\n';
 
 }
@@ -153,6 +101,7 @@ void dropbox::ClientHandler::MainLoop() {
                     ReceiveDelete();
                     break;
                 case Command::EXIT:
+                    server_sync_ = false;
                     receiving = false;
                     break;
                 case Command::LIST_SERVER:
@@ -302,48 +251,74 @@ bool dropbox::ClientHandler::ListServer() const {
     return true;
 }
 
-bool dropbox::ClientHandler::ReceiveSyncFromClient() {
+void dropbox::ClientHandler::StartInotify() {
+    // Monitora o diretorio
+    inotify_ = Inotify(username_);
+    inotify_.Start();
+}
+
+void dropbox::ClientHandler::StartFileExchange() {
+    // Troca os arquivos sv -> client
+    server_sync_ = true;
     while (server_sync_) {
-        if (!cshe_.Receive()) {
-            return false;
-        }
+        if (!inotify_.inotify_vector_.empty()) {
+            std::string queue = inotify_.inotify_vector_.front();
+            inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+            std::istringstream iss(queue);
 
-        if (cshe_.GetCommand() == Command::WRITE_DIR) {
-            inotify_.Pause();
+            std::string command;
+            std::string file;
 
-            printf("CLIENT -> SERVER: modified\n");
-            if (!csfe_.ReceivePath()) {
-                return false;
-            }
-            std::cout << csfe_.GetPath() << '\n';
+            iss >> command;
+            iss >> file;
 
-            if (!csfe_.Receive()) {
-                return false;
-            }
+            std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
 
-            inotify_.Resume();
-
-            return true;
-            
-        } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
-            printf("CLIENT -> SERVER: delete\n");
-            if (!csfe_.ReceivePath()) {
-                return false;
-            }
-
-            const std::filesystem::path& file_path = csfe_.GetPath();
-
-            if (std::filesystem::exists(file_path)) {
-                std::filesystem::remove(file_path);
+            if (command == "write") {
+                if (!sche_.SetCommand(Command::WRITE_DIR).Send()) { }
                 
-                //
+                if (!scfe_.SetPath( SyncDirWithPrefix(username_) / file).SendPath()) { }
 
-                return true;
+                if (!scfe_.SetPath(SyncDirWithPrefix(username_) / file).Send()) { }
+
+            } else if (command == "delete") {
+                if (!sche_.SetCommand(Command::DELETE_DIR).Send()) { }
+
+                if (!scfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {  }       
             }
+        }   
+    }
 
-            return false;
+}
+
+void dropbox::ClientHandler::ReceiveSyncFromClient() {
+    server_sync_ = true;
+    while (server_sync_) {
+        if (cshe_.Receive()) {
+
+            if (cshe_.GetCommand() == Command::WRITE_DIR) {
+                inotify_.Pause();
+
+                printf("CLIENT -> SERVER: modified\n");
+                if (!csfe_.ReceivePath()) { }
+
+                if (!csfe_.Receive()) { }
+
+                inotify_.Resume();
+                
+            } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
+                printf("CLIENT -> SERVER: delete\n");
+                if (!csfe_.ReceivePath()) { }
+
+                const std::filesystem::path& file_path = csfe_.GetPath();
+
+                if (std::filesystem::exists(file_path)) {
+                    std::filesystem::remove(file_path);
+                    
+                    //
+
+                }
+            }
         }
-
-        return true;
     }
 }

@@ -69,7 +69,7 @@ class ClientHandler {
      */
     bool ReceiveGetSyncDir();
 
-    bool ReceiveSyncFromClient();
+    void ReceiveSyncFromClient();
 
     /**
      * Lists all the files on the server side along with their MAC times and sends them.
@@ -77,6 +77,10 @@ class ClientHandler {
      */
     bool ListServer() const;
 
+    void StartInotify();
+
+    void StartFileExchange();
+    
     /**
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
@@ -102,6 +106,7 @@ class ClientHandler {
     int         sync_sc_socket_;
     int         sync_cs_socket_;
     std::string username_;      ///< Username of the client.
+
 
     CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
