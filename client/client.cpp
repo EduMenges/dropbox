@@ -19,8 +19,7 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       sync_cs_socket_(socket(kDomain, kType, kProtocol)),
       inotify_({}),
       client_sync_(true) {
-    if (header_socket_ == kInvalidSocket || file_socket_ == kInvalidSocket || sync_sc_socket_ == kInvalidSocket ||
-        sync_cs_socket_ == kInvalidSocket) {
+    if (InvalidSockets(header_socket_, file_socket_ , sync_sc_socket_, sync_cs_socket_)) {
         throw SocketCreation();
     }
 
@@ -45,44 +44,45 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     // Watching local sync
     inotify_ = Inotify(username_);
-    std::thread inotify_client_thread_([this]() { inotify_.Start(); });
+    std::thread inotify_client_thread_([this]() {
+        inotify_.Start(); });
 
     // Thread que manda as atualizações do local para o server
     std::thread file_exchange_thread(
         [this](auto username_, auto client_sync_) {
-            while (client_sync_) {
-                if (!inotify_.inotify_vector_.empty()) {
-                    std::string queue = inotify_.inotify_vector_.front();
-                    inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-                    std::istringstream iss(queue);
+        while (client_sync_) {
+            if (!inotify_.inotify_vector_.empty()) {
+                std::string queue = inotify_.inotify_vector_.front();
+                inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
+                std::istringstream iss(queue);
 
-                    std::string command;
-                    std::string file;
+                std::string command;
+                std::string file;
 
-                    iss >> command;
-                    iss >> file;
+                iss >> command;
+                iss >> file;
 
-                    std::cout << "Must att in Server | op:" << command << " in:" << file << '\n';
+                std::cout << "Must att in Server | op:" << command << " in:" << file << '\n';
 
-                    if (command == "write") {
-                        if (!cshe_.SetCommand(Command::WRITE_DIR).Send()) {
-                        }
+                if (command == "write") {
+                    if (!cshe_.SetCommand(Command::WRITE_DIR).Send()) {
+                    }
 
-                        if (!csfe_.SetPath(SyncDirWithPrefix(username_) / file).SendPath()) {
-                        }
+                    if (!csfe_.SetPath(SyncDirWithPrefix(username_) / file).SendPath()) {
+                    }
 
-                        if (!csfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
-                        }
+                    if (!csfe_.SetPath(std::move(SyncDirWithPrefix(username_) / file)).Send()) {
+                    }
 
-                    } else if (command == "delete") {
-                        if (!cshe_.SetCommand(Command::DELETE_DIR).Send()) {
-                        }
+                } else if (command == "delete") {
+                    if (!cshe_.SetCommand(Command::DELETE_DIR).Send()) {
+                    }
 
-                        if (!csfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {
-                        }
+                    if (!csfe_.SetPath(SyncDirWithPrefix(username_) / std::move(file)).SendPath()) {
                     }
                 }
             }
+        }
         },
         username_, client_sync_);
     inotify_client_thread_.detach();
@@ -241,7 +241,7 @@ void dropbox::Client::ReceiveSyncFromServer() {
             if (sche_.GetCommand() == Command::WRITE_DIR) {
                 inotify_.Pause();
 
-                printf("SERVER -> CLIENT: modified\n");
+                std::cout <<"SERVER -> CLIENT: modified\n";
                 if (!scfe_.ReceivePath()) {
                 }
 
@@ -251,7 +251,7 @@ void dropbox::Client::ReceiveSyncFromServer() {
                 inotify_.Resume();
 
             } else if (sche_.GetCommand() == Command::DELETE_DIR) {
-                printf("SERVER -> CLIENT: delete\n");
+                std::cout << "SERVER -> CLIENT: delete\n";
                 if (!scfe_.ReceivePath()) {
                 }
 
