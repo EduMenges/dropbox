@@ -32,4 +32,6 @@ inline constexpr bool InvalidSockets(int socket, Sockets... sockets) noexcept {
 }
 
 bool SetNonblocking(int socket);
+
+bool SetTimeout(int socket, struct timeval timeout);
 }

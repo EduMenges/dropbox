@@ -232,8 +232,9 @@ void dropbox::Client::StartFileExchange() {
 }
 
 void dropbox::Client::ReceiveSyncFromServer() {
+    struct timeval  const kTimeout{3, 0};
 
-    //fcntl(sync_sc_socket_, F_SETFL, O_NONBLOCK);
+    SetTimeout(sync_sc_socket_, kTimeout);
 
     while (client_sync_) {
         if (sche_.Receive()) {
