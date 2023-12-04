@@ -65,9 +65,7 @@ CheckOptions:
 
   readability-identifier-naming.MemberCase: lower_case
 
-  readability-identifier-naming.MemberSuffix: _
-
-  readability-identifier-naming.EnumConstantCase: UPPER_CASE
+  readability-identifier-naming.ClassMemberCase: _
 
   readability-identifier-naming.FunctionCase: CamelCase
 

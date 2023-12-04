@@ -11,19 +11,19 @@ AlignConsecutiveBitFields:
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: false
-  PadOperators: false
+  PadOperators: true
 AlignConsecutiveDeclarations:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: false
-  PadOperators: false
+  PadOperators: true
 AlignConsecutiveMacros:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: false
-  PadOperators: false
+  PadOperators: true
 Standard: c++20
 InsertNewlineAtEOF: true
 FixNamespaceComments: false

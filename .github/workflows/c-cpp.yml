@@ -1,6 +1,9 @@
 name: Build
 on:
   push:
+    paths-ignore:
+      - '.clang*'
+      - '**.md'
 jobs:
   build-project:
     runs-on: ubuntu-latest
