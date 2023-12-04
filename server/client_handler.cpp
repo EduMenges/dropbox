@@ -299,6 +299,12 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
 
     while (server_sync_) {
         if (cshe_.Receive()) {
+            if (cshe_.GetCommand() == Command::EXIT) {
+                printf("server exiting...\n");
+                if (sche_.SetCommand(Command::EXIT).Send()) {}
+                return;
+            }
+
             if (cshe_.GetCommand() == Command::WRITE_DIR) {
                 inotify_.Pause();
 

@@ -16,10 +16,10 @@ dropbox::Inotify::Inotify(const std::string &username) : watching_(false), pause
 
     fd_ = inotify_init();
 
-    // if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0) {
-    //     std::cerr << "Error checking for fcntl" << '\n';
-    //     return;
-    // }
+     if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0) {
+         std::cerr << "Error checking for fcntl" << '\n';
+         return;
+     }
 
     wd_ = inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE);
 
@@ -38,10 +38,10 @@ void dropbox::Inotify::Start() {
 
         length_ = read(fd_, buffer_, BUF_LEN);
 
-        if (length_ < 0) {
-            std::cerr << "Error: " << strerror(errno) << '\n';
-            return;
-        }
+        //if (length_ < 0) {
+        //   std::cerr << "Error: " << strerror(errno) << '\n';
+        //    return;
+        //}
 
         i_ = 0;  // precisa resetar aqui
         while (i_ < length_ && !pause_) {

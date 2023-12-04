@@ -145,6 +145,7 @@ dropbox::Client::~Client() {
 
 bool dropbox::Client::Exit() {
     client_sync_ = false;
+    if (cshe_.SetCommand(Command::EXIT).Send()) { }
     return he_.SetCommand(Command::EXIT).Send();
 }
 
@@ -232,12 +233,18 @@ void dropbox::Client::StartFileExchange() {
 }
 
 void dropbox::Client::ReceiveSyncFromServer() {
-    struct timeval  const kTimeout{3, 0};
+    //struct timeval  const kTimeout{3, 0};
 
-    SetTimeout(sync_sc_socket_, kTimeout);
+    //SetTimeout(sync_sc_socket_, kTimeout);
 
     while (client_sync_) {
         if (sche_.Receive()) {
+
+            if(sche_.GetCommand() == Command::EXIT) {
+                printf("exiting client...\n");
+                return;
+            }
+
             if (sche_.GetCommand() == Command::WRITE_DIR) {
                 inotify_.Pause();
 

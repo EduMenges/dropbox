@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {  // NOLINT
 
             dropbox::UserInput(client).Start();
 
-            inotify_thread.join();
+            inotify_thread.detach();
             file_exchange_thread.join();
             sync_thread.join();
 
