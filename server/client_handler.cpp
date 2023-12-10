@@ -9,6 +9,10 @@
 
 #include <sys/fcntl.h>
 
+#define CEREAL_THREAD_SAFE 1
+#include "cereal/archives/portable_binary.hpp"
+#include "cereal/types/string.hpp"
+
 #include "exceptions.hpp"
 #include "list_directory.hpp"
 
@@ -25,6 +29,8 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       csfe_(sync_cs_socket),
       inotify_({}),
       server_sync_(true) {
+    file_stream_.SetSocket(file_socket_);
+
     if (!ReceiveUsername()) {
         throw Username();
     }
@@ -34,8 +40,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
 
     // Puxa o diretorio para a maquina do client
     ReceiveGetSyncDir();
-
-    std::cout << "NEW CLIENT: " << username_ << '\n';
 }
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
@@ -52,29 +56,17 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       cshe_(std::move(other.cshe_)),
       csfe_(std::move(other.csfe_)),
       inotify_({}),
-      server_sync_(std::exchange(other.server_sync_, false)) {}
+      server_sync_(std::exchange(other.server_sync_, false)),
+      file_stream_(std::move(other.file_stream_))
+{}
 
 bool dropbox::ClientHandler::ReceiveUsername() {
-    static thread_local std::array<char, NAME_MAX + 1> buffer{};
-
-    if (!he_.Receive() || he_.GetCommand() != Command::USERNAME) {
+    if (!he_.Receive() || he_.GetCommand() != Command::kUsername) {
         return false;
     }
 
-    size_t username_length = 0;
-    if (read(file_socket_, &username_length, sizeof(username_length)) != sizeof(username_length)) {
-        perror(__func__);  // NOLINT
-        return false;
-    }
-
-    const auto kBytesReceived = read(file_socket_, buffer.data(), username_length);
-
-    if (kBytesReceived != static_cast<ssize_t>(username_length)) {
-        perror(__func__);  // NOLINT
-        return false;
-    }
-
-    username_ = std::string(buffer.data());
+    cereal::PortableBinaryInputArchive archive(file_stream_);
+    archive(username_);
     return true;
 }
 
@@ -87,20 +79,20 @@ void dropbox::ClientHandler::MainLoop() {
             attempts = kAttemptAmount;
             std::cout << username_ << " ordered " << he_.GetCommand() << std::endl;  // NOLINT
             switch (he_.GetCommand()) {
-                case Command::UPLOAD:
+                case Command::kUpload:
                     ReceiveUpload();
                     break;
-                case Command::DOWNLOAD:
+                case Command::kDownload:
                     ReceiveDownload();
                     break;
-                case Command::DELETE:
+                case Command::kDelete:
                     ReceiveDelete();
                     break;
-                case Command::EXIT:
+                case Command::kExit:
                     server_sync_ = false;
                     receiving    = false;
                     break;
-                case Command::LIST_SERVER:
+                case Command::kListServer:
                     ListServer();
                     break;
                 default:
@@ -153,10 +145,10 @@ bool dropbox::ClientHandler::ReceiveDownload() {
     if (!std::filesystem::exists(file_path)) {
         std::cerr << "Error: File does not exist - " << file_path << '\n';
 
-        return he_.SetCommand(Command::ERROR).Send();
+        return he_.SetCommand(Command::kError).Send();
     }
 
-    const bool kCouldSendSuccess = he_.SetCommand(Command::SUCCESS).Send();
+    const bool kCouldSendSuccess = he_.SetCommand(Command::kSuccess).Send();
     if (!kCouldSendSuccess) {
         return false;
     }
@@ -181,7 +173,7 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
 
     for (const auto& file_name : file_names) {
         // std::cout << file_name << '\n';
-        if (!he_.SetCommand(Command::SUCCESS).Send()) {
+        if (!he_.SetCommand(Command::kSuccess).Send()) {
             return false;
         }
 
@@ -194,14 +186,12 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
         }
     }
 
-    return he_.SetCommand(Command::EXIT).Send();
+    return he_.SetCommand(Command::kExit).Send();
 }
 
 void dropbox::ClientHandler::CreateUserFolder() {
     try {
-        if (!std::filesystem::exists(SyncDirPath())) {
-            std::filesystem::create_directory(SyncDirPath());
-        }
+        std::filesystem::create_directory(SyncDirPath());
     } catch (const std::exception& e) {
         std::cerr << "Error creating directory " << e.what() << '\n';
     }
@@ -272,7 +262,7 @@ void dropbox::ClientHandler::StartFileExchange() {
             std::cout << "Must att in Client | op:" << command << " in:" << file << '\n';
 
             if (command == "write") {
-                if (!sche_.SetCommand(Command::WRITE_DIR).Send()) {
+                if (!sche_.SetCommand(Command::kWriteDir).Send()) {
                 }
 
                 if (!scfe_.SetPath(SyncDirPath() / file).SendPath()) {
@@ -282,7 +272,7 @@ void dropbox::ClientHandler::StartFileExchange() {
                 }
 
             } else if (command == "delete") {
-                if (!sche_.SetCommand(Command::DELETE_DIR).Send()) {
+                if (!sche_.SetCommand(Command::kDeleteDir).Send()) {
                 }
 
                 if (!scfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
@@ -299,13 +289,13 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
 
     while (server_sync_) {
         if (cshe_.Receive()) {
-            if (cshe_.GetCommand() == Command::EXIT) {
+            if (cshe_.GetCommand() == Command::kExit) {
                 printf("server exiting...\n");
-                if (sche_.SetCommand(Command::EXIT).Send()) {}
+                if (sche_.SetCommand(Command::kExit).Send()) {}
                 return;
             }
 
-            if (cshe_.GetCommand() == Command::WRITE_DIR) {
+            if (cshe_.GetCommand() == Command::kWriteDir) {
                 inotify_.Pause();
 
                 std::cout << "CLIENT -> SERVER: modified\n";
@@ -317,7 +307,7 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
 
                 inotify_.Resume();
 
-            } else if (cshe_.GetCommand() == Command::DELETE_DIR) {
+            } else if (cshe_.GetCommand() == Command::kDeleteDir) {
                 inotify_.Pause();
                 std::cout << "CLIENT -> SERVER: delete\n";
                 if (!csfe_.ReceivePath()) {

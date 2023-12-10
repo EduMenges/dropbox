@@ -1,9 +1,11 @@
 #include "socket_stream.hpp"
 
+#include <sys/socket.h>
+
 #include <iostream>
 
 std::streamsize dropbox::SocketBuffer::ReceiveData() {
-    const ssize_t kBytesRead = ::read(socket_, gptr(), kBufferSize);
+    const ssize_t kBytesRead = ::recv(socket_, gptr(), kBufferSize, 0);
 
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
@@ -14,10 +16,10 @@ std::streamsize dropbox::SocketBuffer::ReceiveData() {
 
 std::streamsize dropbox::SocketBuffer::SendData() {
     const size_t  kDataSize  = pptr() - pbase();
-    const ssize_t kBytesSent = ::write(socket_, pbase(), kDataSize);
+    const ssize_t kBytesSent = ::send(socket_, pbase(), kDataSize, 0);
 
     if (kBytesSent == -1) {
-        perror(__func__);
+        throw std::system_error(std::error_code(errno, std::generic_category()));
     }
 
     pbump(-static_cast<int>(kDataSize));

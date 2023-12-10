@@ -2,7 +2,6 @@
 
 #include <cstdio>
 #include <fcntl.h>
-
 bool dropbox::SetNonblocking(int socket) {
     const int kFlags = fcntl(socket, F_GETFL, 0);
     if (kFlags == -1) {

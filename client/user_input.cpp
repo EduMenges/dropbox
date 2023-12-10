@@ -53,7 +53,7 @@ std::string dropbox::UserInput::GetQueue() {
 
 void dropbox::UserInput::HandleCommand(Command command) {
     switch (command) {
-        case Command::UPLOAD:
+        case Command::kUpload:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
@@ -66,7 +66,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
                 std::cerr << "Missing path\n";
             }
             break;
-        case Command::DOWNLOAD:
+        case Command::kDownload:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
@@ -75,7 +75,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
                 std::cerr << "Missing path\n";
             }
             break;
-        case Command::DELETE:
+        case Command::kDelete:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
@@ -84,13 +84,13 @@ void dropbox::UserInput::HandleCommand(Command command) {
                 std::cerr << "Missing path.\n";
             }
             break;
-        case Command::LIST_SERVER:
+        case Command::kListServer:
             client_.ListServer();
             break;
-        case Command::LIST_CLIENT:
+        case Command::kListClient:
             client_.ListClient();
             break;
-        case Command::EXIT:
+        case Command::kExit:
             client_.Exit();
             Stop();
             break;

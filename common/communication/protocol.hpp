@@ -16,6 +16,9 @@ namespace dropbox {
 /// Interface for exchanging information on both sides.
 class Exchange {
    public:
+    using SizeTy = size_t;
+
+    Exchange()          = default;
     virtual ~Exchange() = default;
 
     /// Sending.
@@ -42,7 +45,16 @@ class SocketExchange : public Exchange {
     inline void constexpr SetSocket(int socket) noexcept { socket_ = socket; }
 
    protected:
-    int socket_{-1};  ///< Where send and receive from.
+    bool SendSize() const;
+
+    bool ReceiveSize();
+
+    [[nodiscard]] inline constexpr SizeTy GetSize() const noexcept(true) { return size_; }
+
+    inline void SetSize(SizeTy size) noexcept(true) { size_ = size; }
+
+    int    socket_{-1};  ///< Where send and receive from.
+    SizeTy size_{0};
 };
 
 /// Exchanges the header.
@@ -89,7 +101,7 @@ class EntryExchange : public SocketExchange {
      * Sends the internal path.
      * @return Operation status.
      */
-    [[nodiscard]] inline bool SendPath() const { return SendPath(path_); }
+    [[nodiscard]] inline bool SendPath() { return SendPath(path_); }
 
     /**
      * Receives a path.
@@ -102,7 +114,7 @@ class EntryExchange : public SocketExchange {
      * @param path Path to be sent.
      * @return Operation status.
      */
-    [[nodiscard]] bool SendPath(const std::filesystem::path& path) const;
+    [[nodiscard]] bool SendPath(const std::filesystem::path& path);
 
     /**
      * Sets the internal path.

@@ -28,6 +28,7 @@ Checks: <
   -google-readability-namespace-comments
   
   hicpp-*
+  -hicpp-explicit-conversions
   
   llvm-*
   -llvm-header-guard

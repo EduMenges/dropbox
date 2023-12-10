@@ -14,7 +14,7 @@ dropbox::Server::Server(in_port_t port) : receiver_socket_(socket(kDomain, kType
         throw SocketCreation();
     }
 
-    const sockaddr_in kReceiverAddress = {kFamily, htons(port), {INADDR_ANY}};
+    const sockaddr_in kReceiverAddress = {kFamily, htons(port), {INADDR_ANY}, {0}};
 
     if (bind(receiver_socket_, reinterpret_cast<const sockaddr*>(&kReceiverAddress), sizeof(kReceiverAddress)) == -1) {
         throw Binding();

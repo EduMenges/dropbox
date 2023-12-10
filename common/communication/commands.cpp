@@ -15,16 +15,16 @@ static constexpr const char* kUsername   = "username";
 }
 
 std::optional<dropbox::Command> dropbox::CommandFromStr(const std::string& str) {
-    static const std::unordered_map<std::string, Command> kCommandMap = {{kUpload, Command::UPLOAD},
-                                                                         {kDownload, Command::DOWNLOAD},
-                                                                         {kDelete, Command::DELETE},
-                                                                         {kListServer, Command::LIST_SERVER},
-                                                                         {kListClient, Command::LIST_CLIENT},
-                                                                         {kGetSyncDir, Command::GET_SYNC_DIR},
-                                                                         {kExit, Command::EXIT},
-                                                                         {kError, Command::ERROR},
-                                                                         {kSuccess, Command::SUCCESS},
-                                                                         {kUsername, Command::USERNAME}};
+    static const std::unordered_map<std::string, Command> kCommandMap = {{kUpload, Command::kUpload},
+                                                                         {kDownload, Command::kDownload},
+                                                                         {kDelete, Command::kDelete},
+                                                                         {kListServer, Command::kListServer},
+                                                                         {kListClient, Command::kListClient},
+                                                                         {kGetSyncDir, Command::kGetSyncDir},
+                                                                         {kExit, Command::kExit},
+                                                                         {kError, Command::kError},
+                                                                         {kSuccess, Command::kSuccess},
+                                                                         {kUsername, Command::kUsername}};
 
     try {
         return kCommandMap.at(str);
@@ -35,10 +35,10 @@ std::optional<dropbox::Command> dropbox::CommandFromStr(const std::string& str) 
 
 std::ostream& dropbox::operator<<(std::ostream& os, dropbox::Command command) {
     static const std::unordered_map<Command, const std::string> kCommandMap = {
-        {Command::UPLOAD, kUpload},     {Command::DOWNLOAD, kDownload},       {Command::DELETE, kDelete},
-        {Command::EXIT, kExit},         {Command::LIST_CLIENT, kListClient},  {Command::LIST_SERVER, kListServer},
-        {Command::USERNAME, kUsername}, {Command::GET_SYNC_DIR, kGetSyncDir}, {Command::SUCCESS, kSuccess},
-        {Command::ERROR, kError}};
+        {Command::kUpload, kUpload},     {Command::kDownload, kDownload},       {Command::kDelete, kDelete},
+        {Command::kExit, kExit},         {Command::kListClient, kListClient},  {Command::kListServer, kListServer},
+        {Command::kUsername, kUsername}, {Command::kGetSyncDir, kGetSyncDir}, {Command::kSuccess, kSuccess},
+        {Command::kError, kError}};
 
     os << kCommandMap.at(command);
     return os;

@@ -3,10 +3,11 @@
 #include <iostream>
 #include <thread>
 
+#include "../common/inotify.hpp"
 #include "communication/protocol.hpp"
+#include "communication/socket_stream.hpp"
 #include "composite_interface.hpp"
 #include "utils.hpp"
-#include "../common/inotify.hpp"
 
 namespace dropbox {
 
@@ -109,9 +110,7 @@ class ClientHandler {
     int         sync_cs_socket_;
     std::string username_;      ///< Username of the client.
 
-
     CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
-
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
@@ -125,5 +124,7 @@ class ClientHandler {
     Inotify inotify_;
 
     bool server_sync_{};
+
+    SocketStream file_stream_;
 };
 }
