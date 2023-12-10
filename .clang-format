@@ -29,4 +29,4 @@ InsertNewlineAtEOF: true
 FixNamespaceComments: false
 IndentWidth: 4
 ColumnLimit: 120
-SortIncludes: Never
+SortIncludes: CaseInsensitive

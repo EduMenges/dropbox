@@ -17,6 +17,7 @@ Checks: <
   -cppcoreguidelines-pro-bounds-pointer-arithmetic
   -cppcoreguidelines-non-private-member-variables-in-classes
   -cppcoreguidelines-pro-type-reinterpret-cast
+  -cppcoreguidelines-init-variables
   
   fuchsia-*
   -fuchsia-default-arguments-calls
@@ -27,7 +28,6 @@ Checks: <
   -google-readability-namespace-comments
   
   hicpp-*
-  -hicpp-explicit-conversions
   
   llvm-*
   -llvm-header-guard
@@ -51,6 +51,8 @@ FormatStyle: file
 CheckOptions:
   hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: true
 
+  readability-identifier-naming.IgnoreMainLikeFunctions: true
+
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
 
   readability-identifier-naming.NamespaceCase: lower_case
@@ -65,7 +67,7 @@ CheckOptions:
 
   readability-identifier-naming.MemberCase: lower_case
 
-  readability-identifier-naming.ClassMemberCase: _
+  readability-identifier-naming.MemberSuffix: _
 
   readability-identifier-naming.FunctionCase: CamelCase
 
