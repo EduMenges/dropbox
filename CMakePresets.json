@@ -48,7 +48,21 @@
             "name": "wsl-debug",
             "inherits": "debug",
             "displayName": "WSL Debug",
-            "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system",
+            "description": "To use with WSL in debug",
+            "generator": "Ninja",
+            "vendor": {
+                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+                },
+                "jetbrains.com/clion": {
+                    "toolchain": "WSL"
+                }
+            }
+        },
+        {
+            "name": "wsl-release",
+            "inherits": "release",
+            "displayName": "WSL Release",
             "generator": "Ninja",
             "vendor": {
                 "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
@@ -75,6 +89,11 @@
             "name": "wsl-debug",
             "configurePreset": "wsl-debug",
             "displayName": "WSL Debug"
+        },
+        {
+            "name": "wsl-release",
+            "configurePreset": "wsl-release",
+            "displayName": "WSL Release"
         }
     ]
 }
