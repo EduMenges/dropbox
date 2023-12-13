@@ -17,6 +17,7 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/HowardHinnant/date.git
         GIT_TAG v3.0.1
 )
+set(SKIP_PERFORMANCE_COMPARISON ON)
 FetchContent_Declare(
         cereal
         GIT_REPOSITORY https://github.com/USCiLab/cereal.git
