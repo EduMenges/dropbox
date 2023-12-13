@@ -90,8 +90,10 @@ bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) {
 bool dropbox::EntryExchange::ReceivePath() {
     try {
         cereal::PortableBinaryInputArchive archive(socket_stream_);
-        std::string                        recv_string;
+
+        std::string recv_string;
         archive(recv_string);
+
         path_ = std::move(recv_string);
         return true;
     } catch (std::exception& e) {

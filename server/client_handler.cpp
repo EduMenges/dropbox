@@ -1,7 +1,5 @@
 #include "client_handler.hpp"
 
-#include <dirent.h>
-#include <sys/fcntl.h>
 #include <unistd.h>
 
 #include <filesystem>
@@ -26,9 +24,9 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       cshe_(sync_cs_socket),
       csfe_(sync_cs_socket),
       inotify_({}),
-      server_sync_(true) {
-    header_stream_.SetSocket(header_socket_);
-    payload_stream_.SetSocket(file_socket_);
+      server_sync_(true),
+      header_stream_(header_socket_),
+      payload_stream_(file_socket_){
 
     ReceiveUsername();
 

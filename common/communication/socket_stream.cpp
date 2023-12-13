@@ -1,7 +1,5 @@
 #include "socket_stream.hpp"
 
-#include <sys/socket.h>
-
 #include <iostream>
 
 std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {

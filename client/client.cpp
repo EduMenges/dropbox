@@ -154,9 +154,8 @@ bool dropbox::Client::ListServer() {
     }
 
     try {
-        std::string server_table;
-
         cereal::PortableBinaryInputArchive archive(payload_stream_);
+        std::string server_table;
         archive(server_table);
 
         std::cout << server_table << '\n';

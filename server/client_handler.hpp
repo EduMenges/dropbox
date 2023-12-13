@@ -3,7 +3,7 @@
 #include <iostream>
 #include <thread>
 
-#include "../common/inotify.hpp"
+#include "inotify.hpp"
 #include "communication/protocol.hpp"
 #include "communication/socket_stream.hpp"
 #include "composite_interface.hpp"
