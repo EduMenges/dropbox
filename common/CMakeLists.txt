@@ -1,5 +1,3 @@
-add_subdirectory(communication)
-
 project(utils)
 
 file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
@@ -32,3 +30,5 @@ FetchContent_MakeAvailable(cereal)
 target_link_libraries(utils PUBLIC tabulate)
 target_link_libraries(utils PRIVATE date)
 target_link_libraries(utils PUBLIC cereal)
+
+add_subdirectory(communication)

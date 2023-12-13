@@ -1,6 +1,7 @@
 #include "client.hpp"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -9,7 +10,6 @@
 
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
-
 #include "connections.hpp"
 #include "exceptions.hpp"
 #include "list_directory.hpp"
@@ -42,25 +42,14 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
     header_stream_.SetSocket(header_socket_);
     payload_stream_.SetSocket(payload_socket_);
 
-    if (!SendUsername()) {
-        throw Username();
-    }
-
+    SendUsername();
     GetSyncDir();
 }
 
-bool dropbox::Client::SendUsername() {
-    cereal::PortableBinaryOutputArchive header(header_stream_);
-    header(Command::kUsername);
-    if (!he_.SetCommand(Command::kUsername).Send()) {
-        return false;
-    }
-
+void dropbox::Client::SendUsername() noexcept(false) {
     cereal::PortableBinaryOutputArchive archive(payload_stream_);
     archive(username_);
     payload_stream_.flush();
-
-    return true;
 }
 
 bool dropbox::Client::Upload(std::filesystem::path &&path) {
@@ -143,7 +132,8 @@ dropbox::Client::~Client() {
 
 bool dropbox::Client::Exit() {
     client_sync_ = false;
-    if (cshe_.SetCommand(Command::kExit).Send()) { }
+    if (cshe_.SetCommand(Command::kExit).Send()) {
+    }
     return he_.SetCommand(Command::kExit).Send();
 }
 
@@ -231,22 +221,17 @@ void dropbox::Client::StartFileExchange() {
 }
 
 void dropbox::Client::ReceiveSyncFromServer() {
-    //struct timeval  const kTimeout{3, 0};
-
-    //SetTimeout(sync_sc_socket_, kTimeout);
-
     while (client_sync_) {
         if (sche_.Receive()) {
-
-            if(sche_.GetCommand() == Command::kExit) {
-                printf("exiting client...\n");
+            if (sche_.GetCommand() == Command::kExit) {
+                std::cout << "Exiting client...\n";
                 return;
             }
 
             if (sche_.GetCommand() == Command::kWriteDir) {
                 inotify_.Pause();
 
-                std::cout <<"SERVER -> CLIENT: modified\n";
+                std::cout << "SERVER -> CLIENT: modified\n";
                 if (!scfe_.ReceivePath()) {
                 }
 
@@ -271,7 +256,7 @@ void dropbox::Client::ReceiveSyncFromServer() {
                 inotify_.Resume();
             }
         } else {
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }

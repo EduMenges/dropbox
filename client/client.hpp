@@ -23,7 +23,7 @@ class Client {
      * @param port Port that the server is listening to.
      * @pre \p server_ip_address is IPV4.
      */
-    Client(std::string&& user_name, const char* server_ip_address, in_port_t port);
+    Client(std::string&& user_name, const char* server_ip_address, in_port_t port) noexcept(false);
 
     /// Clients are not copiable due to side effect in socket closing.
     Client(const Client& other) = delete;
@@ -34,9 +34,8 @@ class Client {
 
     /**
      * Sends the username to the server.
-     * @return Status of the operation.
      */
-    bool SendUsername();
+    void SendUsername() noexcept(false);
 
     /**
      * Downloads the directory and start sync with the server.
@@ -81,6 +80,10 @@ class Client {
     void StartInotify();
 
     void StartFileExchange();
+
+    void SendCommand(Command command) noexcept(false);
+
+    Command ReceiveCommand() noexcept(false);
 
     /**
      * @return Sync dir path concatenated with the username.

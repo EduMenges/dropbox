@@ -8,8 +8,9 @@
 #include <iostream>
 #include <utility>
 
-#include "constants.hpp"
 #include "communication/commands.hpp"
+#include "constants.hpp"
+#include "socket_stream.hpp"
 
 namespace dropbox {
 
@@ -31,42 +32,33 @@ class Exchange {
 /// Exchanges between sockets.
 class SocketExchange : public Exchange {
    public:
-    inline constexpr SocketExchange() = default;
+    inline SocketExchange() = default;
 
-    inline constexpr SocketExchange(int socket) noexcept : socket_(socket){};
-
-    inline constexpr SocketExchange(SocketExchange&& other) noexcept
-        : socket_(std::exchange(other.socket_, kInvalidSocket)){};
+    inline SocketExchange(int socket) noexcept : socket_stream_(socket){};
 
     /**
      * Sets the internal socket.
      * @param socket Value to be the new socket.
      */
-    inline void constexpr SetSocket(int socket) noexcept { socket_ = socket; }
+    inline void SetSocket(int socket) noexcept { socket_stream_.SetSocket(socket); }
+
+    inline void Flush() {
+        socket_stream_.flush();
+    }
 
    protected:
-    bool SendSize() const;
-
-    bool ReceiveSize();
-
-    [[nodiscard]] inline constexpr SizeTy GetSize() const noexcept(true) { return size_; }
-
-    inline void SetSize(SizeTy size) noexcept(true) { size_ = size; }
-
-    int    socket_{-1};  ///< Where send and receive from.
+    SocketStream socket_stream_;
     SizeTy size_{0};
 };
 
 /// Exchanges the header.
 class HeaderExchange : public SocketExchange {
    public:
-    inline constexpr HeaderExchange() = default;
+    inline HeaderExchange() = default;
 
-    inline constexpr HeaderExchange(int socket) noexcept : SocketExchange(socket), command_{} {};
+    inline HeaderExchange(int socket) noexcept : SocketExchange(socket), command_{} {};
 
-    inline constexpr HeaderExchange(int socket, Command command) noexcept : SocketExchange(socket), command_(command){};
-
-    inline constexpr HeaderExchange(HeaderExchange&& other) noexcept = default;
+    inline HeaderExchange(HeaderExchange&& other) noexcept = default;
 
     /**
      * Sets the internal command.
@@ -94,7 +86,7 @@ class HeaderExchange : public SocketExchange {
 /// Abstract class for exchanging entries (directories and files).
 class EntryExchange : public SocketExchange {
    public:
-    inline EntryExchange() : SocketExchange(-1) {}
+    inline EntryExchange() = default;
     inline EntryExchange(int socket) : SocketExchange(socket) {}
 
     /**

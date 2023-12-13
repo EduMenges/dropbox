@@ -5,7 +5,7 @@
 
 namespace dropbox {
 
-/// Possible user actions
+/// Possible user actions and/or states from their actions.
 enum class Command: int8_t {
     kError = -1,         ///< An error occurred.
     kSuccess,        ///< Operation was a success.

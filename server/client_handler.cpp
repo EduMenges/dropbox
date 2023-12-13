@@ -1,18 +1,16 @@
 #include "client_handler.hpp"
 
 #include <dirent.h>
+#include <sys/fcntl.h>
 #include <unistd.h>
 
 #include <filesystem>
 #include <utility>
 #include <vector>
 
-#include <sys/fcntl.h>
-
-#define CEREAL_THREAD_SAFE 1
+#define CEREAL_THREAD_SAFE 1  // NOLINT
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
-
 #include "exceptions.hpp"
 #include "list_directory.hpp"
 
@@ -29,17 +27,19 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       csfe_(sync_cs_socket),
       inotify_({}),
       server_sync_(true) {
+    header_stream_.SetSocket(header_socket_);
     file_stream_.SetSocket(file_socket_);
 
-    if (!ReceiveUsername()) {
-        throw Username();
-    }
+    ReceiveUsername();
 
     // Cria diretorio no servidor
     CreateUserFolder();
 
     // Puxa o diretorio para a maquina do client
     ReceiveGetSyncDir();
+
+    he_.Flush();
+    fe_.Flush();
 }
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
@@ -57,17 +57,12 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       csfe_(std::move(other.csfe_)),
       inotify_({}),
       server_sync_(std::exchange(other.server_sync_, false)),
-      file_stream_(std::move(other.file_stream_))
-{}
+      header_stream_(std::move(other.header_stream_)),
+      file_stream_(std::move(other.file_stream_)) {}
 
-bool dropbox::ClientHandler::ReceiveUsername() {
-    if (!he_.Receive() || he_.GetCommand() != Command::kUsername) {
-        return false;
-    }
-
+void dropbox::ClientHandler::ReceiveUsername() {
     cereal::PortableBinaryInputArchive archive(file_stream_);
     archive(username_);
-    return true;
 }
 
 void dropbox::ClientHandler::MainLoop() {
@@ -140,10 +135,8 @@ bool dropbox::ClientHandler::ReceiveDownload() {
         return false;
     }
 
-    const std::filesystem::path& file_path = fe_.GetPath();
-
-    if (!std::filesystem::exists(file_path)) {
-        std::cerr << "Error: File does not exist - " << file_path << '\n';
+    if (!std::filesystem::exists(fe_.GetPath())) {
+        std::cerr << "Error: File does not exist - " << fe_.GetPath() << '\n';
 
         return he_.SetCommand(Command::kError).Send();
     }
@@ -161,18 +154,14 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
     std::vector<std::filesystem::path> file_names;
 
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(kSyncPath)) {
-            if (std::filesystem::is_regular_file(entry.path())) {
-                file_names.push_back(entry.path().filename());
-            }
-        }
+        std::ranges::for_each(std::filesystem::directory_iterator(kSyncPath),
+                              [&](const auto& entry) { file_names.push_back(entry.path().filename()); });
     } catch (const std::filesystem::filesystem_error& e) {
         std::cerr << "Error: " << e.what() << '\n';
         return false;
     }
 
     for (const auto& file_name : file_names) {
-        // std::cout << file_name << '\n';
         if (!he_.SetCommand(Command::kSuccess).Send()) {
             return false;
         }
@@ -189,11 +178,11 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
     return he_.SetCommand(Command::kExit).Send();
 }
 
-void dropbox::ClientHandler::CreateUserFolder() {
+void dropbox::ClientHandler::CreateUserFolder() const {
     try {
         std::filesystem::create_directory(SyncDirPath());
     } catch (const std::exception& e) {
-        std::cerr << "Error creating directory " << e.what() << '\n';
+        std::cerr << "Error creating directory: " << e.what() << '\n';
     }
 }
 
@@ -278,6 +267,9 @@ void dropbox::ClientHandler::StartFileExchange() {
                 if (!scfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
                 }
             }
+
+            sche_.Flush();
+            scfe_.Flush();
         }
     }
 }
@@ -285,13 +277,14 @@ void dropbox::ClientHandler::StartFileExchange() {
 void dropbox::ClientHandler::ReceiveSyncFromClient() {
     server_sync_ = true;
 
-    //fcntl(sync_cs_socket_, F_SETFL, O_NONBLOCK);
+    // fcntl(sync_cs_socket_, F_SETFL, O_NONBLOCK);
 
     while (server_sync_) {
         if (cshe_.Receive()) {
             if (cshe_.GetCommand() == Command::kExit) {
                 printf("server exiting...\n");
-                if (sche_.SetCommand(Command::kExit).Send()) {}
+                if (sche_.SetCommand(Command::kExit).Send()) {
+                }
                 return;
             }
 
@@ -322,8 +315,6 @@ void dropbox::ClientHandler::ReceiveSyncFromClient() {
                 }
                 inotify_.Resume();
             }
-        } else {
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }

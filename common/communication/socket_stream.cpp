@@ -4,8 +4,8 @@
 
 #include <iostream>
 
-std::streamsize dropbox::SocketBuffer::ReceiveData() {
-    const ssize_t kBytesRead = ::recv(socket_, gptr(), kBufferSize, 0);
+std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
+    const ssize_t kBytesRead = ::read(socket_, gptr(), kBufferSize);
 
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
@@ -14,19 +14,19 @@ std::streamsize dropbox::SocketBuffer::ReceiveData() {
     return kBytesRead;
 }
 
-std::streamsize dropbox::SocketBuffer::SendData() {
+std::streamsize dropbox::SocketBuffer::SendData() noexcept {
     const size_t  kDataSize  = pptr() - pbase();
-    const ssize_t kBytesSent = ::send(socket_, pbase(), kDataSize, 0);
+    const ssize_t kBytesSent = ::write(socket_, pbase(), kDataSize);
 
-    if (kBytesSent == -1) {
-        throw std::system_error(std::error_code(errno, std::generic_category()));
+    if (kBytesSent == kInvalidWrite) {
+        return kInvalidWrite;
     }
 
     pbump(-static_cast<int>(kDataSize));
     return kBytesSent;
 }
 
-int dropbox::SocketBuffer::underflow() {
+int dropbox::SocketBuffer::underflow() noexcept(false) {
     if (gptr() < egptr()) {
         return traits_type::to_int_type(*gptr());
     }
@@ -45,7 +45,7 @@ int dropbox::SocketBuffer::underflow() {
     return traits_type::to_int_type(*gptr());
 }
 
-int dropbox::SocketBuffer::overflow(int ch) {
+int dropbox::SocketBuffer::overflow(int ch) noexcept {
     if (ch != traits_type::eof()) {
         *pptr() = traits_type::to_char_type(ch);
         pbump(1);

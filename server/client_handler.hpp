@@ -37,10 +37,10 @@ class ClientHandler {
     void MainLoop();
 
     /// Creates the sync_dir_directory on the server side if it does not exist.
-    void CreateUserFolder();
+    void CreateUserFolder() const;
 
     /// Receives the username.
-    bool ReceiveUsername();
+    void ReceiveUsername();
 
     /// Username getter.
     [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; };
@@ -83,7 +83,7 @@ class ClientHandler {
     void StartInotify();
 
     void StartFileExchange();
-    
+
     /**
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
@@ -104,27 +104,28 @@ class ClientHandler {
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
-    int         header_socket_; ///< Socket to exchange the header with.
-    int         file_socket_;   ///< Socket to exchange files with.
+    int         header_socket_;  ///< Socket to exchange the header with.
+    int         file_socket_;    ///< Socket to exchange files with.
     int         sync_sc_socket_;
     int         sync_cs_socket_;
-    std::string username_;      ///< Username of the client.
+    std::string username_;  ///< Username of the client.
 
     CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
 
-    HeaderExchange    sche_;
-    FileExchange      scfe_;
+    HeaderExchange sche_;
+    FileExchange   scfe_;
 
-    HeaderExchange    cshe_;
-    FileExchange      csfe_;
+    HeaderExchange cshe_;
+    FileExchange   csfe_;
 
     Inotify inotify_;
 
     bool server_sync_{};
 
+    SocketStream header_stream_;
     SocketStream file_stream_;
 };
 }
