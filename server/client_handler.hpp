@@ -78,7 +78,7 @@ class ClientHandler {
      * Lists all the files on the server side along with their MAC times and sends them.
      * @return Operation status.
      */
-    bool ListServer() const;
+    bool ListServer() noexcept;
 
     void StartInotify();
 
@@ -126,6 +126,6 @@ class ClientHandler {
     bool server_sync_{};
 
     SocketStream header_stream_;
-    SocketStream file_stream_;
+    SocketStream payload_stream_;
 };
 }

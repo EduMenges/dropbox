@@ -24,9 +24,7 @@ class SocketBuffer : public std::basic_streambuf<buffer_type> {
 
     inline constexpr void SetSocket(int socket) noexcept { socket_ = socket; }
 
-    inline constexpr int GetSocket() const noexcept{
-        return socket_;
-    }
+    [[nodiscard]] inline constexpr int GetSocket() const noexcept { return socket_; }
 
    protected:
     int_type underflow() noexcept(false) override;
@@ -64,9 +62,7 @@ class SocketStream : public std::basic_iostream<buffer_type> {
 
     inline void SetSocket(int socket) noexcept { buffer_.SetSocket(socket); }
 
-    inline int GetSocket() noexcept {
-        return buffer_.GetSocket();
-    }
+    inline int GetSocket() noexcept { return buffer_.GetSocket(); }
 
    private:
     SocketBuffer buffer_;

@@ -28,7 +28,7 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int file_socket, int sy
       inotify_({}),
       server_sync_(true) {
     header_stream_.SetSocket(header_socket_);
-    file_stream_.SetSocket(file_socket_);
+    payload_stream_.SetSocket(file_socket_);
 
     ReceiveUsername();
 
@@ -58,10 +58,10 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       inotify_({}),
       server_sync_(std::exchange(other.server_sync_, false)),
       header_stream_(std::move(other.header_stream_)),
-      file_stream_(std::move(other.file_stream_)) {}
+      payload_stream_(std::move(other.payload_stream_)) {}
 
 void dropbox::ClientHandler::ReceiveUsername() {
-    cereal::PortableBinaryInputArchive archive(file_stream_);
+    cereal::PortableBinaryInputArchive archive(payload_stream_);
     archive(username_);
 }
 
@@ -104,6 +104,8 @@ void dropbox::ClientHandler::MainLoop() {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }
+        header_stream_.flush();
+        payload_stream_.flush();
     }
 }
 
@@ -201,30 +203,16 @@ dropbox::ClientHandler::~ClientHandler() {
     close(sync_cs_socket_);
 }
 
-bool dropbox::ClientHandler::ListServer() const {
+bool dropbox::ClientHandler::ListServer() noexcept {
     std::string const kStrTable = ListDirectory(SyncDirPath()).str();
-
-    const size_t kTableSize = kStrTable.size() + 1;
-
-    if (write(header_socket_, &kTableSize, sizeof(kTableSize)) == kInvalidWrite) {
-        perror(__func__);  // NOLINT
+    try {
+        cereal::PortableBinaryOutputArchive archive(payload_stream_);
+        archive(kStrTable);
+        return true;
+    } catch (std::exception& e) {
+        std::cerr << "Error when sending file table: " << e.what() << '\n';
         return false;
     }
-
-    size_t total_sent = 0;
-    while (total_sent != kTableSize) {
-        const size_t kBytesToSend = std::min(kPacketSize, kTableSize - total_sent);
-
-        const ssize_t kBytesSent = write(header_socket_, kStrTable.c_str() + total_sent, kBytesToSend);
-        if (kBytesSent < static_cast<ssize_t>(kBytesToSend)) {
-            perror(__func__);
-            return false;
-        }
-
-        total_sent += kTableSize;
-    }
-
-    return true;
 }
 
 void dropbox::ClientHandler::StartInotify() {

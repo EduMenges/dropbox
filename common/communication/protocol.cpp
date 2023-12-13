@@ -2,8 +2,6 @@
 
 #include <unistd.h>
 
-#include <climits>
-#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -59,17 +57,13 @@ bool dropbox::FileExchange::Receive() {
     }
 
     try {
-        int64_t                            remaining_size = 0;
+        int64_t                            remaining_size;
         cereal::PortableBinaryInputArchive archive(socket_stream_);
         archive(remaining_size);
 
         while (remaining_size != 0) {
-            const auto kBytesToReceive = std::min(remaining_size, static_cast<intmax_t>(buffer.size()));
+            const auto kBytesToReceive = std::min(remaining_size, static_cast<int64_t>(buffer.size()));
             const auto kBytesReceived  = socket_stream_.read(buffer.data(), kBytesToReceive).gcount();
-
-            if (kBytesReceived == kInvalidRead) {
-                return false;
-            }
 
             file.write(buffer.data(), kBytesReceived);
             remaining_size -= kBytesReceived;

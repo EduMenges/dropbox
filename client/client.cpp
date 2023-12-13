@@ -86,7 +86,7 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
     }
 
     if (he_.GetCommand() == Command::kError) {
-        std::cerr << "File not found on the server ";
+        std::cerr << "File was not found on the server.\n";
         return false;
     }
 
@@ -100,7 +100,7 @@ bool dropbox::Client::GetSyncDir() {
         }
         std::filesystem::create_directory(SyncDirPath());
     } catch (const std::exception &e) {
-        std::cerr << "Error creating directory " << e.what() << '\n';
+        std::cerr << "Error creating sync_dir directory: " << e.what() << '\n';
     }
 
     do {
@@ -116,8 +116,10 @@ bool dropbox::Client::GetSyncDir() {
             if (!fe_.Receive()) {
                 return false;
             }
+        } else {
+            break;
         }
-    } while (he_.GetCommand() == Command::kSuccess);
+    } while (true);
 
     return true;
 }
@@ -147,35 +149,23 @@ bool dropbox::Client::ListClient() const {
 }
 
 bool dropbox::Client::ListServer() {
-    static thread_local std::array<char, kPacketSize> buffer;
-
     if (!he_.SetCommand(Command::kListServer).Send()) {
         return false;
     }
 
-    size_t remaining_size = 0;
+    try {
+        std::string server_table;
 
-    if (read(header_socket_, &remaining_size, sizeof(remaining_size)) == kInvalidRead) {
-        perror(__func__);
+        cereal::PortableBinaryInputArchive archive(payload_stream_);
+        archive(server_table);
+
+        std::cout << server_table << '\n';
+
+        return true;
+    } catch (std::exception &e) {
+        std::cerr << "Error when receiving file table: " << e.what() << '\n';
         return false;
     }
-
-    while (remaining_size != 0) {
-        const size_t kBytesToRead = std::min(remaining_size, kPacketSize);
-
-        const ssize_t kBytesRead = read(header_socket_, buffer.data(), kBytesToRead);
-
-        if (kBytesRead == kInvalidRead) {
-            perror(__func__);
-            return false;
-        }
-
-        remaining_size -= kBytesRead;
-        std::cout << buffer.data();
-    }
-    std::cout << '\n';
-
-    return true;
 }
 
 void dropbox::Client::StartInotify() {
