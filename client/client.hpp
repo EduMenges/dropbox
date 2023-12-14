@@ -81,10 +81,6 @@ class Client {
 
     void StartFileExchange();
 
-    void SendCommand(Command command) noexcept(false);
-
-    Command ReceiveCommand() noexcept(false);
-
     /**
      * @return Sync dir path concatenated with the username.
      */
@@ -97,15 +93,20 @@ class Client {
     bool Upload(std::filesystem::path&& path);
 
    private:
-    std::string username_;       ///< User's name, used as an identifier.
-    int         header_socket_;  ///< Socket to exchange headers.
-    int         payload_socket_;    ///< Socket to exchange files.
+    std::string username_;  ///< User's name, used as an identifier.
 
-    int         sync_sc_socket_;    ///< Socket only for sync server -> client
-    int         sync_cs_socket_;    ///< Socket only for sync client -> server
+    int header_socket_;   ///< Socket to exchange headers.
+    int payload_socket_;  ///< Socket to exchange files.
 
-    HeaderExchange    he_; ///< What to exchange headers (commands) to the server with.
-    FileExchange      fe_; ///< What to exchange files with the server with.
+    int sync_sc_socket_;  ///< Socket only for sync server -> client
+    int sync_cs_socket_;  ///< Socket only for sync client -> server
+
+    SocketStream payload_stream_;
+    SocketStream sc_stream_;
+    SocketStream cs_stream_;
+
+    HeaderExchange he_;  ///< What to exchange headers (commands) to the server with.
+    FileExchange   fe_;  ///< What to exchange files with the server with.
 
     HeaderExchange sche_;
     FileExchange   scfe_;
@@ -115,11 +116,7 @@ class Client {
 
     Inotify inotify_;
 
-    SocketStream header_stream_;
-    SocketStream payload_stream_;
-
     bool client_sync_;
-
 };
 
 }

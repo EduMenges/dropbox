@@ -3,10 +3,12 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include "exceptions.hpp"
 #include "constants.hpp"
+#include "exceptions.hpp"
 
 namespace dropbox {
+using SocketType = int;
+
 constexpr int kDomain   = AF_INET;
 constexpr int kFamily   = kDomain;
 constexpr int kType     = SOCK_STREAM;

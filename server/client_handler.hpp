@@ -3,10 +3,10 @@
 #include <iostream>
 #include <thread>
 
-#include "inotify.hpp"
 #include "communication/protocol.hpp"
 #include "communication/socket_stream.hpp"
 #include "composite_interface.hpp"
+#include "inotify.hpp"
 #include "utils.hpp"
 
 namespace dropbox {
@@ -21,10 +21,10 @@ class ClientHandler {
     /**
      * Constructor.
      * @param header_socket Socket to use in header communications.
-     * @param file_socket Socket to use in file communications.
+     * @param payload_socket_ Socket to use in file communications.
      * @pre Both \p header_socket and \p file_socket are initialized and connected to the client.
      */
-    ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket);
+    ClientHandler(int header_socket, int payload_socket, int sync_sc_socket, int sync_cs_socket);
 
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
@@ -40,7 +40,7 @@ class ClientHandler {
     void CreateUserFolder() const;
 
     /// Receives the username.
-    void ReceiveUsername();
+    void ReceiveUsername() noexcept(false);
 
     /// Username getter.
     [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; };
@@ -104,13 +104,17 @@ class ClientHandler {
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
+    std::string username_;  ///< Username of the client.
+    CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
+
     int         header_socket_;  ///< Socket to exchange the header with.
     int         file_socket_;    ///< Socket to exchange files with.
     int         sync_sc_socket_;
     int         sync_cs_socket_;
-    std::string username_;  ///< Username of the client.
 
-    CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
+    SocketStream payload_stream_;
+    SocketStream sc_stream_;
+    SocketStream cs_stream_;
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
@@ -123,9 +127,6 @@ class ClientHandler {
 
     Inotify inotify_;
 
-    bool server_sync_{};
-
-    SocketStream header_stream_;
-    SocketStream payload_stream_;
+    bool server_sync_;
 };
 }

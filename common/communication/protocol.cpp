@@ -3,24 +3,57 @@
 #include <unistd.h>
 
 #include <fstream>
-#include <iostream>
 
-#define CEREAL_THREAD_SAFE 1
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
-#include "utils.hpp"
 
 thread_local std::array<char, dropbox::kPacketSize> dropbox::FileExchange::buffer;
 
-bool dropbox::HeaderExchange::Send() {
-    return write(socket_stream_.GetSocket(), &command_, sizeof(command_)) == SSizeOf<Command>();
+bool dropbox::HeaderExchange::Send(dropbox::Command command) noexcept {
+    const bool kCouldSend = ::write(socket_, &command, sizeof(Command)) == sizeof(Command);
+    if (!kCouldSend) {
+        perror("HeaderExchange::Send");
+        return false;
+    }
+    return true;
 }
 
-bool dropbox::HeaderExchange::Receive() {
-    return read(socket_stream_.GetSocket(), &command_, sizeof(command_)) == SSizeOf<Command>();
+std::optional<dropbox::Command> dropbox::HeaderExchange::Receive() noexcept {
+    Command command;
+
+    if (::read(socket_, &command, sizeof(Command)) != sizeof(Command)) {
+        perror("HeaderExchange::Receive");
+        return std::nullopt;
+    }
+
+    return command;
 }
 
-bool dropbox::FileExchange::Send() {
+bool dropbox::FileExchange::SendPath() noexcept {
+    try {
+        cereal::PortableBinaryOutputArchive archive(stream_);
+        archive(path_.generic_string());
+        return true;
+    } catch (std::exception& e) {
+        std::cerr << "Error when sending path: " << e.what() << '\n';
+        return false;
+    }
+}
+
+bool dropbox::FileExchange::ReceivePath() noexcept {
+    try {
+        std::string                        in_str;
+        cereal::PortableBinaryInputArchive archive(stream_);
+        archive(in_str);
+        SetPath(std::move(in_str));
+        return true;
+    } catch (std::exception& e) {
+        std::cerr << "Error when receiving path: " << e.what() << '\n';
+        return false;
+    }
+}
+
+bool dropbox::FileExchange::Send() noexcept {
     std::basic_ifstream<char> file(path_, std::ios::in | std::ios::binary);
 
     if (!file.is_open() || file.bad()) {
@@ -30,22 +63,22 @@ bool dropbox::FileExchange::Send() {
     try {
         auto file_size = static_cast<int64_t>(std::filesystem::file_size(path_));
 
-        cereal::PortableBinaryOutputArchive archive(socket_stream_);
+        cereal::PortableBinaryOutputArchive archive(stream_);
         archive(file_size);
 
         do {
             const auto kBytesRead = file.read(buffer.data(), kPacketSize).gcount();
-            socket_stream_.write(buffer.data(), kBytesRead);
+            stream_.write(buffer.data(), kBytesRead);
         } while (!file.eof());
 
         return true;
     } catch (std::exception& e) {
-        std::cerr << e.what();
+        std::cerr << "FileExchange::Send: " << e.what();
         return false;
     }
 }
 
-bool dropbox::FileExchange::Receive() {
+bool dropbox::FileExchange::Receive() noexcept {
     if (!std::filesystem::is_regular_file(path_)) {
         std::filesystem::remove_all(path_);
     }
@@ -57,13 +90,18 @@ bool dropbox::FileExchange::Receive() {
     }
 
     try {
-        int64_t                            remaining_size;
-        cereal::PortableBinaryInputArchive archive(socket_stream_);
+        int64_t remaining_size = 0;
+
+        cereal::PortableBinaryInputArchive archive(stream_);
         archive(remaining_size);
 
         while (remaining_size != 0) {
-            const auto kBytesToReceive = std::min(remaining_size, static_cast<int64_t>(buffer.size()));
-            const auto kBytesReceived  = socket_stream_.read(buffer.data(), kBytesToReceive).gcount();
+            const auto kBytesToReceive = std::min(remaining_size, static_cast<intmax_t>(buffer.size()));
+            const auto kBytesReceived  = stream_.read(buffer.data(), kBytesToReceive).gcount();
+
+            if (kBytesReceived == kInvalidRead) {
+                return false;
+            }
 
             file.write(buffer.data(), kBytesReceived);
             remaining_size -= kBytesReceived;
@@ -71,33 +109,7 @@ bool dropbox::FileExchange::Receive() {
 
         return true;
     } catch (std::exception& e) {
-        std::cerr << e.what() << '\n';
-        return false;
-    }
-}
-
-bool dropbox::EntryExchange::SendPath(const std::filesystem::path& path) {
-    try {
-        cereal::PortableBinaryOutputArchive archive(socket_stream_);
-        archive(path.generic_string());
-        return true;
-    } catch (std::exception& e) {
-        std::cerr << e.what() << '\n';
-        return false;
-    }
-}
-
-bool dropbox::EntryExchange::ReceivePath() {
-    try {
-        cereal::PortableBinaryInputArchive archive(socket_stream_);
-
-        std::string recv_string;
-        archive(recv_string);
-
-        path_ = std::move(recv_string);
-        return true;
-    } catch (std::exception& e) {
-        std::cerr << e.what() << '\n';
+        std::cerr << "FileExchange::Receive: " << e.what() << '\n';
         return false;
     }
 }

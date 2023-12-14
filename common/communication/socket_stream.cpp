@@ -1,6 +1,10 @@
 #include "socket_stream.hpp"
 
+#include <filesystem>
 #include <iostream>
+
+#include "cereal/archives/portable_binary.hpp"
+#include "cereal/types/string.hpp"
 
 std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
     const ssize_t kBytesRead = ::read(socket_, gptr(), kBufferSize);
@@ -9,7 +13,7 @@ std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
         perror(__func__);
     }
 
-    return kBytesRead;
+    return static_cast<std::streamsize>(kBytesRead);
 }
 
 std::streamsize dropbox::SocketBuffer::SendData() noexcept {
@@ -21,7 +25,7 @@ std::streamsize dropbox::SocketBuffer::SendData() noexcept {
     }
 
     pbump(-static_cast<int>(kDataSize));
-    return kBytesSent;
+    return static_cast<std::streamsize>(kBytesSent);
 }
 
 int dropbox::SocketBuffer::underflow() noexcept(false) {
@@ -56,8 +60,7 @@ int dropbox::SocketBuffer::overflow(int ch) noexcept {
     return ch;
 }
 
-void dropbox::SocketBuffer::InitializeBuffers() {
-    buffer_ = std::make_unique<std::array<buffer_type, kBufferSize>>();
+void dropbox::SocketBuffer::InitializePointers() {
     setp(buffer_->data(), buffer_->data() + kBufferSize);
     setg(buffer_->data(), buffer_->data(), buffer_->data());
 }

@@ -20,6 +20,15 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       payload_socket_(socket(kDomain, kType, kProtocol)),
       sync_sc_socket_(socket(kDomain, kType, kProtocol)),
       sync_cs_socket_(socket(kDomain, kType, kProtocol)),
+      payload_stream_(payload_socket_),
+      sc_stream_(sync_sc_socket_),
+      cs_stream_(sync_cs_socket_),
+      he_(header_socket_),
+      fe_(payload_stream_),
+      sche_(sync_cs_socket_),
+      scfe_(sc_stream_),
+      cshe_(sync_cs_socket_),
+      csfe_(cs_stream_),
       inotify_({}),
       client_sync_(true) {
     if (InvalidSockets(header_socket_, payload_socket_, sync_sc_socket_, sync_cs_socket_)) {
@@ -29,18 +38,6 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
     const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}};
 
     MultipleConnect(&kServerAddress, header_socket_, payload_socket_, sync_sc_socket_, sync_cs_socket_);
-
-    he_.SetSocket(header_socket_);
-    fe_.SetSocket(payload_socket_);
-
-    sche_.SetSocket(sync_sc_socket_);
-    scfe_.SetSocket(sync_sc_socket_);
-
-    cshe_.SetSocket(sync_cs_socket_);
-    csfe_.SetSocket(sync_cs_socket_);
-
-    header_stream_.SetSocket(header_socket_);
-    payload_stream_.SetSocket(payload_socket_);
 
     SendUsername();
     GetSyncDir();
@@ -53,7 +50,7 @@ void dropbox::Client::SendUsername() noexcept(false) {
 }
 
 bool dropbox::Client::Upload(std::filesystem::path &&path) {
-    if (!he_.SetCommand(Command::kUpload).Send()) {
+    if (!he_.Send(Command::kUpload)) {
         return false;
     }
 
@@ -65,7 +62,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
 }
 
 bool dropbox::Client::Delete(std::filesystem::path &&file_path) {
-    if (!he_.SetCommand(Command::kDelete).Send()) {
+    if (!he_.Send(Command::kDelete)) {
         return false;
     }
 
@@ -73,7 +70,7 @@ bool dropbox::Client::Delete(std::filesystem::path &&file_path) {
 }
 
 bool dropbox::Client::Download(std::filesystem::path &&file_name) {
-    if (!he_.SetCommand(Command::kDownload).Send()) {
+    if (!he_.Send(Command::kDownload)) {
         return false;
     }
 
@@ -81,11 +78,13 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return false;
     }
 
-    if (!he_.Receive()) {
+    const auto kReceived = he_.Receive();
+    if (!kReceived.has_value()) {
+        std::cerr << "Failure when receiving response from server.\n";
         return false;
     }
 
-    if (he_.GetCommand() == Command::kError) {
+    if (kReceived == Command::kError) {
         std::cerr << "File was not found on the server.\n";
         return false;
     }
@@ -104,11 +103,9 @@ bool dropbox::Client::GetSyncDir() {
     }
 
     do {
-        if (!he_.Receive()) {
-            return false;
-        }
+        const auto kReceivedCommand = he_.Receive();
 
-        if (he_.GetCommand() == Command::kSuccess) {
+        if (kReceivedCommand == Command::kSuccess) {
             if (!fe_.ReceivePath()) {
                 return false;
             }
@@ -116,8 +113,10 @@ bool dropbox::Client::GetSyncDir() {
             if (!fe_.Receive()) {
                 return false;
             }
-        } else {
+        } else if (kReceivedCommand == Command::kExit) {
             break;
+        } else {
+            return false;
         }
     } while (true);
 
@@ -134,9 +133,7 @@ dropbox::Client::~Client() {
 
 bool dropbox::Client::Exit() {
     client_sync_ = false;
-    if (cshe_.SetCommand(Command::kExit).Send()) {
-    }
-    return he_.SetCommand(Command::kExit).Send();
+    return cshe_.Send(Command::kExit) && he_.Send(Command::kExit);
 }
 
 bool dropbox::Client::ListClient() const {
@@ -149,12 +146,13 @@ bool dropbox::Client::ListClient() const {
 }
 
 bool dropbox::Client::ListServer() {
-    if (!he_.SetCommand(Command::kListServer).Send()) {
+    if (!he_.Send(Command::kListServer)) {
         return false;
     }
 
     try {
         cereal::PortableBinaryInputArchive archive(payload_stream_);
+
         std::string server_table;
         archive(server_table);
 
@@ -189,20 +187,20 @@ void dropbox::Client::StartFileExchange() {
             std::cout << "Must att in Server | op:" << command << " in:" << file << '\n';
 
             if (command == "write") {
-                if (!cshe_.SetCommand(Command::kWriteDir).Send()) {
+                if (!cshe_.Send(Command::kWriteDir)) {
                 }
 
                 if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
                 }
 
-                if (!csfe_.SetPath(std::move(SyncDirPath() / file)).Send()) {
+                if (!csfe_.SetPath(SyncDirPath() / file).Send()) {
                 }
 
             } else if (command == "delete") {
-                if (!cshe_.SetCommand(Command::kDeleteDir).Send()) {
+                if (!cshe_.Send(Command::kDeleteDir)) {
                 }
 
-                if (!csfe_.SetPath(SyncDirPath() / std::move(file)).SendPath()) {
+                if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
                 }
             }
         }
@@ -210,42 +208,41 @@ void dropbox::Client::StartFileExchange() {
 }
 
 void dropbox::Client::ReceiveSyncFromServer() {
+    /// @todo Error treatment.
     while (client_sync_) {
-        if (sche_.Receive()) {
-            if (sche_.GetCommand() == Command::kExit) {
-                std::cout << "Exiting client...\n";
-                return;
+        const auto kReceivedCommand = sche_.Receive();
+
+        if (kReceivedCommand == Command::kExit) {
+            std::cout << "Exiting client...\n";
+            return;
+        }
+
+        if (kReceivedCommand == Command::kWriteDir) {
+            inotify_.Pause();
+
+            std::cout << "SERVER -> CLIENT: modified\n";
+            if (!scfe_.ReceivePath()) {
             }
 
-            if (sche_.GetCommand() == Command::kWriteDir) {
-                inotify_.Pause();
-
-                std::cout << "SERVER -> CLIENT: modified\n";
-                if (!scfe_.ReceivePath()) {
-                }
-
-                if (!scfe_.Receive()) {
-                }
-
-                inotify_.Resume();
-
-            } else if (sche_.GetCommand() == Command::kDeleteDir) {
-                inotify_.Pause();
-                std::cout << "SERVER -> CLIENT: delete\n";
-                if (!scfe_.ReceivePath()) {
-                }
-
-                const std::filesystem::path &file_path = scfe_.GetPath();
-
-                if (std::filesystem::exists(file_path)) {
-                    std::filesystem::remove(file_path);
-
-                    //
-                }
-                inotify_.Resume();
+            if (!scfe_.Receive()) {
             }
-        } else {
-            // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+            inotify_.Resume();
+
+        } else if (kReceivedCommand == Command::kDeleteDir) {
+            inotify_.Pause();
+            std::cout << "SERVER -> CLIENT: delete\n";
+            if (!scfe_.ReceivePath()) {
+            }
+
+            const std::filesystem::path &file_path = scfe_.GetPath();
+
+            if (std::filesystem::exists(file_path)) {
+                std::filesystem::remove(file_path);
+
+                //
+            }
+            inotify_.Resume();
         }
     }
 }

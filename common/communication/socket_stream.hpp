@@ -5,24 +5,32 @@
 #include <memory>
 #include <streambuf>
 
+#include "connections.hpp"
 #include "constants.hpp"
 
 namespace dropbox {
 
-using buffer_type = char;
+using BufferElementType = char;
 
-class SocketBuffer : public std::basic_streambuf<buffer_type> {
+class SocketBuffer : public std::basic_streambuf<BufferElementType> {
    public:
     static constexpr std::size_t kBufferSize = kPacketSize;
 
-    SocketBuffer(int socket) : socket_(socket) { InitializeBuffers(); }
-    SocketBuffer() : socket_(kInvalidSocket) { InitializeBuffers(); };
+    inline SocketBuffer(SocketType socket)
+        : socket_(socket), buffer_(std::make_unique<std::array<BufferElementType, kBufferSize>>()) {
+        InitializePointers();
+    }
+
+    inline SocketBuffer()
+        : socket_(kInvalidSocket), buffer_(std::make_unique<std::array<BufferElementType, kBufferSize>>()) {
+        InitializePointers();
+    };
 
     ~SocketBuffer() override                = default;
     SocketBuffer(SocketBuffer&& other)      = default;
     SocketBuffer(const SocketBuffer& other) = delete;
 
-    inline constexpr void SetSocket(int socket) noexcept { socket_ = socket; }
+    inline constexpr void SetSocket(SocketType socket) noexcept { socket_ = socket; }
 
     [[nodiscard]] inline constexpr int GetSocket() const noexcept { return socket_; }
 
@@ -41,28 +49,33 @@ class SocketBuffer : public std::basic_streambuf<buffer_type> {
         return 0;
     }
 
-   private:
-    void InitializeBuffers();
+    inline std::streamsize showmanyc() override { return egptr() - gptr(); }
 
+   private:
+    void InitializePointers();
+
+    /// Abstracts the OS calls to send in @ref socket_
     std::streamsize ReceiveData() noexcept;
 
+    /// Abstracts the OS calls to receive in @ref socket_
     std::streamsize SendData() noexcept;
 
-    int                                                   socket_;
-    std::unique_ptr<std::array<buffer_type, kBufferSize>> buffer_;
+    /// Socket descriptor that is not owned by the stream, therefore, is not destroyed with it.
+    SocketType socket_;
+
+    /// Underlying buffer for reading and writing operations.
+    std::unique_ptr<std::array<BufferElementType, kBufferSize>> buffer_;
 };
 
-class SocketStream : public std::basic_iostream<buffer_type> {
+class SocketStream : public std::basic_iostream<BufferElementType> {
    public:
-    explicit SocketStream(int socket) : std::basic_iostream<buffer_type>(&buffer_), buffer_(socket){};
-    SocketStream() : std::basic_iostream<buffer_type>(&buffer_){};
+    explicit SocketStream(int socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
+    SocketStream() : std::basic_iostream<BufferElementType>(&buffer_){};
 
     inline SocketStream(SocketStream&& other) noexcept
-        : basic_iostream<buffer_type>(std::move(other)), buffer_(std::move(other.buffer_)){};
+        : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)){};
 
     inline void SetSocket(int socket) noexcept { buffer_.SetSocket(socket); }
-
-    inline int GetSocket() noexcept { return buffer_.GetSocket(); }
 
    private:
     SocketBuffer buffer_;

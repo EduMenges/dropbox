@@ -66,6 +66,8 @@ CheckOptions:
 
   readability-identifier-naming.TypedefCase: CamelCase
 
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+
   readability-identifier-naming.MemberCase: lower_case
 
   readability-identifier-naming.MemberSuffix: _
