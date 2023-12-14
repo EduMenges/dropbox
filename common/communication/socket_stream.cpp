@@ -64,3 +64,5 @@ void dropbox::SocketBuffer::InitializePointers() {
     setp(buffer_->data(), buffer_->data() + kBufferSize);
     setg(buffer_->data(), buffer_->data(), buffer_->data());
 }
+
+std::streamsize dropbox::SocketBuffer::xsgetn(char *s, std::streamsize n) { return basic_streambuf::xsgetn(s, n); }

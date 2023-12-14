@@ -60,6 +60,7 @@ void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_
                 }
 
                 std::cerr << "Could not accept new client connection\n";
+                perror(__func__);
                 return;
             }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -15,7 +16,7 @@ class ClientPool {
 
     ClientPool(const ClientPool& other) = delete;
 
-    ClientPool(ClientPool&& other)      = default;
+    ClientPool(ClientPool&& other)      = delete;
 
     /**
      * Inserts a client handler into its spot on the user's device list.
@@ -26,6 +27,8 @@ class ClientPool {
     ClientHandler& Insert(ClientHandler&& handler) noexcept(false);
 
    private:
+    std::mutex mutex_;
+
     /// Collection that associates username with their devices.
     std::unordered_map<std::string, ClientComposite> clients_;
 };

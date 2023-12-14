@@ -83,4 +83,3 @@ CheckOptions:
   readability-identifier-naming.ConstantCase: CamelCase
 
   readability-identifier-naming.ConstantPrefix: k
-

@@ -38,7 +38,7 @@ std::optional<dropbox::Command> dropbox::HeaderExchange::Receive() noexcept {
 
 bool dropbox::FileExchange::SendPath() noexcept {
     try {
-        cereal::PortableBinaryOutputArchive archive(stream_);
+        cereal::PortableBinaryOutputArchive archive(*stream_);
         archive(path_.generic_string());
         return true;
     } catch (std::exception& e) {
@@ -50,7 +50,7 @@ bool dropbox::FileExchange::SendPath() noexcept {
 bool dropbox::FileExchange::ReceivePath() noexcept {
     try {
         std::string                        in_str;
-        cereal::PortableBinaryInputArchive archive(stream_);
+        cereal::PortableBinaryInputArchive archive(*stream_);
         archive(in_str);
         SetPath(std::move(in_str));
         return true;
@@ -70,12 +70,12 @@ bool dropbox::FileExchange::Send() noexcept {
     try {
         auto file_size = static_cast<int64_t>(std::filesystem::file_size(path_));
 
-        cereal::PortableBinaryOutputArchive archive(stream_);
+        cereal::PortableBinaryOutputArchive archive(*stream_);
         archive(file_size);
 
         do {
             const auto kBytesRead = file.read(buffer.data(), kPacketSize).gcount();
-            stream_.write(buffer.data(), kBytesRead);
+            stream_->write(buffer.data(), kBytesRead);
         } while (!file.eof());
 
         return true;
@@ -99,12 +99,12 @@ bool dropbox::FileExchange::Receive() noexcept {
     try {
         int64_t remaining_size = 0;
 
-        cereal::PortableBinaryInputArchive archive(stream_);
+        cereal::PortableBinaryInputArchive archive(*stream_);
         archive(remaining_size);
 
         while (remaining_size != 0) {
             const auto kBytesToReceive = std::min(remaining_size, static_cast<intmax_t>(buffer.size()));
-            const auto kBytesReceived  = stream_.read(buffer.data(), kBytesToReceive).gcount();
+            const auto kBytesReceived  = stream_->read(buffer.data(), kBytesToReceive).gcount();
 
             if (kBytesReceived == kInvalidRead) {
                 return false;

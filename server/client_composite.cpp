@@ -11,6 +11,7 @@ dropbox::ClientHandler& dropbox::ClientComposite::Insert(ClientHandler&& client)
     }
 
     std::cout << "New client: " << client.GetUsername() << " with id " << client.GetId() << '\n';
+    client.SetComposite(this);
     list_.push_back(std::move(client));
     return list_.back();
 }

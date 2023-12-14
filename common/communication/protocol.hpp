@@ -31,7 +31,8 @@ class HeaderExchange : public SocketExchange {
 class FileExchange {
    public:
     FileExchange() = delete;
-    inline FileExchange(SocketStream& stream) : stream_(stream){};
+    inline FileExchange(SocketStream* stream) : stream_(stream){};
+
     FileExchange(FileExchange&& other) = default;
 
     [[nodiscard]] const std::filesystem::path& GetPath() const { return path_; }
@@ -49,12 +50,14 @@ class FileExchange {
 
     bool Receive() noexcept;
 
-    inline void Flush() { stream_.flush(); }
+    inline void Flush() { stream_->flush(); }
 
    private:
-    SocketStream& stream_;
     /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;  // NOLINT
-    std::filesystem::path                             path_;
+
+    SocketStream* stream_;
+
+    std::filesystem::path path_;
 };
 }

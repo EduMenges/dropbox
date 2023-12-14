@@ -21,20 +21,18 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
         InitializePointers();
     }
 
-    inline SocketBuffer()
-        : socket_(kInvalidSocket), buffer_(std::make_unique<std::array<BufferElementType, kBufferSize>>()) {
+    ~SocketBuffer() override = default;
+
+    SocketBuffer(SocketBuffer&& other) noexcept
+        : socket_(std::exchange(other.socket_, kInvalidSocket)), buffer_(std::move(other.buffer_)) {
         InitializePointers();
     };
 
-    ~SocketBuffer() override                = default;
-    SocketBuffer(SocketBuffer&& other)      = default;
     SocketBuffer(const SocketBuffer& other) = delete;
 
-    inline constexpr void SetSocket(SocketType socket) noexcept { socket_ = socket; }
-
-    [[nodiscard]] inline constexpr int GetSocket() const noexcept { return socket_; }
-
    protected:
+    std::streamsize xsgetn(char_type* s, std::streamsize n) override;
+
     int_type underflow() noexcept(false) override;
 
     int_type overflow(int_type ch) noexcept override;
@@ -70,12 +68,10 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 class SocketStream : public std::basic_iostream<BufferElementType> {
    public:
     explicit SocketStream(int socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
-    SocketStream() : std::basic_iostream<BufferElementType>(&buffer_){};
     SocketStream(const SocketStream& other) = delete;
+
     inline SocketStream(SocketStream&& other) noexcept
         : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)){};
-
-    inline void SetSocket(int socket) noexcept { buffer_.SetSocket(socket); }
 
    private:
     SocketBuffer buffer_;
