@@ -71,7 +71,7 @@ class SocketStream : public std::basic_iostream<BufferElementType> {
    public:
     explicit SocketStream(int socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
     SocketStream() : std::basic_iostream<BufferElementType>(&buffer_){};
-
+    SocketStream(const SocketStream& other) = delete;
     inline SocketStream(SocketStream&& other) noexcept
         : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)){};
 

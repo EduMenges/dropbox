@@ -10,19 +10,26 @@
 thread_local std::array<char, dropbox::kPacketSize> dropbox::FileExchange::buffer;
 
 bool dropbox::HeaderExchange::Send(dropbox::Command command) noexcept {
-    const bool kCouldSend = ::write(socket_, &command, sizeof(Command)) == sizeof(Command);
-    if (!kCouldSend) {
-        perror("HeaderExchange::Send");
+    const ssize_t kSentBytes = ::write(socket_, &command, sizeof(Command));
+
+    if (kSentBytes != sizeof(Command)) {
+        if (kSentBytes != 0) {
+            perror("HeaderExchange::Send");
+        }
         return false;
     }
+
     return true;
 }
 
 std::optional<dropbox::Command> dropbox::HeaderExchange::Receive() noexcept {
-    Command command;
+    Command       command;
+    const ssize_t kReceivedBytes = ::read(socket_, &command, sizeof(Command));
 
-    if (::read(socket_, &command, sizeof(Command)) != sizeof(Command)) {
-        perror("HeaderExchange::Receive");
+    if (kReceivedBytes != sizeof(Command)) {
+        if (kReceivedBytes != 0) {
+            perror("HeaderExchange::Receive");
+        }
         return std::nullopt;
     }
 

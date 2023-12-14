@@ -98,4 +98,5 @@ void dropbox::UserInput::HandleCommand(Command command) {
             std::cerr << "Unexpected command: " << command << '\n';
             break;
     }
+    client_.Flush();
 }

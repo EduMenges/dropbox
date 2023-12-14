@@ -1,12 +1,10 @@
 #include "client.hpp"
 
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <iostream>
-#include <thread>
 
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"

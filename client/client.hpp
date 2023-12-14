@@ -92,6 +92,8 @@ class Client {
      */
     bool Upload(std::filesystem::path&& path);
 
+    inline void Flush() { payload_stream_.flush(); }
+
    private:
     std::string username_;  ///< User's name, used as an identifier.
 

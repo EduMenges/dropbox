@@ -99,7 +99,6 @@ void dropbox::ClientHandler::MainLoop() {
                 receiving = false;
                 std::cerr << "Client " << username_ << " with id " << GetId() << " timed out" << '\n';
             } else {
-                std::cerr << "Could not get response from " << username_ << ' ' << GetId() << ", sleeping\n";
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }
@@ -173,8 +172,10 @@ bool dropbox::ClientHandler::ReceiveGetSyncDir() {
         if (!fe_.Send()) {
             return false;
         }
+
     }
 
+    fe_.Flush();
     return he_.Send(Command::kExit);
 }
 
