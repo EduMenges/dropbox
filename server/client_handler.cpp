@@ -21,12 +21,12 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int payload_socket, int
       sc_stream_(sync_sc_socket_),
       cs_stream_(sync_cs_socket_),
       he_(header_socket),
-      fe_(&payload_stream_),
+      fe_(payload_stream_),
       sche_(sync_sc_socket),
-      scfe_(&sc_stream_),
+      scfe_(sc_stream_),
       cshe_(sync_cs_socket),
-      csfe_(&cs_stream_),
-      inotify_({}),
+      csfe_(cs_stream_),
+      inotify_(SyncDirPath()),
       server_sync_(true) {
     ReceiveUsername();
     fe_.Flush();
@@ -49,12 +49,12 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       sc_stream_(std::move(other.cs_stream_)),
       cs_stream_(std::move(other.cs_stream_)),
       he_(std::move(other.he_)),
-      fe_(&payload_stream_),
+      fe_(payload_stream_),
       sche_(std::move(other.sche_)),
-      scfe_(&sc_stream_),
+      scfe_(sc_stream_),
       cshe_(std::move(other.cshe_)),
-      csfe_(&cs_stream_),
-      inotify_({}),
+      csfe_(cs_stream_),
+      inotify_(username_),
       server_sync_(std::exchange(other.server_sync_, false)) {}
 
 void dropbox::ClientHandler::ReceiveUsername() {
@@ -216,8 +216,6 @@ bool dropbox::ClientHandler::ListServer() noexcept {
 }
 
 void dropbox::ClientHandler::StartInotify() {
-    // Monitora o diretorio
-    inotify_ = Inotify(username_);
     inotify_.Start();
 }
 

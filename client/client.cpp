@@ -22,12 +22,12 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       sc_stream_(sync_sc_socket_),
       cs_stream_(sync_cs_socket_),
       he_(header_socket_),
-      fe_(&payload_stream_),
+      fe_(payload_stream_),
       sche_(sync_cs_socket_),
-      scfe_(&sc_stream_),
+      scfe_(sc_stream_),
       cshe_(sync_cs_socket_),
-      csfe_(&cs_stream_),
-      inotify_({}),
+      csfe_(cs_stream_),
+      inotify_(SyncDirPath()),
       client_sync_(true) {
     if (InvalidSockets(header_socket_, payload_socket_, sync_sc_socket_, sync_cs_socket_)) {
         throw SocketCreation();
@@ -164,8 +164,6 @@ bool dropbox::Client::ListServer() {
 }
 
 void dropbox::Client::StartInotify() {
-    // Monitora o diretorio
-    inotify_ = Inotify(username_);
     inotify_.Start();
 }
 

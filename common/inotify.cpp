@@ -1,6 +1,6 @@
 #include "inotify.hpp"
 
-#include <sys/inotify.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <cstring>
@@ -8,20 +8,13 @@
 
 #include "utils.hpp"
 
-// The fcntl() function is used so that when we read using the fd descriptor, the thread will not be blocked.
-#include <fcntl.h>
-
-dropbox::Inotify::Inotify(const std::string &username) : watching_(false), pause_(false), i_(0), username_(username) {
-    watch_path_ = SyncDirWithPrefix(username_);
-
-    fd_ = inotify_init();
-
-     if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0) {
-         std::cerr << "Error checking for fcntl" << '\n';
-         return;
-     }
-
-    wd_ = inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE);
+dropbox::Inotify::Inotify(std::filesystem::path &&watch_path)
+    : watch_path_(std::move(watch_path)),
+      watching_(false),
+      pause_(false),
+      fd_(inotify_init()),
+      wd_(inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE)) {
+    SetNonblocking(fd_);
 
     if (wd_ == -1) {
         std::cerr << "Could not watch: " << watch_path_ << '\n';
@@ -31,31 +24,25 @@ dropbox::Inotify::Inotify(const std::string &username) : watching_(false), pause
 }
 
 void dropbox::Inotify::Start() {
-    watching_ = true;
+    static thread_local std::array<uint8_t, kBufferLength> buffer;
 
-    while (watching_) {
-        char buffer_[BUF_LEN];
+    while(watching_) {
+        length_ = read(fd_, buffer.data(), kBufferLength);
 
-        length_ = read(fd_, buffer_, BUF_LEN);
+        size_t i = 0;
+        while (i < length_ && !pause_) {
+            auto *event = reinterpret_cast<struct inotify_event *>(&buffer[i]);
 
-        //if (length_ < 0) {
-        //   std::cerr << "Error: " << strerror(errno) << '\n';
-        //    return;
-        //}
-
-        i_ = 0;  // precisa resetar aqui
-        while (i_ < length_ && !pause_) {
-            struct inotify_event *event = reinterpret_cast<struct inotify_event *>(&buffer_[i_]);
-            if (event->len) {
-                if (event->mask & IN_CLOSE_WRITE) {
-                    if (event->mask & IN_ISDIR) {
+            if (event->len != 0U) {
+                if ((event->mask & IN_CLOSE_WRITE) != 0U) {
+                    if ((event->mask & IN_ISDIR) != 0U) {
                         std::cout << "The directory " << event->name << " was created/modified.\n";
                     } else {
                         std::cout << "The file " << event->name << " was created/modified.\n";
                         inotify_vector_.push_back("write " + std::string(event->name));
                     }
-                } else if (event->mask & IN_DELETE) {
-                    if (event->mask & IN_ISDIR) {
+                } else if ((event->mask & IN_DELETE) != 0U) {
+                    if ((event->mask & IN_ISDIR) != 0U) {
                         std::cout << "The directory " << event->name << " was deleted.\n";
                     } else {
                         std::cout << "The file " << event->name << " was deleted.\n";
@@ -63,13 +50,18 @@ void dropbox::Inotify::Start() {
                     }
                 }
             }
-            i_ += EVENT_SIZE + event->len;
+            i += kEventSize + event->len;
         }
     }
-    inotify_rm_watch(fd_, IN_ALL_EVENTS);
-    close(fd_);
 }
 
 void dropbox::Inotify::Stop() { watching_ = false; }
+
 void dropbox::Inotify::Pause() { pause_ = true; }
+
 void dropbox::Inotify::Resume() { pause_ = false; }
+
+dropbox::Inotify::~Inotify() {
+    inotify_rm_watch(fd_, IN_ALL_EVENTS);
+    close(fd_);
+}

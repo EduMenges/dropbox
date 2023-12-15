@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 #include <istream>
 #include <memory>
 #include <streambuf>
@@ -24,38 +25,28 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
     ~SocketBuffer() override = default;
 
     SocketBuffer(SocketBuffer&& other) noexcept
-        : socket_(std::exchange(other.socket_, kInvalidSocket)), buffer_(std::move(other.buffer_)) {
-        InitializePointers();
-    };
+        : std::basic_streambuf<BufferElementType>(other),
+          socket_(std::exchange(other.socket_, kInvalidSocket)),
+          buffer_(std::move(other.buffer_)){};
 
     SocketBuffer(const SocketBuffer& other) = delete;
 
    protected:
-    std::streamsize xsgetn(char_type* s, std::streamsize n) override;
-
     int_type underflow() noexcept(false) override;
 
     int_type overflow(int_type ch) noexcept override;
 
-    inline int sync() override {
-        const auto kTotalSent = SendData();
-
-        if (kTotalSent == kInvalidWrite) {
-            return -1;
-        }
-
-        return 0;
-    }
+    inline int sync() override;
 
     inline std::streamsize showmanyc() override { return egptr() - gptr(); }
 
    private:
     void InitializePointers();
 
-    /// Abstracts the OS calls to send in @ref socket_
+    /// Abstracts the OS calls to send in socket_
     std::streamsize ReceiveData() noexcept;
 
-    /// Abstracts the OS calls to receive in @ref socket_
+    /// Abstracts the OS calls to receive in socket_
     std::streamsize SendData() noexcept;
 
     /// Socket descriptor that is not owned by the stream, therefore, is not destroyed with it.
@@ -70,8 +61,7 @@ class SocketStream : public std::basic_iostream<BufferElementType> {
     explicit SocketStream(int socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
     SocketStream(const SocketStream& other) = delete;
 
-    inline SocketStream(SocketStream&& other) noexcept
-        : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)){};
+    SocketStream(SocketStream&& other) noexcept;
 
    private:
     SocketBuffer buffer_;

@@ -18,6 +18,7 @@ Checks: <
   -cppcoreguidelines-non-private-member-variables-in-classes
   -cppcoreguidelines-pro-type-reinterpret-cast
   -cppcoreguidelines-init-variables
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay
   
   fuchsia-*
   -fuchsia-default-arguments-calls

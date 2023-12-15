@@ -1,34 +1,36 @@
 #pragma once
 
+#include <sys/inotify.h>
+
+#include <climits>
 #include <iostream>
 #include <queue>
 #include <vector>
 
 #include "communication/protocol.hpp"
 
-#define MAX_EVENTS 1024                           /* Maximum number of events to process*/
-#define LEN_NAME   16                             /* Assuming that the length of the filename won't exceed 16 bytes*/
-#define EVENT_SIZE (sizeof(struct inotify_event)) /*size of one event*/
-#define BUF_LEN    (MAX_EVENTS * (EVENT_SIZE + LEN_NAME))
-
 namespace dropbox {
 class Inotify {
    public:
-    Inotify(const std::string& username);
+    Inotify(std::filesystem::path&& watch_path);
+    ~Inotify();
 
     void Start();
     void Stop();
     void Pause();
     void Resume();
-    
+
     std::vector<std::string> inotify_vector_;
-    
+
    private:
-    bool        watching_;
-    bool        pause_;
-    int         fd_, wd_;
-    int         length_, i_;
-    std::string watch_path_;
-    std::string username_;
+    static constexpr size_t kMaxEvents    = 20U;                          /* Maximum number of events to process*/
+    static constexpr size_t kEventSize    = (sizeof(struct inotify_event)); /*size of one event*/
+    static constexpr size_t kBufferLength = (kMaxEvents * (kEventSize + NAME_MAX));
+
+    std::filesystem::path watch_path_;
+    bool                  watching_;
+    bool                  pause_;
+    int                   fd_, wd_;
+    size_t                length_{};
 };
 }

@@ -3,8 +3,10 @@
 #include <filesystem>
 #include <iostream>
 
-#include "cereal/archives/portable_binary.hpp"
-#include "cereal/types/string.hpp"
+dropbox::SocketStream::SocketStream(dropbox::SocketStream&& other) noexcept
+    : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)) {
+    this->set_rdbuf(&buffer_);
+}
 
 std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
     const ssize_t kBytesRead = ::read(socket_, gptr(), kBufferSize);
@@ -21,10 +23,9 @@ std::streamsize dropbox::SocketBuffer::SendData() noexcept {
     const ssize_t kBytesSent = ::write(socket_, pbase(), kDataSize);
 
     if (kBytesSent == kInvalidWrite) {
-        return kInvalidWrite;
+        perror(__func__);
     }
 
-    pbump(-static_cast<int>(kDataSize));
     return static_cast<std::streamsize>(kBytesSent);
 }
 
@@ -33,17 +34,17 @@ int dropbox::SocketBuffer::underflow() noexcept(false) {
         return traits_type::to_int_type(*gptr());
     }
 
-    auto bytes_read = ReceiveData();
+    const auto kBytesReceived = ReceiveData();
 
-    if (bytes_read == -1) {
+    if (kBytesReceived == -1) {
         throw std::system_error(std::error_code(errno, std::generic_category()));
     }
 
-    if (bytes_read == 0) {
+    if (kBytesReceived == 0) {
         return traits_type::eof();
     }
 
-    setg(buffer_->data(), buffer_->data(), buffer_->data() + bytes_read);
+    setg(buffer_->begin(), buffer_->begin(), buffer_->data() + kBytesReceived);
     return traits_type::to_int_type(*gptr());
 }
 
@@ -61,8 +62,16 @@ int dropbox::SocketBuffer::overflow(int ch) noexcept {
 }
 
 void dropbox::SocketBuffer::InitializePointers() {
-    setp(buffer_->data(), buffer_->data() + kBufferSize);
-    setg(buffer_->data(), buffer_->data(), buffer_->data());
+    setp(buffer_->begin(), buffer_->end());
+    setg(buffer_->begin(), buffer_->begin(), buffer_->begin());
 }
 
-std::streamsize dropbox::SocketBuffer::xsgetn(char *s, std::streamsize n) { return basic_streambuf::xsgetn(s, n); }
+int dropbox::SocketBuffer::sync() {
+    const auto kTotalSent = SendData();
+
+    if (kTotalSent == kInvalidWrite) {
+        return -1;
+    }
+
+    pbump(static_cast<int>(-kTotalSent));
+    return 0; }
