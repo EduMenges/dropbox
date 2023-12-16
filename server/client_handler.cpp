@@ -12,12 +12,12 @@
 #include "exceptions.hpp"
 #include "list_directory.hpp"
 
-dropbox::ClientHandler::ClientHandler(int header_socket, int payload_socket, int sync_sc_socket, int sync_cs_socket)
-    : header_socket_(header_socket),
-      file_socket_(payload_socket),
+dropbox::ClientHandler::ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket, int sync_cs_socket)
+    : composite_(composite),
+      header_socket_(header_socket),
       sync_sc_socket_(sync_sc_socket),
       sync_cs_socket_(sync_cs_socket),
-      payload_stream_(file_socket_),
+      payload_stream_(std::move(payload_stream)),
       sc_stream_(sync_sc_socket_),
       cs_stream_(sync_cs_socket_),
       he_(header_socket),
@@ -28,9 +28,6 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int payload_socket, int
       csfe_(cs_stream_),
       inotify_(SyncDirPath()),
       server_sync_(true) {
-    ReceiveUsername();
-    fe_.Flush();
-
     // Cria diretorio no servidor
     CreateUserFolder();
 
@@ -39,10 +36,8 @@ dropbox::ClientHandler::ClientHandler(int header_socket, int payload_socket, int
 }
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
-    : username_(std::move(other.username_)),
-      composite_(std::exchange(other.composite_, nullptr)),
+    : composite_(std::exchange(other.composite_, nullptr)),
       header_socket_(std::exchange(other.header_socket_, -1)),
-      file_socket_(std::exchange(other.file_socket_, -1)),
       sync_sc_socket_(std::exchange(other.sync_sc_socket_, -1)),
       sync_cs_socket_(std::exchange(other.sync_cs_socket_, -1)),
       payload_stream_(std::move(other.payload_stream_)),
@@ -54,13 +49,8 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       scfe_(sc_stream_),
       cshe_(std::move(other.cshe_)),
       csfe_(cs_stream_),
-      inotify_(username_),
+      inotify_(GetUsername()),
       server_sync_(std::exchange(other.server_sync_, false)) {}
-
-void dropbox::ClientHandler::ReceiveUsername() {
-    cereal::PortableBinaryInputArchive archive(payload_stream_);
-    archive(username_);
-}
 
 void dropbox::ClientHandler::MainLoop() {
     bool    receiving = true;
@@ -71,7 +61,7 @@ void dropbox::ClientHandler::MainLoop() {
 
         if (kReceived.has_value()) {
             attempts = kAttemptAmount;
-            std::cout << username_ << " ordered " << kReceived.value() << std::endl;  // NOLINT
+            std::cout << GetUsername() << " ordered " << kReceived.value() << std::endl;  // NOLINT
             switch (kReceived.value()) {
                 case Command::kUpload:
                     ReceiveUpload();
@@ -97,7 +87,7 @@ void dropbox::ClientHandler::MainLoop() {
             attempts -= 1;
             if (attempts == 0) {
                 receiving = false;
-                std::cerr << "Client " << username_ << " with id " << GetId() << " timed out" << '\n';
+                std::cerr << "Client " << GetUsername() << " with id " << GetId() << " timed out" << '\n';
             } else {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
@@ -135,7 +125,7 @@ bool dropbox::ClientHandler::ReceiveDownload() {
     }
 
     if (!std::filesystem::exists(fe_.GetPath())) {
-        std::cerr << username_ << "::ReceiveDownload(): File does not exist - " << fe_.GetPath() << '\n';
+        std::cerr << GetUsername() << "::ReceiveDownload(): File does not exist - " << fe_.GetPath() << '\n';
 
         return he_.Send(Command::kError);
     }
@@ -189,7 +179,7 @@ void dropbox::ClientHandler::CreateUserFolder() const {
 
 dropbox::ClientHandler::~ClientHandler() {
     if (GetId() != kInvalidId) {
-        std::cout << username_ << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
+        std::cout << GetUsername() << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
     }
 
     inotify_.Stop();
@@ -197,7 +187,7 @@ dropbox::ClientHandler::~ClientHandler() {
     server_sync_ = false;
 
     close(header_socket_);
-    close(file_socket_);
+    close(payload_stream_.GetSocket());
     close(sync_sc_socket_);
     close(sync_cs_socket_);
 }

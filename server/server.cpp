@@ -4,6 +4,8 @@
 #include <iostream>
 #include <thread>
 
+#include "cereal/archives/portable_binary.hpp"
+#include "cereal/types/string.hpp"
 #include "client_handler.hpp"
 #include "connections.hpp"
 #include "constants.hpp"
@@ -65,9 +67,13 @@ void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_
             }
 
             try {
-                ClientHandler new_handler(header_socket, payload_socket, sync_sc_socket, sync_cs_socket);
+                SocketStream                       payload_stream(payload_socket);
+                cereal::PortableBinaryInputArchive archive(payload_stream);
+                std::string                        username;
+                archive(username);
 
-                ClientHandler& handler = pool.Insert(std::move(new_handler));
+                ClientHandler& handler = pool.Emplace(std::move(username), header_socket, std::move(payload_stream),
+                                                      sync_sc_socket, sync_cs_socket);
 
                 std::thread inotify_thread([&]() { handler.StartInotify(); });
                 std::thread file_exchange_thread([&]() { handler.StartFileExchange(); });
@@ -81,7 +87,7 @@ void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_
                 file_exchange_thread.join();
                 sync_thread.join();
             } catch (std::exception& e) {
-                std::cerr << e.what() << std::endl;  // NOLINT
+                std::cerr << "Error when creating client: " << e.what() << '\n';
             }
         },
         header_socket, payload_socket, sync_sc_socket, sync_cs_socket, std::ref(client_pool_));

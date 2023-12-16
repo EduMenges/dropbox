@@ -31,6 +31,8 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 
     SocketBuffer(const SocketBuffer& other) = delete;
 
+    [[nodiscard]] SocketType constexpr GetSocket() const noexcept {return socket_;}
+
    protected:
     int_type underflow() noexcept(false) override;
 
@@ -63,6 +65,7 @@ class SocketStream : public std::basic_iostream<BufferElementType> {
 
     SocketStream(SocketStream&& other) noexcept;
 
+    [[nodiscard]] SocketType GetSocket() const noexcept {return buffer_.GetSocket();}
    private:
     SocketBuffer buffer_;
 };

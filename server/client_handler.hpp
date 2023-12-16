@@ -18,13 +18,7 @@ class ClientHandler {
 
     static constexpr id_type kInvalidId = kInvalidSocket;
 
-    /**
-     * Constructor.
-     * @param header_socket Socket to use in header communications.
-     * @param payload_socket_ Socket to use in file communications.
-     * @pre Both \p header_socket and \p file_socket are initialized and connected to the client.
-     */
-    ClientHandler(int header_socket, int payload_socket, int sync_sc_socket, int sync_cs_socket);
+    ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket, int sync_cs_socket);
 
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
@@ -39,11 +33,8 @@ class ClientHandler {
     /// Creates the sync_dir_directory on the server side if it does not exist.
     void CreateUserFolder() const;
 
-    /// Receives the username.
-    void ReceiveUsername() noexcept(false);
-
     /// Username getter.
-    [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; };
+    [[nodiscard]] const std::string& GetUsername() const noexcept { return GetComposite()->GetUsername(); };
 
     /// Sets the parent composite structure.
     inline void SetComposite(CompositeInterface* composite) noexcept { composite_ = composite; };
@@ -98,17 +89,15 @@ class ClientHandler {
      * Getter for the \c sync_dir path.
      * @return \c sync_dir path for this user.
      */
-    [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
+    [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(GetUsername()); }
 
    private:
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
-    std::string username_;  ///< Username of the client.
     CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
 
     int         header_socket_;  ///< Socket to exchange the header with.
-    int         file_socket_;    ///< Socket to exchange files with.
     int         sync_sc_socket_;
     int         sync_cs_socket_;
 
