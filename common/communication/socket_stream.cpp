@@ -9,7 +9,7 @@ dropbox::SocketStream::SocketStream(dropbox::SocketStream&& other) noexcept
 }
 
 std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
-    const ssize_t kBytesRead = ::read(socket_, gptr(), kBufferSize);
+    const ssize_t kBytesRead = ::read(socket_, buffer_->begin(), kBufferSize);
 
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
@@ -36,7 +36,7 @@ int dropbox::SocketBuffer::underflow() noexcept(false) {
 
     const auto kBytesReceived = ReceiveData();
 
-    if (kBytesReceived == -1) {
+    if (kBytesReceived == kInvalidRead) {
         throw std::system_error(std::error_code(errno, std::generic_category()));
     }
 
@@ -44,7 +44,7 @@ int dropbox::SocketBuffer::underflow() noexcept(false) {
         return traits_type::eof();
     }
 
-    setg(buffer_->begin(), buffer_->begin(), buffer_->data() + kBytesReceived);
+    setg(buffer_->begin(), buffer_->begin(), buffer_->begin() + kBytesReceived);
     return traits_type::to_int_type(*gptr());
 }
 

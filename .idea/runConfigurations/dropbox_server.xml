@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="dropbox_server" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="6939" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="dropbox" TARGET_NAME="dropbox_server" CONFIG_NAME="wsl-debug - wsl-debug" RUN_TARGET_PROJECT_NAME="dropbox" RUN_TARGET_NAME="dropbox_server">
+  <configuration default="false" name="dropbox_server" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="6941" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="dropbox" TARGET_NAME="dropbox_server" CONFIG_NAME="wsl-debug - wsl-debug" RUN_TARGET_PROJECT_NAME="dropbox" RUN_TARGET_NAME="dropbox_server">
     <method v="2">
       <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
     </method>

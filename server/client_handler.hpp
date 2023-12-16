@@ -14,9 +14,9 @@ namespace dropbox {
 /// Handles one device of a client.
 class ClientHandler {
    public:
-    using id_type = int;
+    using IdType = int;
 
-    static constexpr id_type kInvalidId = kInvalidSocket;
+    static constexpr IdType kInvalidId = kInvalidSocket;
 
     ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket, int sync_cs_socket);
 
@@ -79,11 +79,11 @@ class ClientHandler {
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
      */
-    [[nodiscard]] inline id_type GetId() const noexcept { return header_socket_; }
+    [[nodiscard]] inline IdType GetId() const noexcept { return header_socket_; }
 
     inline bool operator==(const ClientHandler& other) const noexcept { return GetId() == other.GetId(); }
 
-    inline bool operator==(id_type id) const noexcept { return GetId() == id; }
+    inline bool operator==(IdType id) const noexcept { return GetId() == id; }
 
     /**
      * Getter for the \c sync_dir path.
