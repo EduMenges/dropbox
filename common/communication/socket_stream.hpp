@@ -38,7 +38,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 
     int_type overflow(int_type ch) noexcept override;
 
-    inline int sync() override;
+    int sync() override;
 
     inline std::streamsize showmanyc() override { return egptr() - gptr(); }
 

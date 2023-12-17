@@ -75,7 +75,7 @@ class Client {
      */
     bool Exit();
 
-    void ReceiveSyncFromServer();
+    void ReceiveSyncFromServer(const std::stop_token& stop_token);
 
     void StartInotify();
 
@@ -90,9 +90,11 @@ class Client {
      * @brief Uploads a file to the server.
      * @pre Assumes that \p path is a valid file.
      */
-    bool Upload(std::filesystem::path&& path);
+    bool Upload(const std::filesystem::path& path);
 
     inline void Flush() { payload_stream_.flush(); }
+
+    [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; }
 
    private:
     std::string username_;  ///< User's name, used as an identifier.

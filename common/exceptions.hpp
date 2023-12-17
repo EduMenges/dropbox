@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <filesystem>
 
 namespace dropbox {
 class SocketCreation : public std::exception {
@@ -39,10 +40,17 @@ class Username : public std::exception {
 };
 
 class FullList : public std::exception {
-    public:
+   public:
     FullList() = default;
 
     [[nodiscard]] const char* what() const noexcept override { return "Client list is full of devices"; }
+};
+
+class InotifyWatch : public std::filesystem::filesystem_error {
+   public:
+    InotifyWatch(const std::filesystem::path& path)
+        : std::filesystem::filesystem_error("Could not watch directory", path,
+                                            std::make_error_code(static_cast<std::errc>(errno))){};
 };
 
 }

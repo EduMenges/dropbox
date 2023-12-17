@@ -34,6 +34,8 @@ int dropbox::SocketBuffer::underflow() noexcept(false) {
         return traits_type::to_int_type(*gptr());
     }
 
+    sync();
+
     const auto kBytesReceived = ReceiveData();
 
     if (kBytesReceived == kInvalidRead) {

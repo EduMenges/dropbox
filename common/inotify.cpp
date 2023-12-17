@@ -1,9 +1,7 @@
 #include "inotify.hpp"
 
-#include <fcntl.h>
 #include <unistd.h>
 
-#include <cstring>
 #include <iostream>
 
 #include "utils.hpp"
@@ -13,13 +11,11 @@ dropbox::Inotify::Inotify(std::filesystem::path &&watch_path)
       watching_(false),
       pause_(false),
       fd_(inotify_init()),
-      wd_(inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE)) {
+      wd_(inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE | IN_MOVE)) {
     SetNonblocking(fd_);
 
     if (wd_ == -1) {
-        std::cerr << "Could not watch: " << watch_path_ << '\n';
-    } else {
-        std::cerr << "Watching: " << watch_path_ << '\n';
+        throw InotifyWatch(watch_path_);
     }
 }
 
@@ -34,14 +30,14 @@ void dropbox::Inotify::Start() {
             auto *event = reinterpret_cast<struct inotify_event *>(&buffer[i]);
 
             if (event->len != 0U) {
-                if ((event->mask & IN_CLOSE_WRITE) != 0U) {
+                if ((event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO)) != 0U) {
                     if ((event->mask & IN_ISDIR) != 0U) {
                         std::cout << "The directory " << event->name << " was created/modified.\n";
                     } else {
                         std::cout << "The file " << event->name << " was created/modified.\n";
                         inotify_vector_.push_back("write " + std::string(event->name));
                     }
-                } else if ((event->mask & IN_DELETE) != 0U) {
+                } else if ((event->mask & (IN_DELETE | IN_MOVED_FROM)) != 0U) {
                     if ((event->mask & IN_ISDIR) != 0U) {
                         std::cout << "The directory " << event->name << " was deleted.\n";
                     } else {
@@ -62,6 +58,7 @@ void dropbox::Inotify::Pause() { pause_ = true; }
 void dropbox::Inotify::Resume() { pause_ = false; }
 
 dropbox::Inotify::~Inotify() {
-    inotify_rm_watch(fd_, IN_ALL_EVENTS);
+    inotify_rm_watch(fd_, wd_);
     close(fd_);
+    close(wd_);
 }

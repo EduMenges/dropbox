@@ -6,7 +6,6 @@
 #include "communication/protocol.hpp"
 #include "communication/socket_stream.hpp"
 #include "composite_interface.hpp"
-#include "inotify.hpp"
 #include "utils.hpp"
 
 namespace dropbox {
@@ -36,44 +35,35 @@ class ClientHandler {
     /// Username getter.
     [[nodiscard]] const std::string& GetUsername() const noexcept { return GetComposite()->GetUsername(); };
 
-    /// Sets the parent composite structure.
-    inline void SetComposite(CompositeInterface* composite) noexcept { composite_ = composite; };
-
     /// Gets the parent composite structure.
     [[nodiscard]] inline CompositeInterface* GetComposite() const noexcept { return composite_; }
 
     /// Receives an upload from the client.
-    bool ReceiveUpload();
+    bool Upload();
 
     /**
      * Provides a download for the client.
      * @return Whether the exchange was a success, not whether the file exists.
      */
-    bool ReceiveDownload();
+    bool Download();
 
     /**
      * Deletes a file from the server's \c sync_dir.
      * @return Whether the operation was a success.
      */
-    bool ReceiveDelete();
+    bool Delete();
 
     /**
      * Starts the synchronization tasks.
      * @return Operation status.
      */
-    bool ReceiveGetSyncDir();
-
-    void ReceiveSyncFromClient();
+    bool GetSyncDir();
 
     /**
      * Lists all the files on the server side along with their MAC times and sends them.
      * @return Operation status.
      */
     bool ListServer() noexcept;
-
-    void StartInotify();
-
-    void StartFileExchange();
 
     /**
      * Getter for the unique ID of the client.
@@ -91,11 +81,17 @@ class ClientHandler {
      */
     [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(GetUsername()); }
 
+    bool SyncUpload(const std::filesystem::path& path);
+
+    bool SyncDelete(const std::filesystem::path& path);
+
+    void SyncFromClient();
+
    private:
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
-    CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
+    CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
     int         header_socket_;  ///< Socket to exchange the header with.
     int         sync_sc_socket_;
@@ -113,8 +109,6 @@ class ClientHandler {
 
     HeaderExchange cshe_;
     FileExchange   csfe_;
-
-    Inotify inotify_;
 
     bool server_sync_;
 };

@@ -7,14 +7,14 @@
 #include "user_input.hpp"
 
 namespace dropbox {
-enum ArgV : size_t { EXECUTION_PATH [[maybe_unused]] = 0U, USER_NAME, SERVER_IP_ADDRESS, PORT, TOTAL };
+enum ArgV : size_t { kExecutionPath [[maybe_unused]] = 0U, kUserName, kServerIpAddress, kPort, kTotal };
 }
 
 using dropbox::ArgV;
 using enum ArgV;
 
 int main(int argc, char* argv[]) {  // NOLINT
-    const bool kHasAllParameters = static_cast<ArgV>(argc) == TOTAL;
+    const bool kHasAllParameters = static_cast<ArgV>(argc) == kTotal;
     if (!kHasAllParameters) {
         std::cerr << "Usage: <username> <server_ip_address> <port>\n";
         return EXIT_FAILURE;
@@ -22,12 +22,16 @@ int main(int argc, char* argv[]) {  // NOLINT
 
     // Converting port from text to number
     in_port_t port = 0;
-    auto [ptr, ec] = std::from_chars(argv[PORT], argv[PORT] + strlen(argv[PORT]), port);
+    auto [ptr, ec] = std::from_chars(argv[kPort], argv[kPort] + strlen(argv[kPort]), port);
 
     const bool kSuccessOnConversion = ec == std::errc();
     if (kSuccessOnConversion) {
         try {
-            dropbox::Client client(argv[USER_NAME], argv[SERVER_IP_ADDRESS], port);
+            if (!std::filesystem::exists(dropbox::SyncDirWithPrefix(argv[kUserName]))) {
+                std::filesystem::create_directory(dropbox::SyncDirWithPrefix(argv[kUserName]));
+            }
+
+            dropbox::Client client(argv[kUserName], argv[kServerIpAddress], port);
 
             std::thread inotify_thread(
                 [&client]() {
@@ -41,17 +45,16 @@ int main(int argc, char* argv[]) {  // NOLINT
                 }
             );
 
-            std::thread sync_thread(
-                [&client]() {
-                    client.ReceiveSyncFromServer();
+            std::jthread sync_thread(
+                [&client](auto stop_token) {
+                    client.ReceiveSyncFromServer(stop_token);
                 }
             );
 
             dropbox::UserInput(client).Start();
 
-            inotify_thread.detach();
             file_exchange_thread.join();
-            sync_thread.join();
+            inotify_thread.join();
 
         } catch (std::exception& e) {
             std::cerr << e.what() << '\n';

@@ -27,7 +27,7 @@ std::optional<dropbox::Command> dropbox::HeaderExchange::Receive() noexcept {
     const ssize_t kReceivedBytes = ::read(socket_, &command, sizeof(Command));
 
     if (kReceivedBytes != sizeof(Command)) {
-        if (kReceivedBytes != 0) {
+        if (kReceivedBytes != 0 && errno != EWOULDBLOCK) {
             perror("HeaderExchange::Receive");
         }
         return std::nullopt;

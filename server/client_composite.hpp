@@ -1,7 +1,9 @@
 #pragma once
 
+#include <functional>
 #include <list>
 #include <mutex>
+#include <ranges>
 
 #include "client_handler.hpp"
 #include "composite_interface.hpp"
@@ -22,6 +24,18 @@ class ClientComposite : public CompositeInterface {
                            SocketType sync_cs_socket) noexcept(false);
 
     const std::string& GetUsername() const noexcept override { return username_; }
+
+    bool BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method, ClientHandler::IdType origin, const std::filesystem::path& path);
+
+    bool BroadcastUpload(ClientHandler::IdType origin, const std::filesystem::path& path) override {
+        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod = &ClientHandler::SyncUpload;
+        return BroadcastCommand(kMethod, origin, path);
+    }
+
+    bool BroadcastDelete(ClientHandler::IdType origin, const std::filesystem::path& path) override {
+        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod = &ClientHandler::SyncDelete;
+        return BroadcastCommand(kMethod, origin, path);
+    }
 
     /**
      * Removes from the list a client by its ID.

@@ -17,8 +17,6 @@ enum class Command: int8_t {
     kListClient,   ///< Lists the files from the client
     kListServer,   ///< Lists the files from the server
     kDownload,      ///< Downloads a file to the \c cwd.
-    kWriteDir,
-    kDeleteDir
 };
 
 /// Constructs a command based on a str.

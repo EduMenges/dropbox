@@ -25,4 +25,10 @@ ssize_t SSizeOf(const T& _instance)
 {
     return SSizeOf<T>();
 }
+
+inline void RemoveAllFromDirectory(const std::filesystem::path& path) {
+    for (const auto& entry: std::filesystem::directory_iterator(path)) {
+        std::filesystem::remove_all(entry.path());
+    }
+}
 }

@@ -75,16 +75,12 @@ void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_
                 ClientHandler& handler = pool.Emplace(std::move(username), header_socket, std::move(payload_stream),
                                                       sync_sc_socket, sync_cs_socket);
 
-                std::thread inotify_thread([&]() { handler.StartInotify(); });
-                std::thread file_exchange_thread([&]() { handler.StartFileExchange(); });
-                std::thread sync_thread([&]() { handler.ReceiveSyncFromClient(); });
+                std::thread sync_thread([&]() { handler.SyncFromClient(); });
 
                 handler.MainLoop();
 
                 handler.GetComposite()->Remove(handler.GetId());
 
-                inotify_thread.join();
-                file_exchange_thread.join();
                 sync_thread.join();
             } catch (std::exception& e) {
                 std::cerr << "Error when creating client: " << e.what() << '\n';
