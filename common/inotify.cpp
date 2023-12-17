@@ -7,22 +7,25 @@
 #include "utils.hpp"
 
 dropbox::Inotify::Inotify(std::filesystem::path &&watch_path)
-    : watch_path_(std::move(watch_path)),
-      watching_(false),
-      pause_(false),
-      fd_(inotify_init()),
-      wd_(inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE | IN_MOVE)) {
-    SetNonblocking(fd_);
-
-    if (wd_ == -1) {
-        throw InotifyWatch(watch_path_);
+    : watch_path_(std::move(watch_path)), watching_(false), pause_(false), fd_(inotify_init()), wd_(-1) {
+    //    SetNonblocking(fd_);
+    if (fd_ == -1) {
+        throw InotifyCreate();
     }
 }
 
 void dropbox::Inotify::Start() {
     static thread_local std::array<uint8_t, kBufferLength> buffer;
 
-    while(watching_) {
+    wd_ = inotify_add_watch(fd_, watch_path_.c_str(), IN_CLOSE_WRITE | IN_DELETE | IN_MOVE | IN_MODIFY);
+
+    if (wd_ == -1) {
+        throw InotifyWatch(watch_path_);
+    }
+
+    watching_ = true;
+
+    while (watching_) {
         length_ = read(fd_, buffer.data(), kBufferLength);
 
         size_t i = 0;

@@ -27,10 +27,6 @@ int main(int argc, char* argv[]) {  // NOLINT
     const bool kSuccessOnConversion = ec == std::errc();
     if (kSuccessOnConversion) {
         try {
-            if (!std::filesystem::exists(dropbox::SyncDirWithPrefix(argv[kUserName]))) {
-                std::filesystem::create_directory(dropbox::SyncDirWithPrefix(argv[kUserName]));
-            }
-
             dropbox::Client client(argv[kUserName], argv[kServerIpAddress], port);
 
             std::thread inotify_thread(

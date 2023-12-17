@@ -99,6 +99,8 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
         return false;
     }
 
+    fe_.Flush();
+
     const auto kReceived = he_.Receive();
     if (!kReceived.has_value()) {
         std::cerr << "Failure when receiving response from server.\n";
@@ -114,6 +116,9 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 }
 
 bool dropbox::Client::GetSyncDir() {
+    if (!std::filesystem::exists(SyncDirPath())) {
+        std::filesystem::create_directory(SyncDirPath());
+    }
     RemoveAllFromDirectory(SyncDirPath());
 
     do {
@@ -260,6 +265,8 @@ void dropbox::Client::ReceiveSyncFromServer(const std::stop_token& stop_token) {
             std::cout << file_path << " was deleted from an external source\n";
 
             inotify_.Resume();
+        } else {
+            std::cerr << "Unexepected command from server sync: " << kCommand << std::endl;
         }
     }
 }

@@ -46,6 +46,11 @@ class FullList : public std::exception {
     [[nodiscard]] const char* what() const noexcept override { return "Client list is full of devices"; }
 };
 
+class InotifyCreate : public std::system_error {
+   public:
+    InotifyCreate() : std::system_error(std::make_error_code(static_cast<std::errc>(errno))){};
+};
+
 class InotifyWatch : public std::filesystem::filesystem_error {
    public:
     InotifyWatch(const std::filesystem::path& path)
