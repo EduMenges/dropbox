@@ -188,43 +188,40 @@ void dropbox::Client::StartInotify() { inotify_.Start(); }
 
 void dropbox::Client::StartFileExchange() {
     while (client_sync_) {
-        if (!inotify_.inotify_vector_.empty()) {
-            std::string queue = inotify_.inotify_vector_.front();
-            inotify_.inotify_vector_.erase(inotify_.inotify_vector_.begin());
-            std::istringstream iss(queue);
+        std::unique_lock lk(inotify_.mutex_);
+        inotify_.cv_.wait(lk, [&] { return inotify_.HasActions(); });
 
-            std::string command;
-            std::string file;
+        while (inotify_.HasActions()) {
+            const auto &[command, path] = inotify_.Front();
 
-            iss >> command;
-            iss >> file;
-
-            std::cout << "File " << file << " was "  << command << '\n';
-
-            if (command == "write") {
+            if (command == Command::kUpload) {
                 if (!cshe_.Send(Command::kUpload)) {
                 }
 
-                if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
+                if (!csfe_.SetPath(SyncDirPath() / path).SendPath()) {
                 }
 
-                if (!csfe_.SetPath(SyncDirPath() / file).Send()) {
+                if (!csfe_.SetPath(SyncDirPath() / path).Send()) {
                 }
 
-            } else if (command == "delete") {
+            } else if (command == Command::kDelete) {
                 if (!cshe_.Send(Command::kDelete)) {
                 }
 
-                if (!csfe_.SetPath(SyncDirPath() / file).SendPath()) {
+                if (!csfe_.SetPath(SyncDirPath() / path).SendPath()) {
                 }
             }
 
             csfe_.Flush();
+            inotify_.Pop();
         }
+
+        lk.unlock();
+        inotify_.cv_.notify_one();
     }
 }
 
-void dropbox::Client::ReceiveSyncFromServer(const std::stop_token& stop_token) {
+void dropbox::Client::ReceiveSyncFromServer(const std::stop_token &stop_token) {
     /// @todo Error treatment.
     SetTimeout(sche_.GetSocket(), {0, 100000});
 

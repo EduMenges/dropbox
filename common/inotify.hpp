@@ -3,15 +3,20 @@
 #include <sys/inotify.h>
 
 #include <climits>
+#include <condition_variable>
 #include <iostream>
 #include <queue>
-#include <vector>
 
 #include "communication/protocol.hpp"
 
 namespace dropbox {
 class Inotify {
    public:
+    struct Action {
+        Command               command;
+        std::filesystem::path path;
+    };
+
     Inotify(std::filesystem::path&& watch_path);
     ~Inotify();
 
@@ -20,13 +25,23 @@ class Inotify {
     void Pause();
     void Resume();
 
-    std::vector<std::string> inotify_vector_;
+    bool Empty() const noexcept { return queue_.empty(); }
+
+    bool HasActions() const noexcept { return !Empty(); }
+
+    const Action& Front() { return queue_.front(); }
+
+    void Pop() { queue_.pop(); }
+
+    std::condition_variable cv_;
+    std::mutex              mutex_;
 
    private:
-    static constexpr size_t kMaxEvents    = 20U;                          /* Maximum number of events to process*/
-    static constexpr size_t kEventSize    = (sizeof(struct inotify_event)); /*size of one event*/
-    static constexpr size_t kBufferLength = (kMaxEvents * (kEventSize + NAME_MAX));
+    static constexpr size_t kMaxEvents    = 10U;  ///< Maximum number of events to process at once
+    static constexpr size_t kEventSize    = (sizeof(struct inotify_event));
+    static constexpr size_t kBufferLength = (kMaxEvents * (kEventSize + PATH_MAX));
 
+    std::queue<Action>    queue_;
     std::filesystem::path watch_path_;
     bool                  watching_;
     bool                  pause_;

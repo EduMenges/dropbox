@@ -5,6 +5,7 @@
 #include <istream>
 #include <memory>
 #include <streambuf>
+#include <utility>
 
 #include "connections.hpp"
 #include "constants.hpp"
