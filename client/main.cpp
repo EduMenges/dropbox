@@ -29,28 +29,30 @@ int main(int argc, char* argv[]) {  // NOLINT
         try {
             dropbox::Client client(argv[kUserName], argv[kServerIpAddress], port);
 
-            std::thread inotify_thread(
-                [&client]() {
-                    client.StartInotify();
+            std::jthread inotify_thread(
+                [&client](auto stop_token) {
+                client.StartInotify(stop_token);
                 }
             );
 
-            std::thread file_exchange_thread(
-                [&client]() {
-                    client.StartFileExchange();
+            std::jthread file_exchange_thread(
+                [&client](auto stop_token) { client.SyncFromClient(stop_token);
                 }
             );
 
             std::jthread sync_thread(
                 [&client](auto stop_token) {
-                    client.ReceiveSyncFromServer(stop_token);
+                    client.SyncFromServer(stop_token);
                 }
             );
 
             dropbox::UserInput(client).Start();
 
-            file_exchange_thread.join();
-            inotify_thread.join();
+            file_exchange_thread.request_stop();
+
+            inotify_thread.request_stop();
+
+            sync_thread.request_stop();
 
         } catch (std::exception& e) {
             std::cerr << e.what() << '\n';

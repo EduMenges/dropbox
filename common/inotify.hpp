@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <queue>
+#include <stop_token>
 
 #include "communication/protocol.hpp"
 
@@ -21,31 +22,33 @@ class Inotify {
     ~Inotify();
 
     void Start();
-    void Stop();
+    void MainLoop(const std::stop_token& stop_token);
+
     void Pause();
     void Resume();
 
-    bool Empty() const noexcept { return queue_.empty(); }
+    bool Empty() const noexcept { return vector_.empty(); }
 
     bool HasActions() const noexcept { return !Empty(); }
 
-    const Action& Front() { return queue_.front(); }
+    auto cbegin() const noexcept { return vector_.cbegin(); }
 
-    void Pop() { queue_.pop(); }
+    auto cend() const noexcept { return vector_.cend(); }
+
+    void Clear() noexcept { vector_.clear(); }
 
     std::condition_variable cv_;
-    std::mutex              mutex_;
+    std::mutex              collection_mutex_;
 
    private:
     static constexpr size_t kMaxEvents    = 10U;  ///< Maximum number of events to process at once
     static constexpr size_t kEventSize    = (sizeof(struct inotify_event));
     static constexpr size_t kBufferLength = (kMaxEvents * (kEventSize + PATH_MAX));
 
-    std::queue<Action>    queue_;
+    std::vector<Action>   vector_;
     std::filesystem::path watch_path_;
     bool                  watching_;
     bool                  pause_;
     int                   fd_, wd_;
-    size_t                length_{};
 };
 }

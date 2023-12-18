@@ -28,7 +28,7 @@ class Client {
     /// Clients are not copiable due to side effect in socket closing.
     Client(const Client& other) = delete;
 
-    Client(Client&& other) = default;
+    Client(Client&& other) = delete;
 
     ~Client();
 
@@ -75,11 +75,11 @@ class Client {
      */
     bool Exit();
 
-    void ReceiveSyncFromServer(const std::stop_token& stop_token);
+    void SyncFromServer(const std::stop_token& stop_token);
 
-    void StartInotify();
+    void StartInotify(const std::stop_token& stop_token);
 
-    void StartFileExchange();
+    void SyncFromClient(std::stop_token stop_token);
 
     /**
      * @return Sync dir path concatenated with the username.
@@ -112,10 +112,7 @@ class Client {
     HeaderExchange he_;  ///< What to exchange headers (commands) to the server with.
     FileExchange   fe_;  ///< What to exchange files with the server with.
 
-    HeaderExchange sche_;
     FileExchange   scfe_;
-
-    HeaderExchange cshe_;
     FileExchange   csfe_;
 
     Inotify inotify_;

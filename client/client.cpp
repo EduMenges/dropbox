@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <utility>
 
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
@@ -23,9 +24,7 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       cs_stream_(sync_cs_socket_),
       he_(header_socket_),
       fe_(payload_stream_),
-      sche_(sync_cs_socket_),
       scfe_(sc_stream_),
-      cshe_(sync_cs_socket_),
       csfe_(cs_stream_),
       inotify_(SyncDirPath()),
       client_sync_(true) {
@@ -48,6 +47,8 @@ void dropbox::Client::SendUsername() noexcept(false) {
 }
 
 bool dropbox::Client::Upload(const std::filesystem::path &path) {
+    std::lock_guard const kLock(inotify_.collection_mutex_);
+
     if (!he_.Send(Command::kUpload)) {
         return false;
     }
@@ -62,7 +63,9 @@ bool dropbox::Client::Upload(const std::filesystem::path &path) {
     }
 
     try {
+        inotify_.Pause();
         std::filesystem::copy_file(path, kDestPath);
+        inotify_.Resume();
         return true;
     } catch (std::exception &e) {
         std::cerr << e.what() << '\n';
@@ -82,7 +85,9 @@ bool dropbox::Client::Delete(std::filesystem::path &&file_path) {
     }
 
     try {
+        inotify_.Pause();
         std::filesystem::remove(fe_.GetPath());
+        inotify_.Resume();
         return true;
     } catch (std::exception &e) {
         std::cerr << e.what() << '\n';
@@ -152,7 +157,11 @@ dropbox::Client::~Client() {
 
 bool dropbox::Client::Exit() {
     client_sync_ = false;
-    return cshe_.Send(Command::kExit) && he_.Send(Command::kExit);
+
+    csfe_.SendCommand(Command::kExit);
+    csfe_.Flush();
+
+    return he_.Send(Command::kExit);
 }
 
 bool dropbox::Client::ListClient() const {
@@ -184,19 +193,26 @@ bool dropbox::Client::ListServer() {
     }
 }
 
-void dropbox::Client::StartInotify() { inotify_.Start(); }
+void dropbox::Client::StartInotify(const std::stop_token& stop_token) {
+    inotify_.Start();
+    inotify_.MainLoop(stop_token);
+}
 
-void dropbox::Client::StartFileExchange() {
+void dropbox::Client::SyncFromClient(std::stop_token stop_token) {
     while (client_sync_) {
-        std::unique_lock lk(inotify_.mutex_);
-        inotify_.cv_.wait(lk, [&] { return inotify_.HasActions(); });
+        std::unique_lock lk(inotify_.collection_mutex_);
+        inotify_.cv_.wait(lk, [&] { return inotify_.HasActions() || stop_token.stop_requested(); });
 
-        while (inotify_.HasActions()) {
-            const auto &[command, path] = inotify_.Front();
+        if (stop_token.stop_requested()) {
+            return;
+        }
+
+        for (auto it = inotify_.cbegin(); it != inotify_.cend(); it++) {
+            const auto &[command, path] = *it;
 
             if (command == Command::kUpload) {
-                if (!cshe_.Send(Command::kUpload)) {
-                }
+                std::cout << "Inotify detected upload: " << path << '\n';
+                csfe_.SendCommand(Command::kUpload);
 
                 if (!csfe_.SetPath(SyncDirPath() / path).SendPath()) {
                 }
@@ -205,28 +221,27 @@ void dropbox::Client::StartFileExchange() {
                 }
 
             } else if (command == Command::kDelete) {
-                if (!cshe_.Send(Command::kDelete)) {
-                }
+                std::cout << "Inotify detected delete: " << path << '\n';
+                (csfe_.SendCommand(Command::kDelete));
 
                 if (!csfe_.SetPath(SyncDirPath() / path).SendPath()) {
                 }
             }
 
             csfe_.Flush();
-            inotify_.Pop();
         }
+
+        inotify_.Clear();
 
         lk.unlock();
         inotify_.cv_.notify_one();
     }
 }
 
-void dropbox::Client::ReceiveSyncFromServer(const std::stop_token &stop_token) {
+void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
     /// @todo Error treatment.
-    SetTimeout(sche_.GetSocket(), {0, 100000});
-
     while (!stop_token.stop_requested()) {
-        const auto kReceivedCommand = sche_.Receive();
+        const auto kReceivedCommand = scfe_.ReceiveCommand();
 
         if (!kReceivedCommand.has_value()) {
             continue;
@@ -235,35 +250,31 @@ void dropbox::Client::ReceiveSyncFromServer(const std::stop_token &stop_token) {
         const Command kCommand = kReceivedCommand.value();
 
         if (kCommand == Command::kUpload) {
-            inotify_.Pause();
-
             if (!scfe_.ReceivePath()) {
             }
 
+            inotify_.Pause();
             if (!scfe_.Receive()) {
             }
-
-            std::cout << csfe_.GetPath() << " was modified from an external source\n";
-
             inotify_.Resume();
 
-        } else if (kCommand == Command::kDelete) {
-            inotify_.Pause();
+            std::cout << scfe_.GetPath() << " was modified from another device\n";
 
+        } else if (kCommand == Command::kDelete) {
             if (!scfe_.ReceivePath()) {
             }
 
             const std::filesystem::path &file_path = scfe_.GetPath();
 
             if (std::filesystem::exists(file_path)) {
+                inotify_.Pause();
                 std::filesystem::remove(file_path);
+                inotify_.Resume();
             }
 
-            std::cout << file_path << " was deleted from an external source\n";
-
-            inotify_.Resume();
-        } else {
-            std::cerr << "Unexepected command from server sync: " << kCommand << std::endl;
+            std::cout << file_path << " was deleted from another device\n";
+        } else if (kCommand != Command::kExit) {
+            std::cerr << "Unexpected command from server sync: " << kCommand << '\n';
         }
     }
 }

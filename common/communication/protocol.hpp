@@ -50,6 +50,10 @@ class FileExchange {
         return *this;
     }
 
+    void SendCommand(Command command) noexcept;
+
+    std::optional<Command> ReceiveCommand() noexcept;
+
     bool SendPath() noexcept;
 
     bool ReceivePath() noexcept;

@@ -123,3 +123,17 @@ bool dropbox::FileExchange::Receive() noexcept {
         return false;
     }
 }
+
+void dropbox::FileExchange::SendCommand(dropbox::Command command) noexcept { stream_ << static_cast<int8_t>(command); }
+
+std::optional<dropbox::Command> dropbox::FileExchange::ReceiveCommand() noexcept {
+    try {
+        int8_t command_encoded;
+        stream_ >> command_encoded;
+
+        return static_cast<Command>(command_encoded);
+    } catch (std::exception& e) {
+        std::cerr << e.what() << '\n';
+        return std::nullopt;
+    }
+}

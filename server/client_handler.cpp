@@ -9,7 +9,6 @@
 #define CEREAL_THREAD_SAFE 1  // NOLINT
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
-#include "exceptions.hpp"
 #include "list_directory.hpp"
 
 dropbox::ClientHandler::ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream,
@@ -23,15 +22,11 @@ dropbox::ClientHandler::ClientHandler(CompositeInterface* composite, int header_
       cs_stream_(sync_cs_socket_),
       he_(header_socket),
       fe_(payload_stream_),
-      sche_(sync_sc_socket),
       scfe_(sc_stream_),
-      cshe_(sync_cs_socket),
       csfe_(cs_stream_),
       server_sync_(true) {
-    // Cria diretorio no servidor
     CreateUserFolder();
 
-    // Puxa o diretorio para a maquina do client
     GetSyncDir();
 }
 
@@ -45,9 +40,7 @@ dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
       cs_stream_(std::move(other.cs_stream_)),
       he_(std::move(other.he_)),
       fe_(payload_stream_),
-      sche_(std::move(other.sche_)),
       scfe_(sc_stream_),
-      cshe_(std::move(other.cshe_)),
       csfe_(cs_stream_),
       server_sync_(std::exchange(other.server_sync_, false)) {}
 
@@ -60,7 +53,7 @@ void dropbox::ClientHandler::MainLoop() {
 
         if (kReceived.has_value()) {
             attempts = kAttemptAmount;
-            std::cout << GetUsername() << " ordered " << kReceived.value() << std::endl;  // NOLINT
+            std::cout << GetUsername() << "::" << GetId() << " ordered " << kReceived.value() << std::endl;  // NOLINT
             switch (kReceived.value()) {
                 case Command::kUpload:
                     Upload();
@@ -180,7 +173,7 @@ void dropbox::ClientHandler::CreateUserFolder() const {
 
 dropbox::ClientHandler::~ClientHandler() {
     if (GetId() != kInvalidId) {
-        std::cout << GetUsername() << ' ' << GetId() << " disconnected" << std::endl;  // NOLINT
+        std::cout << GetUsername() << "::" << GetId() << " disconnected" << std::endl;  // NOLINT
     }
 
     server_sync_ = false;
@@ -206,7 +199,13 @@ bool dropbox::ClientHandler::ListServer() noexcept {
 
 bool dropbox::ClientHandler::SyncDelete(const std::filesystem::path& path) {
     sc_stream_ << static_cast<int8_t>(Command::kDelete);
-    return scfe_.SetPath(path).SendPath();
+
+    if (!scfe_.SetPath(path).SendPath()) {
+        return false;
+    }
+
+    scfe_.Flush();
+    return true;
 }
 
 bool dropbox::ClientHandler::SyncUpload(const std::filesystem::path& path) {
@@ -216,14 +215,19 @@ bool dropbox::ClientHandler::SyncUpload(const std::filesystem::path& path) {
         return false;
     }
 
-    return scfe_.Send();
+    if (!scfe_.Send()) {
+        return false;
+    }
+
+    scfe_.Flush();
+    return true;
 }
 
 void dropbox::ClientHandler::SyncFromClient() {
     server_sync_ = true;
 
     while (server_sync_) {
-        const optional<Command> kReceivedCommand = cshe_.Receive();
+        const optional<Command> kReceivedCommand = csfe_.ReceiveCommand();
 
         if (!kReceivedCommand.has_value()) {
             continue;
@@ -243,6 +247,8 @@ void dropbox::ClientHandler::SyncFromClient() {
         } else if (kCommand == Command::kDelete) {
             if (!csfe_.ReceivePath()) {
             }
+
+            std::filesystem::remove(csfe_.GetPath());
 
             std::cout << GetUsername() << " id " << GetId() << " deleted " << csfe_.GetPath() << '\n';
             GetComposite()->BroadcastDelete(GetId(), csfe_.GetPath());

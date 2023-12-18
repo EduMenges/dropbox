@@ -104,10 +104,8 @@ class ClientHandler {
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
 
-    HeaderExchange sche_;
     FileExchange   scfe_;
 
-    HeaderExchange cshe_;
     FileExchange   csfe_;
 
     bool server_sync_;

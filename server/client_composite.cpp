@@ -20,7 +20,7 @@ dropbox::ClientHandler& dropbox::ClientComposite::Emplace(dropbox::SocketType he
     }
 
     auto& client = list_.emplace_back(this, header_socket, std::move(payload_stream), sync_sc_socket, sync_cs_socket);
-    std::cout << "New client: " << client.GetUsername() << " with id " << client.GetId() << '\n';
+    std::cout << "New client: " << client.GetUsername() << "::" << client.GetId() << '\n';
     return list_.back();
 }
 
@@ -32,7 +32,7 @@ bool dropbox::ClientComposite::BroadcastCommand(const std::function<bool(ClientH
         mutex_.lock();
     }
 
-    for (auto& client : std::ranges::filter_view(list_, [&](auto& i) { return i.GetId() != origin; })) {
+    for (auto& client : std::ranges::filter_view(list_, [&](const auto& i) { return i.GetId() != origin; })) {
         if (!method(client, path)) {
             return false;
         }

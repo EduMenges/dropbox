@@ -1,6 +1,5 @@
 #include "socket_stream.hpp"
 
-#include <filesystem>
 #include <iostream>
 
 dropbox::SocketStream::SocketStream(dropbox::SocketStream&& other) noexcept
