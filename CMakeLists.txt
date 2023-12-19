@@ -22,6 +22,8 @@ else()
 	add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_compile_definitions(_GLIBCXX_DEBUG)
+
 add_subdirectory(common)
 link_libraries(utils)
 

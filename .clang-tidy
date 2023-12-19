@@ -17,6 +17,8 @@ Checks: <
   -cppcoreguidelines-pro-bounds-pointer-arithmetic
   -cppcoreguidelines-non-private-member-variables-in-classes
   -cppcoreguidelines-pro-type-reinterpret-cast
+  -cppcoreguidelines-init-variables
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay
   
   fuchsia-*
   -fuchsia-default-arguments-calls
@@ -51,6 +53,8 @@ FormatStyle: file
 CheckOptions:
   hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: true
 
+  readability-identifier-naming.IgnoreMainLikeFunctions: true
+
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
 
   readability-identifier-naming.NamespaceCase: lower_case
@@ -63,9 +67,11 @@ CheckOptions:
 
   readability-identifier-naming.TypedefCase: CamelCase
 
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+
   readability-identifier-naming.MemberCase: lower_case
 
-  readability-identifier-naming.ClassMemberCase: _
+  readability-identifier-naming.MemberSuffix: _
 
   readability-identifier-naming.FunctionCase: CamelCase
 
@@ -78,4 +84,3 @@ CheckOptions:
   readability-identifier-naming.ConstantCase: CamelCase
 
   readability-identifier-naming.ConstantPrefix: k
-

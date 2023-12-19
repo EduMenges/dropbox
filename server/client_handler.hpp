@@ -4,26 +4,20 @@
 #include <thread>
 
 #include "communication/protocol.hpp"
+#include "communication/socket_stream.hpp"
 #include "composite_interface.hpp"
 #include "utils.hpp"
-#include "../common/inotify.hpp"
 
 namespace dropbox {
 
 /// Handles one device of a client.
 class ClientHandler {
    public:
-    using id_type = int;
+    using IdType = int;
 
-    static constexpr id_type kInvalidId = kInvalidSocket;
+    static constexpr IdType kInvalidId = kInvalidSocket;
 
-    /**
-     * Constructor.
-     * @param header_socket Socket to use in header communications.
-     * @param file_socket Socket to use in file communications.
-     * @pre Both \p header_socket and \p file_socket are initialized and connected to the client.
-     */
-    ClientHandler(int header_socket, int file_socket, int sync_sc_socket, int sync_cs_socket);
+    ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket, int sync_cs_socket);
 
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
@@ -36,94 +30,84 @@ class ClientHandler {
     void MainLoop();
 
     /// Creates the sync_dir_directory on the server side if it does not exist.
-    void CreateUserFolder();
-
-    /// Receives the username.
-    bool ReceiveUsername();
+    void CreateUserFolder() const;
 
     /// Username getter.
-    [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; };
-
-    /// Sets the parent composite structure.
-    inline void SetComposite(CompositeInterface* composite) noexcept { composite_ = composite; };
+    [[nodiscard]] const std::string& GetUsername() const noexcept { return GetComposite()->GetUsername(); };
 
     /// Gets the parent composite structure.
     [[nodiscard]] inline CompositeInterface* GetComposite() const noexcept { return composite_; }
 
     /// Receives an upload from the client.
-    bool ReceiveUpload();
+    bool Upload();
 
     /**
      * Provides a download for the client.
      * @return Whether the exchange was a success, not whether the file exists.
      */
-    bool ReceiveDownload();
+    bool Download();
 
     /**
      * Deletes a file from the server's \c sync_dir.
      * @return Whether the operation was a success.
      */
-    bool ReceiveDelete();
+    bool Delete();
 
     /**
      * Starts the synchronization tasks.
      * @return Operation status.
      */
-    bool ReceiveGetSyncDir();
-
-    void ReceiveSyncFromClient();
+    bool GetSyncDir();
 
     /**
      * Lists all the files on the server side along with their MAC times and sends them.
      * @return Operation status.
      */
-    bool ListServer() const;
+    bool ListServer() noexcept;
 
-    void StartInotify();
-
-    void StartFileExchange();
-    
     /**
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
      */
-    [[nodiscard]] inline id_type GetId() const noexcept { return header_socket_; }
+    [[nodiscard]] inline IdType GetId() const noexcept { return header_socket_; }
 
     inline bool operator==(const ClientHandler& other) const noexcept { return GetId() == other.GetId(); }
 
-    inline bool operator==(id_type id) const noexcept { return GetId() == id; }
+    inline bool operator==(IdType id) const noexcept { return GetId() == id; }
 
     /**
      * Getter for the \c sync_dir path.
      * @return \c sync_dir path for this user.
      */
-    [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(username_); }
+    [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(GetUsername()); }
+
+    bool SyncUpload(const std::filesystem::path& path);
+
+    bool SyncDelete(const std::filesystem::path& path);
+
+    void SyncFromClient();
 
    private:
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
 
-    int         header_socket_; ///< Socket to exchange the header with.
-    int         file_socket_;   ///< Socket to exchange files with.
+    CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
+
+    int         header_socket_;  ///< Socket to exchange the header with.
     int         sync_sc_socket_;
     int         sync_cs_socket_;
-    std::string username_;      ///< Username of the client.
 
-
-    CompositeInterface* composite_ = nullptr;  ///< Parent composite structure that OWNS this instance.
-
+    SocketStream payload_stream_;
+    SocketStream sc_stream_;
+    SocketStream cs_stream_;
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
 
-    HeaderExchange    sche_;
-    FileExchange      scfe_;
+    FileExchange   scfe_;
 
-    HeaderExchange    cshe_;
-    FileExchange      csfe_;
+    FileExchange   csfe_;
 
-    Inotify inotify_;
-
-    bool server_sync_{};
+    bool server_sync_;
 };
 }

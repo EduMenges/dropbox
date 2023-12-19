@@ -5,20 +5,18 @@
 
 namespace dropbox {
 
-/// Possible user actions
-enum class Command {
-    UPLOAD,        ///< Uploads a file from \c cwd to the root directory.
-    DELETE,        ///< Deletes a file at the root directory.
-    USERNAME,      ///< Username receiver.
-    GET_SYNC_DIR,  ///< Downloads the \c sync_dir directory and starts syncing.
-    EXIT,          ///< Ends connection with server
-    LIST_CLIENT,   ///< Lists the files from the client
-    LIST_SERVER,   ///< Lists the files from the server
-    DOWNLOAD,      ///< Downloads a file to the \c cwd.
-    ERROR,         ///< An error occurred.
-    SUCCESS,        ///< Operation was a success.
-    WRITE_DIR,
-    DELETE_DIR
+/// Possible user actions and/or states from their actions.
+enum class Command: int8_t {
+    kError = -1,         ///< An error occurred.
+    kSuccess,        ///< Operation was a success.
+    kUpload,        ///< Uploads a file from \c cwd to the root directory.
+    kDelete,        ///< Deletes a file at the root directory.
+    kUsername,      ///< Username receiver.
+    kGetSyncDir,  ///< Downloads the \c sync_dir directory and starts syncing.
+    kExit,          ///< Ends connection with server
+    kListClient,   ///< Lists the files from the client
+    kListServer,   ///< Lists the files from the server
+    kDownload,      ///< Downloads a file to the \c cwd.
 };
 
 /// Constructs a command based on a str.

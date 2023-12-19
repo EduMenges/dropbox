@@ -1,16 +1,18 @@
 #pragma once
 
+#include <functional>
 #include <list>
 #include <mutex>
+#include <ranges>
 
-#include "composite_interface.hpp"
 #include "client_handler.hpp"
+#include "composite_interface.hpp"
 
 namespace dropbox {
 /// Composite class to handle multiple clients of the same username.
 class ClientComposite : public CompositeInterface {
    public:
-    ClientComposite() = default;
+    explicit ClientComposite(std::string&& username) : username_(std::move(username)){};
 
     ~ClientComposite() override = default;
 
@@ -18,13 +20,22 @@ class ClientComposite : public CompositeInterface {
 
     ClientComposite(ClientComposite&& other) = delete;
 
-    /**
-     * Inserts a new client.
-     * @param client Client instance to be inserted.
-     * @throws @ref FullList if list is full.
-     * @return Reference to the inserted client instance.
-     */
-    ClientHandler& Insert(ClientHandler&& client) noexcept(false);
+    ClientHandler& Emplace(SocketType header_socket, SocketStream&& payload_stream, SocketType sync_sc_socket,
+                           SocketType sync_cs_socket) noexcept(false);
+
+    const std::string& GetUsername() const noexcept override { return username_; }
+
+    bool BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method, ClientHandler::IdType origin, const std::filesystem::path& path);
+
+    bool BroadcastUpload(ClientHandler::IdType origin, const std::filesystem::path& path) override {
+        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod = &ClientHandler::SyncUpload;
+        return BroadcastCommand(kMethod, origin, path);
+    }
+
+    bool BroadcastDelete(ClientHandler::IdType origin, const std::filesystem::path& path) override {
+        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod = &ClientHandler::SyncDelete;
+        return BroadcastCommand(kMethod, origin, path);
+    }
 
     /**
      * Removes from the list a client by its ID.
@@ -34,9 +45,10 @@ class ClientComposite : public CompositeInterface {
     void Remove(int id) override;
 
    private:
-    static constexpr size_t kDeviceLimit = 2U; ///< Maximum amount of devices that one client can connect with.
+    static constexpr size_t kDeviceLimit = 2U;  ///< Maximum amount of devices that one client can connect with.
 
-    std::list<ClientHandler> list_; ///< List of the devices for one client.
-    std::mutex               mutex_; ///< Mutex for handling the list.
+    std::string              username_;
+    std::list<ClientHandler> list_;   ///< List of the devices for one client.
+    std::mutex               mutex_;  ///< Mutex for handling the list.
 };
 }

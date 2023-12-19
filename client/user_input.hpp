@@ -3,8 +3,8 @@
 #include <queue>
 #include <thread>
 
-#include "communication/protocol.hpp"
 #include "client.hpp"
+#include "communication/protocol.hpp"
 
 namespace dropbox {
 /// Command line interface to use the client with.
@@ -34,9 +34,9 @@ class UserInput {
     void HandleCommand(Command command);
 
     Client& client_;   ///< Client instance to call the methods from.
-    bool   reading_;  ///< Whether to retrieve the user input.
+    bool    reading_;  ///< Whether to retrieve the user input.
 
-    std::queue<std::string> input_queue_; ///< Não sei, pergunta pro Arthur.
-    std::string             input_path_; ///< Não sei, pergunta pro Arthur.
+    std::queue<std::string> input_queue_;  ///< Não sei, pergunta pro Arthur.
+    std::string             input_path_;   ///< Não sei, pergunta pro Arthur.
 };
 }

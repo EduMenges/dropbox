@@ -4,6 +4,7 @@ on:
     paths-ignore:
       - '.clang*'
       - '**.md'
+      - 'CMakePresets.json'
 jobs:
   build-project:
     runs-on: ubuntu-latest

@@ -1,34 +1,54 @@
 #pragma once
 
+#include <sys/inotify.h>
+
+#include <climits>
+#include <condition_variable>
 #include <iostream>
 #include <queue>
-#include <vector>
+#include <stop_token>
 
 #include "communication/protocol.hpp"
-
-#define MAX_EVENTS 1024                           /* Maximum number of events to process*/
-#define LEN_NAME   16                             /* Assuming that the length of the filename won't exceed 16 bytes*/
-#define EVENT_SIZE (sizeof(struct inotify_event)) /*size of one event*/
-#define BUF_LEN    (MAX_EVENTS * (EVENT_SIZE + LEN_NAME))
 
 namespace dropbox {
 class Inotify {
    public:
-    Inotify(const std::string& username);
+    struct Action {
+        Command               command;
+        std::filesystem::path path;
+    };
+
+    Inotify(std::filesystem::path&& watch_path);
+    ~Inotify();
 
     void Start();
-    void Stop();
+    void MainLoop(const std::stop_token& stop_token);
+
     void Pause();
     void Resume();
-    
-    std::vector<std::string> inotify_vector_;
-    
+
+    bool Empty() const noexcept { return vector_.empty(); }
+
+    bool HasActions() const noexcept { return !Empty(); }
+
+    auto cbegin() const noexcept { return vector_.cbegin(); }
+
+    auto cend() const noexcept { return vector_.cend(); }
+
+    void Clear() noexcept { vector_.clear(); }
+
+    std::condition_variable cv_;
+    std::mutex              collection_mutex_;
+
    private:
-    bool        watching_;
-    bool        pause_;
-    int         fd_, wd_;
-    int         length_, i_;
-    std::string watch_path_;
-    std::string username_;
+    static constexpr size_t kMaxEvents    = 10U;  ///< Maximum number of events to process at once
+    static constexpr size_t kEventSize    = (sizeof(struct inotify_event));
+    static constexpr size_t kBufferLength = (kMaxEvents * (kEventSize + PATH_MAX));
+
+    std::vector<Action>   vector_;
+    std::filesystem::path watch_path_;
+    bool                  watching_;
+    bool                  pause_;
+    int                   fd_, wd_;
 };
 }

@@ -8,8 +8,9 @@
 #include <string>
 #include <thread>
 
-#include "utils.hpp"
+#include "communication/socket_stream.hpp"
 #include "inotify.hpp"
+#include "utils.hpp"
 
 namespace dropbox {
 
@@ -22,20 +23,19 @@ class Client {
      * @param port Port that the server is listening to.
      * @pre \p server_ip_address is IPV4.
      */
-    Client(std::string&& user_name, const char* server_ip_address, in_port_t port);
+    Client(std::string&& user_name, const char* server_ip_address, in_port_t port) noexcept(false);
 
     /// Clients are not copiable due to side effect in socket closing.
     Client(const Client& other) = delete;
 
-    Client(Client&& other) = default;
+    Client(Client&& other) = delete;
 
     ~Client();
 
     /**
      * Sends the username to the server.
-     * @return Status of the operation.
      */
-    bool SendUsername();
+    void SendUsername() noexcept(false);
 
     /**
      * Downloads the directory and start sync with the server.
@@ -75,11 +75,11 @@ class Client {
      */
     bool Exit();
 
-    void ReceiveSyncFromServer();
+    void SyncFromServer(const std::stop_token& stop_token);
 
-    void StartInotify();
+    void StartInotify(const std::stop_token& stop_token);
 
-    void StartFileExchange();
+    void SyncFromClient(std::stop_token stop_token);
 
     /**
      * @return Sync dir path concatenated with the username.
@@ -90,29 +90,34 @@ class Client {
      * @brief Uploads a file to the server.
      * @pre Assumes that \p path is a valid file.
      */
-    bool Upload(std::filesystem::path&& path);
+    bool Upload(const std::filesystem::path& path);
+
+    inline void Flush() { payload_stream_.flush(); }
+
+    [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; }
 
    private:
-    std::string username_;       ///< User's name, used as an identifier.
-    int         header_socket_;  ///< Socket to exchange headers.
-    int         file_socket_;    ///< Socket to exchange files.
+    std::string username_;  ///< User's name, used as an identifier.
 
-    int         sync_sc_socket_;    ///< Socket only for sync server -> client
-    int         sync_cs_socket_;    ///< Socket only for sync client -> server
+    int header_socket_;   ///< Socket to exchange headers.
+    int payload_socket_;  ///< Socket to exchange files.
 
-    HeaderExchange    he_; ///< What to exchange headers (commands) to the server with.
-    FileExchange      fe_; ///< What to exchange files with the server with.
+    int sync_sc_socket_;  ///< Socket only for sync server -> client
+    int sync_cs_socket_;  ///< Socket only for sync client -> server
 
-    HeaderExchange sche_;
+    SocketStream payload_stream_;
+    SocketStream sc_stream_;
+    SocketStream cs_stream_;
+
+    HeaderExchange he_;  ///< What to exchange headers (commands) to the server with.
+    FileExchange   fe_;  ///< What to exchange files with the server with.
+
     FileExchange   scfe_;
-
-    HeaderExchange cshe_;
     FileExchange   csfe_;
 
     Inotify inotify_;
 
     bool client_sync_;
-
 };
 
 }
