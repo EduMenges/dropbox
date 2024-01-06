@@ -13,12 +13,13 @@ Checks: <
   concurrency-*
   
   cppcoreguidelines-*
+  -cppcoreguidelines-avoid-const-or-ref-data-members
   -cppcoreguidelines-avoid-do-while
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
-  -cppcoreguidelines-non-private-member-variables-in-classes
-  -cppcoreguidelines-pro-type-reinterpret-cast
   -cppcoreguidelines-init-variables
+  -cppcoreguidelines-non-private-member-variables-in-classes
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  -cppcoreguidelines-pro-type-reinterpret-cast
   
   fuchsia-*
   -fuchsia-default-arguments-calls

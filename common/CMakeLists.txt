@@ -12,24 +12,41 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/p-ranav/tabulate.git
         GIT_TAG v1.5
 )
+FetchContent_MakeAvailable(tabulate)
+
 FetchContent_Declare(
         date
         GIT_REPOSITORY https://github.com/HowardHinnant/date.git
         GIT_TAG v3.0.1
 )
-set(SKIP_PERFORMANCE_COMPARISON ON)
+FetchContent_MakeAvailable(date)
+
 FetchContent_Declare(
         cereal
         GIT_REPOSITORY https://github.com/USCiLab/cereal.git
         GIT_TAG v1.3.2
 )
-
-FetchContent_MakeAvailable(tabulate)
-FetchContent_MakeAvailable(date)
+set(SKIP_PERFORMANCE_COMPARISON ON)
 FetchContent_MakeAvailable(cereal)
+
+FetchContent_Declare(
+        expected
+        GIT_REPOSITORY https://github.com/TartanLlama/expected.git
+        GIT_TAG v1.1.0
+)
+set(EXPECTED_BUILD_PACKAGE OFF)
+FetchContent_MakeAvailable(expected)
+
+FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 10.2.1
+)
+FetchContent_MakeAvailable(fmt)
 
 target_link_libraries(utils PUBLIC tabulate)
 target_link_libraries(utils PRIVATE date)
 target_link_libraries(utils PUBLIC cereal)
 
 add_subdirectory(communication)
+add_subdirectory(networking)
