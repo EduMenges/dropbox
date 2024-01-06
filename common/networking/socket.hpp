@@ -12,7 +12,7 @@ class Socket {
         }
     }
 
-    Socket(SocketType socket) : socket_(socket) {}
+    explicit Socket(SocketType socket) : socket_(socket) {}
 
     Socket(Socket &&other) noexcept : socket_(std::exchange(other.socket_, kInvalidSocket)) {}
 
@@ -50,4 +50,12 @@ class Socket {
 
     SocketType socket_ = kInvalidSocket;
 };
+
+inline constexpr bool InvalidSockets(const Socket& socket) noexcept { return !socket.IsValid(); }
+
+template <typename... Sockets>
+inline constexpr bool InvalidSockets(const Socket& socket, const Sockets&... sockets) noexcept {
+    return InvalidSockets(socket) || InvalidSockets(sockets...);
+}
+
 }

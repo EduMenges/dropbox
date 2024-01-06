@@ -19,7 +19,7 @@ bool dropbox::Ring::AcceptPrev() noexcept {
     static sockaddr  prev_addr;
     static socklen_t prev_len;
 
-    Socket new_prev = accept(accept_socket_, &prev_addr, &prev_len);
+    Socket new_prev(accept(accept_socket_, &prev_addr, &prev_len));
 
     if (!new_prev.IsValid()) {
         return false;

@@ -18,8 +18,8 @@ class ClientPool {
 
     ClientPool(ClientPool&& other) = delete;
 
-    ClientHandler& Emplace(std::string&& username, SocketType header_socket, SocketStream payload_stream,
-                           SocketType sync_sc_socket, SocketType sync_cs_socket) noexcept(false);
+    ClientHandler& Emplace(std::string&& username, Socket&& header_socket, SocketStream&& payload_stream,
+                           Socket&& sync_sc_socket, Socket&& sync_cs_socket) noexcept(false);
 
    private:
     std::mutex mutex_;

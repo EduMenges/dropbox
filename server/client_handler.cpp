@@ -32,9 +32,9 @@ dropbox::ClientHandler::ClientHandler(CompositeInterface* composite, int header_
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept
     : composite_(std::exchange(other.composite_, nullptr)),
-      header_socket_(std::exchange(other.header_socket_, -1)),
-      sync_sc_socket_(std::exchange(other.sync_sc_socket_, -1)),
-      sync_cs_socket_(std::exchange(other.sync_cs_socket_, -1)),
+      header_socket_(std::move(other.header_socket_)),
+      sync_sc_socket_(std::move(other.sync_sc_socket_)),
+      sync_cs_socket_(std::move(other.sync_cs_socket_)),
       payload_stream_(std::move(other.payload_stream_)),
       sc_stream_(std::move(other.cs_stream_)),
       cs_stream_(std::move(other.cs_stream_)),
@@ -178,10 +178,7 @@ dropbox::ClientHandler::~ClientHandler() {
 
     server_sync_ = false;
 
-    close(header_socket_);
     close(payload_stream_.GetSocket());
-    close(sync_sc_socket_);
-    close(sync_cs_socket_);
 }
 
 bool dropbox::ClientHandler::ListServer() noexcept {

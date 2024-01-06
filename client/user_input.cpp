@@ -1,13 +1,13 @@
 #include "user_input.hpp"
 
 #include <filesystem>
-#include <iostream>
 #include <sstream>
 
 #include "client.hpp"
 #include "communication/protocol.hpp"
+#include "fmt/core.h"
 
-dropbox::UserInput::UserInput(Client& client) : client_(client), reading_(false) { }
+dropbox::UserInput::UserInput(Client& client) : client_(client), reading_(false) {}
 
 void dropbox::UserInput::Start() {
     reading_ = true;
@@ -27,15 +27,16 @@ void dropbox::UserInput::Start() {
         iss >> input_command;
         iss >> input_path_;
 
-        if (!CommandFromStr(input_command).has_value()) {
-            std::cerr << "Unknown command: " << input_command << '\n';
+        const std::optional<Command>& command = CommandFromStr(input_command);
+
+        if (!command.has_value()) {
+            fmt::println(stderr, "Unknown command: {}", input_command);
             continue;
         }
-
-        const Command kCommand = CommandFromStr(input_command).value();
+        
+        const Command kCommand = *command;
         HandleCommand(kCommand);
     }
-
 }
 
 void dropbox::UserInput::Stop() { reading_ = false; }
@@ -58,7 +59,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
                 std::filesystem::path path(input_path_);
 
                 if (is_regular_file(path)) {
-                    std::cerr << "Result: " << client_.Upload(std::move(path)) << '\n';
+                    fmt::println("Result: {}", client_.Upload(path));
                 } else {
                     std::cerr << path.filename() << " is not a file\n";
                 }

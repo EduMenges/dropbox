@@ -1,8 +1,6 @@
 #include "client.hpp"
 
 #include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include <iostream>
 #include <utility>
@@ -11,14 +9,11 @@
 #include "cereal/types/string.hpp"
 #include "connections.hpp"
 #include "exceptions.hpp"
+#include "fmt/core.h"
 #include "list_directory.hpp"
 
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
-      header_socket_(socket(kDomain, kType, kProtocol)),
-      payload_socket_(socket(kDomain, kType, kProtocol)),
-      sync_sc_socket_(socket(kDomain, kType, kProtocol)),
-      sync_cs_socket_(socket(kDomain, kType, kProtocol)),
       payload_stream_(payload_socket_),
       sc_stream_(sync_sc_socket_),
       cs_stream_(sync_cs_socket_),
@@ -28,13 +23,15 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       csfe_(cs_stream_),
       inotify_(SyncDirPath()),
       client_sync_(true) {
-    if (InvalidSockets(header_socket_, payload_socket_, sync_sc_socket_, sync_cs_socket_)) {
-        throw SocketCreation();
-    }
-
     const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}};
 
-    MultipleConnect(&kServerAddress, header_socket_, payload_socket_, sync_sc_socket_, sync_cs_socket_);
+    Socket *to_connect[] = {&header_socket_, &payload_socket_, &sync_sc_socket_, &sync_cs_socket_};
+
+    for (Socket *socket : to_connect) {
+        if (!socket->Connect(kServerAddress)) {
+            throw Connecting();
+        }
+    }
 
     SendUsername();
     GetSyncDir();
@@ -108,12 +105,12 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 
     const auto kReceived = he_.Receive();
     if (!kReceived.has_value()) {
-        std::cerr << "Failure when receiving response from server.\n";
+        fmt::println(stderr, "Failure when receiving response from server.");
         return false;
     }
 
     if (kReceived == Command::kError) {
-        std::cerr << "File was not found on the server.\n";
+        fmt::println("File was not found on the server.");
         return false;
     }
 
@@ -147,13 +144,7 @@ bool dropbox::Client::GetSyncDir() {
     return true;
 }
 
-dropbox::Client::~Client() {
-    client_sync_ = false;
-    close(header_socket_);
-    close(payload_socket_);
-    close(sync_sc_socket_);
-    close(sync_cs_socket_);
-}
+dropbox::Client::~Client() { client_sync_ = false; }
 
 bool dropbox::Client::Exit() {
     client_sync_ = false;
@@ -188,12 +179,12 @@ bool dropbox::Client::ListServer() {
 
         return true;
     } catch (std::exception &e) {
-        std::cerr << "Error when receiving file table: " << e.what() << '\n';
+        fmt::println(stderr, "Error when receiving file table: {}", e.what());
         return false;
     }
 }
 
-void dropbox::Client::StartInotify(const std::stop_token& stop_token) {
+void dropbox::Client::StartInotify(const std::stop_token &stop_token) {
     inotify_.Start();
     inotify_.MainLoop(stop_token);
 }
@@ -211,7 +202,7 @@ void dropbox::Client::SyncFromClient(std::stop_token stop_token) {
             const auto &[command, path] = *it;
 
             if (command == Command::kUpload) {
-                std::cout << "Inotify detected upload: " << path << '\n';
+                fmt::println("Inotify detected upload: {}", path.c_str());
                 csfe_.SendCommand(Command::kUpload);
 
                 if (!csfe_.SetPath(SyncDirPath() / path).SendPath()) {
@@ -221,7 +212,7 @@ void dropbox::Client::SyncFromClient(std::stop_token stop_token) {
                 }
 
             } else if (command == Command::kDelete) {
-                std::cout << "Inotify detected delete: " << path << '\n';
+                fmt::println("Inotify detected delete: {}", path.c_str());
                 (csfe_.SendCommand(Command::kDelete));
 
                 if (!csfe_.SetPath(SyncDirPath() / path).SendPath()) {
@@ -258,7 +249,7 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
             }
             inotify_.Resume();
 
-            std::cout << scfe_.GetPath() << " was modified from another device\n";
+            fmt::println("{}  was modified from another device", scfe_.GetPath().c_str());
 
         } else if (kCommand == Command::kDelete) {
             if (!scfe_.ReceivePath()) {

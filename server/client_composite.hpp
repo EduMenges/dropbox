@@ -20,20 +20,23 @@ class ClientComposite : public CompositeInterface {
 
     ClientComposite(ClientComposite&& other) = delete;
 
-    ClientHandler& Emplace(SocketType header_socket, SocketStream&& payload_stream, SocketType sync_sc_socket,
-                           SocketType sync_cs_socket) noexcept(false);
+    ClientHandler& Emplace(Socket&& header_socket, SocketStream&& payload_stream, Socket&& sync_sc_socket,
+                           Socket&& sync_cs_socket) noexcept(false);
 
     const std::string& GetUsername() const noexcept override { return username_; }
 
-    bool BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method, ClientHandler::IdType origin, const std::filesystem::path& path);
+    bool BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method,
+                          ClientHandler::IdType origin, const std::filesystem::path& path);
 
     bool BroadcastUpload(ClientHandler::IdType origin, const std::filesystem::path& path) override {
-        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod = &ClientHandler::SyncUpload;
+        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod =
+            &ClientHandler::SyncUpload;
         return BroadcastCommand(kMethod, origin, path);
     }
 
     bool BroadcastDelete(ClientHandler::IdType origin, const std::filesystem::path& path) override {
-        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod = &ClientHandler::SyncDelete;
+        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod =
+            &ClientHandler::SyncDelete;
         return BroadcastCommand(kMethod, origin, path);
     }
 

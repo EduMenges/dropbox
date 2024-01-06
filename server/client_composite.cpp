@@ -8,10 +8,9 @@ void dropbox::ClientComposite::Remove(int id) {
     list_.remove_if([id](auto& cli) { return cli == id; });
 }
 
-dropbox::ClientHandler& dropbox::ClientComposite::Emplace(dropbox::SocketType header_socket,
-                                                          SocketStream&&      payload_stream,
-                                                          dropbox::SocketType sync_sc_socket,
-                                                          dropbox::SocketType sync_cs_socket) noexcept(false) {
+dropbox::ClientHandler& dropbox::ClientComposite::Emplace(Socket&& header_socket, SocketStream&& payload_stream,
+                                                          Socket&& sync_sc_socket,
+                                                          Socket&& sync_cs_socket) noexcept(false) {
     const std::lock_guard kLock(mutex_);
 
     if (list_.size() >= kDeviceLimit) {
@@ -19,12 +18,18 @@ dropbox::ClientHandler& dropbox::ClientComposite::Emplace(dropbox::SocketType he
         throw FullList();
     }
 
-    auto& client = list_.emplace_back(this, header_socket, std::move(payload_stream), sync_sc_socket, sync_cs_socket);
+    auto& client = list_.emplace_back(this,
+                                      std::move(header_socket),
+                                      std::move(payload_stream),
+                                      std::move(sync_sc_socket),
+                                      std::move(sync_cs_socket));
     std::cout << "New client: " << client.GetUsername() << "::" << client.GetId() << '\n';
     return list_.back();
 }
 
-bool dropbox::ClientComposite::BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method, ClientHandler::IdType origin, const std::filesystem::path& path) {
+bool dropbox::ClientComposite::BroadcastCommand(
+    const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method, ClientHandler::IdType origin,
+    const std::filesystem::path& path) {
     static std::atomic_uint8_t users = 0;
 
     users += 1;

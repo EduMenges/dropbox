@@ -21,25 +21,9 @@ class PrimaryReplica {
 
     ~PrimaryReplica() = default;
 
-    bool Accept() {
-        Socket new_backup = accept(receiver_, nullptr, nullptr);
+    bool Accept();
 
-        if (!new_backup.IsValid()) {
-            return false;
-        }
-
-        fmt::println("New server");
-        backups_.push_back(std::move(new_backup));
-        return true;
-    }
-
-    void AcceptLoop() {
-        accept_thread_ = std::jthread([&](const std::stop_token &stop_token) {
-            while (!stop_token.stop_requested()) {
-                Accept();
-            }
-        });
-    }
+    void AcceptLoop();
 
     std::vector<Socket> backups_;
 

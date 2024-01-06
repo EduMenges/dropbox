@@ -43,6 +43,7 @@ void dropbox::Inotify::MainLoop(const std::stop_token &stop_token) {
         }
 
         size_t i = 0;
+
         collection_mutex_.lock();
         while (static_cast<ssize_t>(i) < kLength) {
             auto &event = *reinterpret_cast<struct inotify_event *>(&buffer[i]);
@@ -61,6 +62,7 @@ void dropbox::Inotify::MainLoop(const std::stop_token &stop_token) {
             i += kEventSize + event.len;
         }
         collection_mutex_.unlock();
+
         cv_.notify_one();
     }
     cv_.notify_one();

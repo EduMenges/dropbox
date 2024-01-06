@@ -8,15 +8,11 @@
 #include "cereal/types/string.hpp"
 #include "client_handler.hpp"
 #include "connections.hpp"
-#include "constants.hpp"
 #include "exceptions.hpp"
+#include "fmt/core.h"
 
-dropbox::Server::Server(in_port_t port) : receiver_socket_(socket(kDomain, kType, 0)) {
-    if (receiver_socket_ == kInvalidSocket) {
-        throw SocketCreation();
-    }
-
-    const sockaddr_in kReceiverAddress = {kFamily, htons(port), {INADDR_ANY}, {0}};
+dropbox::Server::Server(in_port_t port) {
+    const sockaddr_in kReceiverAddress = {kFamily, htons(port), {INADDR_ANY}};
 
     if (bind(receiver_socket_, reinterpret_cast<const sockaddr*>(&kReceiverAddress), sizeof(kReceiverAddress)) == -1) {
         throw Binding();
@@ -27,41 +23,29 @@ dropbox::Server::Server(in_port_t port) : receiver_socket_(socket(kDomain, kType
     }
 }
 
-[[noreturn]] void dropbox::Server::MainLoop() {
-    sockaddr_in client_address{};
-    socklen_t   client_length = sizeof(client_address);
+void dropbox::Server::MainLoop(sig_atomic_t& should_stop) {
+    while (should_stop != 1) {
+        Socket header_socket(accept(receiver_socket_, nullptr, nullptr));
+        Socket payload_socket(accept(receiver_socket_, nullptr, nullptr));
+        Socket sync_sc_socket(accept(receiver_socket_, nullptr, nullptr));
+        Socket sync_cs_socket(accept(receiver_socket_, nullptr, nullptr));
 
-    while (true) {
-        const int kHeaderSocket =
-            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kFileSocket = accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kSyncSCSocket =
-            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        const int kSyncCSSocket =
-            accept(receiver_socket_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-
-        NewClient(kHeaderSocket, kFileSocket, kSyncSCSocket, kSyncCSSocket);
+        NewClient(
+            std::move(header_socket), std::move(payload_socket), std::move(sync_sc_socket), std::move(sync_cs_socket));
     }
 }
 
-dropbox::Server::~Server() { close(receiver_socket_); }
-
-void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_sc_socket, int sync_cs_socket) {
+void dropbox::Server::NewClient(Socket&& header_socket, Socket&& payload_socket, Socket&& sync_sc_socket,
+                                Socket&& sync_cs_socket) {
     std::thread new_client_thread(
-        [](int header_socket, int payload_socket, int sync_sc_socket, int sync_cs_socket, ClientPool& pool) {
+        [](Socket&&    header_socket,
+           Socket&&    payload_socket,
+           Socket&&    sync_sc_socket,
+           Socket&&    sync_cs_socket,
+           ClientPool& pool) {
             // Immediately stops the client building if any sockets are invalid.
-            if (header_socket == kInvalidSocket) {
-                if (payload_socket == kInvalidSocket) {
-                    if (sync_sc_socket == kInvalidSocket) {
-                        if (sync_cs_socket == kInvalidSocket) {
-                            close(sync_sc_socket);
-                        }
-                        close(payload_socket);
-                    }
-                    close(header_socket);
-                }
-
-                std::cerr << "Could not accept new client connection\n";
+            if (InvalidSockets(header_socket, payload_socket, sync_sc_socket, sync_cs_socket)) {
+                fmt::println(stderr, "Could not accept new client connection due to invalid sockets");
                 perror(__func__);
                 return;
             }
@@ -72,8 +56,11 @@ void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_
                 std::string                        username;
                 archive(username);
 
-                ClientHandler& handler = pool.Emplace(std::move(username), header_socket, std::move(payload_stream),
-                                                      sync_sc_socket, sync_cs_socket);
+                ClientHandler& handler = pool.Emplace(std::move(username),
+                                                      std::move(header_socket),
+                                                      std::move(payload_stream),
+                                                      std::move(sync_sc_socket),
+                                                      std::move(sync_cs_socket));
 
                 std::thread sync_thread([&]() { handler.SyncFromClient(); });
 
@@ -86,6 +73,10 @@ void dropbox::Server::NewClient(int header_socket, int payload_socket, int sync_
                 std::cerr << "Error when creating client: " << e.what() << '\n';
             }
         },
-        header_socket, payload_socket, sync_sc_socket, sync_cs_socket, std::ref(client_pool_));
+        std::move(header_socket),
+        std::move(payload_socket),
+        std::move(sync_sc_socket),
+        std::move(sync_cs_socket),
+        std::ref(client_pool_));
     new_client_thread.detach();
 }

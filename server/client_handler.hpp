@@ -6,6 +6,7 @@
 #include "communication/protocol.hpp"
 #include "communication/socket_stream.hpp"
 #include "composite_interface.hpp"
+#include "networking/socket.hpp"
 #include "utils.hpp"
 
 namespace dropbox {
@@ -17,7 +18,8 @@ class ClientHandler {
 
     static constexpr IdType kInvalidId = kInvalidSocket;
 
-    ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket, int sync_cs_socket);
+    ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket,
+                  int sync_cs_socket);
 
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
@@ -93,9 +95,9 @@ class ClientHandler {
 
     CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
-    int         header_socket_;  ///< Socket to exchange the header with.
-    int         sync_sc_socket_;
-    int         sync_cs_socket_;
+    Socket header_socket_;  ///< Socket to exchange the header with.
+    Socket sync_sc_socket_;
+    Socket sync_cs_socket_;
 
     SocketStream payload_stream_;
     SocketStream sc_stream_;
@@ -104,9 +106,9 @@ class ClientHandler {
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
 
-    FileExchange   scfe_;
+    FileExchange scfe_;
 
-    FileExchange   csfe_;
+    FileExchange csfe_;
 
     bool server_sync_;
 };

@@ -10,6 +10,7 @@
 
 #include "communication/socket_stream.hpp"
 #include "inotify.hpp"
+#include "networking/socket.hpp"
 #include "utils.hpp"
 
 namespace dropbox {
@@ -99,11 +100,11 @@ class Client {
    private:
     std::string username_;  ///< User's name, used as an identifier.
 
-    int header_socket_;   ///< Socket to exchange headers.
-    int payload_socket_;  ///< Socket to exchange files.
+    Socket header_socket_;   ///< Socket to exchange headers.
+    Socket payload_socket_;  ///< Socket to exchange files.
 
-    int sync_sc_socket_;  ///< Socket only for sync server -> client
-    int sync_cs_socket_;  ///< Socket only for sync client -> server
+    Socket sync_sc_socket_;  ///< Socket only for sync server -> client
+    Socket sync_cs_socket_;  ///< Socket only for sync client -> server
 
     SocketStream payload_stream_;
     SocketStream sc_stream_;
