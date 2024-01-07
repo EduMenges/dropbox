@@ -39,8 +39,9 @@ void dropbox::replica::Backup::MainLoop(sig_atomic_t& should_stop) {
 
 dropbox::replica::Backup::Backup(const sockaddr_in& primary_addr)
     : primary_addr_(primary_addr), exchange_(Socket(kInvalidSocket)) {
-    if (!exchange_.socket_.SetKeepalive()) {
-        throw Socket::KeepAliveErr();
+    const auto kKeepAliveResult = exchange_.socket_.SetKeepalive();
+    if (!kKeepAliveResult.has_value()) {
+        throw Socket::KeepAliveException(kKeepAliveResult.error());
     }
 
     [[maybe_unused]] bool could_connect = ConnectToPrimary();

@@ -1,16 +1,25 @@
 #pragma once
 
+#include <utility>
+
 #include "connections.hpp"
+#include "tl/expected.hpp"
 #include "unistd.h"
 
 namespace dropbox {
 class Socket {
    public:
-    class KeepAliveErr : public std::system_error {
-       public:
-        KeepAliveErr() = default;
+    enum class KeepAliveError: uint8_t { kIdleTime, kMaxProbes, kTimeBetween, kEnable };
 
-        [[nodiscard]] constexpr const char *what() const noexcept override { return "Setting socket to keepalive"; }
+    class KeepAliveException : public std::system_error {
+       public:
+        using Error = std::pair<KeepAliveError, std::error_code>;
+
+        explicit KeepAliveException(Error error) : error_(std::move(error)) {}
+
+        [[nodiscard]] const char *what() const noexcept override;
+
+        Error error_;
     };
 
     Socket() noexcept(false) : socket_(socket(kDomain, kType, kProtocol)) {
@@ -53,7 +62,7 @@ class Socket {
         return connect(socket_, reinterpret_cast<const sockaddr *>(&address), sizeof(sockaddr_in)) == 0;
     }
 
-    [[nodiscard]] bool SetKeepalive() const;
+    [[nodiscard]] tl::expected<void, std::pair<KeepAliveError, std::error_code>> SetKeepalive() const;
 
     constexpr operator int() const noexcept { return socket_; }
 

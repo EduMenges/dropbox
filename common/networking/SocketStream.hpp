@@ -27,13 +27,11 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
     ~SocketBuffer() override = default;
 
     SocketBuffer(SocketBuffer&& other) noexcept
-        : std::basic_streambuf<BufferElementType>(other),
-          socket_(other.socket_),
-          buffer_(std::move(other.buffer_)){};
+        : std::basic_streambuf<BufferElementType>(other), socket_(other.socket_), buffer_(std::move(other.buffer_)){};
 
     SocketBuffer(const SocketBuffer& other) = delete;
 
-    [[nodiscard]] SocketType constexpr GetSocket() const noexcept {return socket_;}
+    [[nodiscard]] SocketType constexpr GetSocket() const noexcept { return socket_; }
 
    protected:
     int_type underflow() noexcept(false) override;
@@ -60,7 +58,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
     std::unique_ptr<std::array<BufferElementType, kBufferSize>> buffer_;
 };
 
-class SocketStream : public std::basic_iostream<BufferElementType> {
+class SocketStream : public std::basic_iostream<BufferElementType> {  // NOLINT
    public:
     explicit SocketStream(Socket& socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
 
@@ -68,7 +66,8 @@ class SocketStream : public std::basic_iostream<BufferElementType> {
 
     SocketStream(SocketStream&& other) noexcept;
 
-    [[nodiscard]] SocketType GetSocket() const noexcept {return buffer_.GetSocket();}
+    [[nodiscard]] SocketType GetSocket() const noexcept { return buffer_.GetSocket(); }
+
    private:
     SocketBuffer buffer_;
 };
