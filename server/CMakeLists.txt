@@ -11,8 +11,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(toml++)
 
-target_include_directories(dropbox_server PRIVATE PROJECT_SOURCE_DIR)
+target_include_directories(dropbox_server PRIVATE ${PROJECT_SOURCE_DIR})
 target_include_directories(dropbox_server PRIVATE ${CMAKE_SOURCE_DIR}/common)
 
-target_link_libraries(dropbox_server communication)
+target_link_libraries(dropbox_server communication networking composite)
 target_link_libraries(dropbox_server tomlplusplus::tomlplusplus tl::expected fmt::fmt)

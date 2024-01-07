@@ -2,19 +2,20 @@
 
 #include <netinet/in.h>
 
-#include "client_pool.hpp"
+#include "ClientPool.hpp"
+#include "election/ring.hpp"
+#include "networking/addr.hpp"
 #include "networking/socket.hpp"
+#include "replica/backup.hpp"
+#include "replica/primary.hpp"
+#include "tl/expected.hpp"
 #include <csignal>
+#include <variant>
 
 namespace dropbox {
-
 class Server {
    public:
-    /**
-     * Constructor.
-     * @param port Port to listen to new client connections to.
-     */
-    Server(in_port_t port);
+    Server(size_t addr_index, std::vector<Addr>&& server_collection, sig_atomic_t& should_stop);
 
     /// Server is not copiable due to side effect in destructor.
     Server(const Server& other) = delete;
@@ -23,21 +24,34 @@ class Server {
 
     ~Server() = default;
 
-    /// Keep accepting new client connections in this loop.
-    void MainLoop(sig_atomic_t& should_stop);
+    Addr& GetAddr() noexcept { return servers_[addr_index_]; }
+
+    tl::expected<Addr::IdType, std::error_code> PerformElection();
+
+    void HandleElection(Addr::IdType id);
+
+    bool ConnectNext();
 
     /**
-     * Builds a new client instance, inserts it into the pool, and starts its loop.
-     * @param header_socket Header socket of the new client.
-     * @param payload_socket File socket of the new client.
+     * Getter for the replica.
+     * @pre Assumes that it has already been assigned to.
+     * @return The variant with the replica.
      */
-    void NewClient(Socket&& header_socket, Socket&& payload_socket, Socket&& sync_sc_socket, Socket&& sync_cs_socket);
+    std::variant<replica::Primary, replica::Backup>& GetReplica() { return *replica_; }
+
+    [[nodiscard]] constexpr Addr::IdType GetId() const noexcept { return static_cast<Addr::IdType>(addr_index_); }
+
+    [[nodiscard]] Ring& GetRing() noexcept { return ring_; }
 
    private:
-    static constexpr int kBacklog = 10; ///< Backlog in connection.
+    size_t            addr_index_;  /// Where, in the given collection, the address of the server is located.
+    std::vector<Addr> servers_;
 
-    Socket receiver_socket_; ///< Socket to listen to new connections to.
-    ClientPool client_pool_; ///< Pool that stores information for all of the clients.
+    sig_atomic_t& should_stop_;
+
+    Ring                                                       ring_;
+    std::optional<std::variant<replica::Primary, replica::Backup>> replica_ = std::nullopt;
+
+    std::jthread accept_thread_;
 };
-
 }

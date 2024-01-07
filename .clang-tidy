@@ -26,7 +26,6 @@ Checks: <
   -fuchsia-overloaded-operator
   
   google-*
-  -google-explicit-constructor
   -google-readability-namespace-comments
   
   hicpp-*

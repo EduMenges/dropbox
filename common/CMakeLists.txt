@@ -12,6 +12,7 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/p-ranav/tabulate.git
         GIT_TAG v1.5
 )
+set(USE_CPP17 ON)
 FetchContent_MakeAvailable(tabulate)
 
 FetchContent_Declare(
@@ -50,3 +51,4 @@ target_link_libraries(utils PUBLIC cereal)
 
 add_subdirectory(communication)
 add_subdirectory(networking)
+add_subdirectory(composite)

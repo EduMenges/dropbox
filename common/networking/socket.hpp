@@ -6,7 +6,14 @@
 namespace dropbox {
 class Socket {
    public:
-    Socket() : socket_(socket(kDomain, kType, kProtocol)) {
+    class KeepAliveErr : public std::system_error {
+       public:
+        KeepAliveErr() = default;
+
+        [[nodiscard]] constexpr const char *what() const noexcept override { return "Setting socket to keepalive"; }
+    };
+
+    Socket() noexcept(false) : socket_(socket(kDomain, kType, kProtocol)) {
         if (socket_ == kInvalidSocket) {
             throw SocketCreation();
         }
@@ -34,27 +41,29 @@ class Socket {
         }
     }
 
-    [[nodiscard]] constexpr bool IsValid() const { return socket_ != kInvalidSocket; }
+    [[nodiscard]] constexpr bool IsValid() const noexcept { return socket_ != kInvalidSocket; }
 
-    [[nodiscard]] bool HasConnection() const {
-        sockaddr_in address;
-        socklen_t   address_len = sizeof(sockaddr_in);
+    [[nodiscard]] bool HasConnection() const noexcept {
+        static sockaddr_in address;
+        socklen_t          address_len = sizeof(sockaddr_in);
         return getpeername(socket_, reinterpret_cast<sockaddr *>(&address), &address_len) == 0;
     }
 
-    [[nodiscard]] bool Connect(const sockaddr_in &address) const {
+    [[nodiscard]] bool Connect(const sockaddr_in &address) const noexcept {
         return connect(socket_, reinterpret_cast<const sockaddr *>(&address), sizeof(sockaddr_in)) == 0;
     }
 
-    constexpr operator int() const { return socket_; }
+    [[nodiscard]] bool SetKeepalive() const;
+
+    constexpr operator int() const noexcept { return socket_; }
 
     SocketType socket_ = kInvalidSocket;
 };
 
-inline constexpr bool InvalidSockets(const Socket& socket) noexcept { return !socket.IsValid(); }
+inline constexpr bool InvalidSockets(const Socket &socket) noexcept { return !socket.IsValid(); }
 
 template <typename... Sockets>
-inline constexpr bool InvalidSockets(const Socket& socket, const Sockets&... sockets) noexcept {
+inline constexpr bool InvalidSockets(const Socket &socket, const Sockets &...sockets) noexcept {
     return InvalidSockets(socket) || InvalidSockets(sockets...);
 }
 

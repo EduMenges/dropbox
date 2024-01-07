@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "client_composite.hpp"
+#include "ClientComposite.hpp"
 
 namespace dropbox {
 /// Class that holds information for all of the clients and all of their devices.
@@ -18,8 +18,9 @@ class ClientPool {
 
     ClientPool(ClientPool&& other) = delete;
 
-    ClientHandler& Emplace(std::string&& username, Socket&& header_socket, SocketStream&& payload_stream,
-                           Socket&& sync_sc_socket, Socket&& sync_cs_socket) noexcept(false);
+    dropbox::ClientHandler& Emplace(std::string&& username, std::vector<BackupHandler>& backups, Socket&& header_socket,
+                                    SocketStream&& payload_stream, Socket&& sync_sc_socket,
+                                    Socket&& sync_cs_socket) noexcept(false);
 
    private:
     std::mutex mutex_;

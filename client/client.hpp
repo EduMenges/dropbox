@@ -8,7 +8,7 @@
 #include <string>
 #include <thread>
 
-#include "communication/socket_stream.hpp"
+#include "networking/SocketStream.hpp"
 #include "inotify.hpp"
 #include "networking/socket.hpp"
 #include "utils.hpp"

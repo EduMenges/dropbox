@@ -1,4 +1,4 @@
-#include "client_composite.hpp"
+#include "ClientComposite.hpp"
 
 #include "exceptions.hpp"
 
@@ -28,8 +28,9 @@ dropbox::ClientHandler& dropbox::ClientComposite::Emplace(Socket&& header_socket
 }
 
 bool dropbox::ClientComposite::BroadcastCommand(
-    const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method, ClientHandler::IdType origin,
-    const std::filesystem::path& path) {
+    const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method,
+    const std::function<bool(BackupHandler&, const std::filesystem::path&)>& backup_method,
+    ClientHandler::IdType origin, const std::filesystem::path& path) {
     static std::atomic_uint8_t users = 0;
 
     users += 1;
@@ -39,6 +40,12 @@ bool dropbox::ClientComposite::BroadcastCommand(
 
     for (auto& client : std::ranges::filter_view(list_, [&](const auto& i) { return i.GetId() != origin; })) {
         if (!method(client, path)) {
+            return false;
+        }
+    }
+
+    for (auto& backup: backups_) {
+        if (!backup_method(backup, path)) {
             return false;
         }
     }

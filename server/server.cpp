@@ -1,82 +1,98 @@
 #include "server.hpp"
+#include "election/election.hpp"
 
-#include <functional>
-#include <iostream>
-#include <thread>
+tl::expected<dropbox::Addr::IdType, std::error_code> dropbox::Server::PerformElection() {
+    Election election(ring_, GetId());
+    election.StartElection();
 
-#include "cereal/archives/portable_binary.hpp"
-#include "cereal/types/string.hpp"
-#include "client_handler.hpp"
-#include "connections.hpp"
-#include "exceptions.hpp"
-#include "fmt/core.h"
+    tl::expected<std::optional<Addr::IdType>, bool> result;
 
-dropbox::Server::Server(in_port_t port) {
-    const sockaddr_in kReceiverAddress = {kFamily, htons(port), {INADDR_ANY}};
+    do {
+        result = election.ReplyElection();
+    } while (result.has_value() && !result->has_value());
 
-    if (bind(receiver_socket_, reinterpret_cast<const sockaddr*>(&kReceiverAddress), sizeof(kReceiverAddress)) == -1) {
-        throw Binding();
+    if (result.has_value()) {
+        return result->value();
     }
 
-    if (listen(receiver_socket_, kBacklog) == -1) {
-        throw Listening();
+    return tl::make_unexpected(std::make_error_code(static_cast<std::errc>(errno)));
+}
+
+bool dropbox::Server::ConnectNext() {
+    constexpr auto kMaxDuration = std::chrono::seconds(5);
+
+    size_t next_i   = (addr_index_ + 1) % servers_.size();
+    auto   inc_next = [&] { next_i = (next_i + 1) % servers_.size(); };
+
+    while (next_i != addr_index_) {
+        const auto kEnd = std::chrono::high_resolution_clock::now() + kMaxDuration;
+
+        while (std::chrono::high_resolution_clock::now() < kEnd && !GetRing().HasNext()) {
+            auto &next_addr = servers_[next_i % servers_.size()];
+            if (!GetRing().ConnectNext(next_addr)) {
+                fmt::println(stderr, "{}: Error when connecting to {}", __func__, next_addr.GetId());
+            } else {
+                return true;
+            }
+
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        inc_next();
+        fmt::println("{}: Trying next server {}", __func__, next_i);
+    }
+
+    return false;
+}
+
+void dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
+    if (id == GetId()) {
+        replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp());
+
+        std::get<replica::Primary>(*replica_).AcceptBackups();
+        std::get<replica::Primary>(*replica_).MainLoop(should_stop_);
+    } else {
+        auto addr = servers_[static_cast<size_t>(id)];
+        addr.SetPort(replica::Primary::kAdminPort);
+        replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
+
+        std::get<replica::Backup>(*replica_).MainLoop(should_stop_);
     }
 }
 
-void dropbox::Server::MainLoop(sig_atomic_t& should_stop) {
-    while (should_stop != 1) {
-        Socket header_socket(accept(receiver_socket_, nullptr, nullptr));
-        Socket payload_socket(accept(receiver_socket_, nullptr, nullptr));
-        Socket sync_sc_socket(accept(receiver_socket_, nullptr, nullptr));
-        Socket sync_cs_socket(accept(receiver_socket_, nullptr, nullptr));
+dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection, sig_atomic_t &should_stop)
+    : addr_index_(addr_index),
+      servers_(std::move(server_collection)),
+      should_stop_(should_stop),
+      ring_(GetAddr()),
+      accept_thread_([&](const std::stop_token &stop_token) {
+          while (!stop_token.stop_requested()) {
+              if (GetRing().AcceptPrev()) {
+                  fmt::println("AcceptPrev: new previous");
+              } else if (errno != EAGAIN) {
+                  perror("AcceptPrev");
+              }
+          }
+      }) {
+    const bool kCouldConnectNext = ConnectNext();
 
-        NewClient(
-            std::move(header_socket), std::move(payload_socket), std::move(sync_sc_socket), std::move(sync_cs_socket));
+    tl::expected<dropbox::Addr::IdType, std::error_code> result;
+
+    if (kCouldConnectNext) {
+        // We assume that there was never an error while the previous was trying to connect
+        while (!GetRing().HasPrev()) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        result = PerformElection();
+    } else {
+        fmt::println("ElectionThread: No servers found, skipping election");
+        result = static_cast<dropbox::Addr::IdType>(addr_index_);
     }
-}
 
-void dropbox::Server::NewClient(Socket&& header_socket, Socket&& payload_socket, Socket&& sync_sc_socket,
-                                Socket&& sync_cs_socket) {
-    std::thread new_client_thread(
-        [](Socket&&    header_socket,
-           Socket&&    payload_socket,
-           Socket&&    sync_sc_socket,
-           Socket&&    sync_cs_socket,
-           ClientPool& pool) {
-            // Immediately stops the client building if any sockets are invalid.
-            if (InvalidSockets(header_socket, payload_socket, sync_sc_socket, sync_cs_socket)) {
-                fmt::println(stderr, "Could not accept new client connection due to invalid sockets");
-                perror(__func__);
-                return;
-            }
-
-            try {
-                SocketStream                       payload_stream(payload_socket);
-                cereal::PortableBinaryInputArchive archive(payload_stream);
-                std::string                        username;
-                archive(username);
-
-                ClientHandler& handler = pool.Emplace(std::move(username),
-                                                      std::move(header_socket),
-                                                      std::move(payload_stream),
-                                                      std::move(sync_sc_socket),
-                                                      std::move(sync_cs_socket));
-
-                std::thread sync_thread([&]() { handler.SyncFromClient(); });
-
-                handler.MainLoop();
-
-                handler.GetComposite()->Remove(handler.GetId());
-
-                sync_thread.join();
-            } catch (std::exception& e) {
-                std::cerr << "Error when creating client: " << e.what() << '\n';
-            }
-        },
-        std::move(header_socket),
-        std::move(payload_socket),
-        std::move(sync_sc_socket),
-        std::move(sync_cs_socket),
-        std::ref(client_pool_));
-    new_client_thread.detach();
+    if (result.has_value()) {
+        HandleElection(*result);
+    } else {
+        fmt::println(stderr, "{}", result.error().message());
+    }
 }

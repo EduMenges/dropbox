@@ -4,17 +4,19 @@
 
 #include "commands.hpp"
 #include "connections.hpp"
-#include "socket_stream.hpp"
+#include "networking/SocketStream.hpp"
 
 namespace dropbox {
 /// Uses raw sockets for communication
 class SocketExchange {
    public:
     SocketExchange() : socket_(kInvalidSocket){};
-    SocketExchange(SocketType socket_fd) : socket_(socket_fd){};
+
+    explicit SocketExchange(SocketType socket_fd) : socket_(socket_fd){};
+
     SocketExchange(SocketExchange&& other) noexcept : socket_(std::exchange(other.socket_, kInvalidSocket)){};
 
-    [[nodiscard]] constexpr SocketType GetSocket() const noexcept {return socket_;}
+    [[nodiscard]] constexpr SocketType GetSocket() const noexcept { return socket_; }
 
    protected:
     SocketType socket_;
@@ -23,7 +25,9 @@ class SocketExchange {
 class HeaderExchange : public SocketExchange {
    public:
     HeaderExchange() = delete;
-    HeaderExchange(SocketType socket_fd) : SocketExchange(socket_fd){};
+
+    explicit HeaderExchange(SocketType socket_fd) : SocketExchange(socket_fd){};
+
     HeaderExchange(HeaderExchange&& other) = default;
 
     bool Send(Command command) noexcept;
@@ -34,7 +38,8 @@ class HeaderExchange : public SocketExchange {
 class FileExchange {
    public:
     FileExchange() = delete;
-    inline FileExchange(SocketStream& stream) : stream_(stream){};
+
+    explicit FileExchange(SocketStream& stream) : stream_(stream){};
 
     FileExchange(FileExchange&& other) = default;
 
@@ -50,7 +55,7 @@ class FileExchange {
         return *this;
     }
 
-    void SendCommand(Command command) noexcept;
+    void SendCommand(Command command) noexcept { stream_ << static_cast<int8_t>(command); }
 
     std::optional<Command> ReceiveCommand() noexcept;
 

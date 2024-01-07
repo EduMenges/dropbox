@@ -1,18 +1,23 @@
 #pragma once
 
+#include <csignal>
 #include <netinet/in.h>
 
 #include "networking/socket.hpp"
+#include "networking/SocketStream.hpp"
+#include "composite/Base.hpp"
 
-namespace dropbox {
-class BackupReplica {
+namespace dropbox::replica {
+class Backup {
    public:
-    BackupReplica(const sockaddr_in kPrimaryAddr) : primary_addr_(kPrimaryAddr) {}
+    explicit Backup(const sockaddr_in& primary_addr);
 
-    [[nodiscard]] bool ConnectToPrimary() const { return socket_.Connect(primary_addr_); }
+    [[nodiscard]] bool ConnectToPrimary() const { return exchange_.socket_.Connect(primary_addr_); }
+
+    void MainLoop(sig_atomic_t& should_stop);
 
    private:
-    sockaddr_in primary_addr_;
-    Socket      socket_;
+    sockaddr_in     primary_addr_;
+    composite::Base exchange_;
 };
 }

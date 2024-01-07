@@ -124,8 +124,6 @@ bool dropbox::FileExchange::Receive() noexcept {
     }
 }
 
-void dropbox::FileExchange::SendCommand(dropbox::Command command) noexcept { stream_ << static_cast<int8_t>(command); }
-
 std::optional<dropbox::Command> dropbox::FileExchange::ReceiveCommand() noexcept {
     try {
         int8_t command_encoded;

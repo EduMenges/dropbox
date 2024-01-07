@@ -9,6 +9,7 @@
 
 #include "connections.hpp"
 #include "constants.hpp"
+#include "networking/socket.hpp"
 
 namespace dropbox {
 
@@ -18,7 +19,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
    public:
     static constexpr std::size_t kBufferSize = kPacketSize;
 
-    inline SocketBuffer(SocketType socket)
+    explicit SocketBuffer(Socket& socket)
         : socket_(socket), buffer_(std::make_unique<std::array<BufferElementType, kBufferSize>>()) {
         InitializePointers();
     }
@@ -27,7 +28,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 
     SocketBuffer(SocketBuffer&& other) noexcept
         : std::basic_streambuf<BufferElementType>(other),
-          socket_(std::exchange(other.socket_, kInvalidSocket)),
+          socket_(other.socket_),
           buffer_(std::move(other.buffer_)){};
 
     SocketBuffer(const SocketBuffer& other) = delete;
@@ -53,7 +54,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
     std::streamsize SendData() noexcept;
 
     /// Socket descriptor that is not owned by the stream, therefore, is not destroyed with it.
-    SocketType socket_;
+    Socket& socket_;
 
     /// Underlying buffer for reading and writing operations.
     std::unique_ptr<std::array<BufferElementType, kBufferSize>> buffer_;
@@ -61,7 +62,8 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 
 class SocketStream : public std::basic_iostream<BufferElementType> {
    public:
-    explicit SocketStream(int socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
+    explicit SocketStream(Socket& socket) : std::basic_iostream<BufferElementType>(&buffer_), buffer_(socket){};
+
     SocketStream(const SocketStream& other) = delete;
 
     SocketStream(SocketStream&& other) noexcept;

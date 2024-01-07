@@ -5,14 +5,16 @@
 #include <mutex>
 #include <ranges>
 
-#include "client_handler.hpp"
+#include "ClientHandler.hpp"
 #include "composite_interface.hpp"
+#include "replica/BackupHandler.hpp"
 
 namespace dropbox {
 /// Composite class to handle multiple clients of the same username.
 class ClientComposite : public CompositeInterface {
    public:
-    explicit ClientComposite(std::string&& username) : username_(std::move(username)){};
+    explicit ClientComposite(std::string&& username, std::vector<BackupHandler>& backups)
+        : username_(std::move(username)), backups_(backups){};
 
     ~ClientComposite() override = default;
 
@@ -23,21 +25,18 @@ class ClientComposite : public CompositeInterface {
     ClientHandler& Emplace(Socket&& header_socket, SocketStream&& payload_stream, Socket&& sync_sc_socket,
                            Socket&& sync_cs_socket) noexcept(false);
 
-    const std::string& GetUsername() const noexcept override { return username_; }
+    [[nodiscard]] const std::string& GetUsername() const noexcept override { return username_; }
 
     bool BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method,
+                          const std::function<bool(BackupHandler&, const std::filesystem::path&)>& backup_method,
                           ClientHandler::IdType origin, const std::filesystem::path& path);
 
     bool BroadcastUpload(ClientHandler::IdType origin, const std::filesystem::path& path) override {
-        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod =
-            &ClientHandler::SyncUpload;
-        return BroadcastCommand(kMethod, origin, path);
+        return BroadcastCommand(&ClientHandler::SyncUpload, &BackupHandler::Upload, origin, path);
     }
 
     bool BroadcastDelete(ClientHandler::IdType origin, const std::filesystem::path& path) override {
-        static const std::function<bool(ClientHandler&, const std::filesystem::path&)> kMethod =
-            &ClientHandler::SyncDelete;
-        return BroadcastCommand(kMethod, origin, path);
+        return BroadcastCommand(&ClientHandler::SyncDelete, &BackupHandler::Delete, origin, path);
     }
 
     /**
@@ -50,8 +49,9 @@ class ClientComposite : public CompositeInterface {
    private:
     static constexpr size_t kDeviceLimit = 2U;  ///< Maximum amount of devices that one client can connect with.
 
-    std::string              username_;
-    std::list<ClientHandler> list_;   ///< List of the devices for one client.
-    std::mutex               mutex_;  ///< Mutex for handling the list.
+    std::string                 username_;
+    std::list<ClientHandler>    list_;   ///< List of the devices for one client.
+    std::mutex                  mutex_;  ///< Mutex for handling the list.
+    std::vector<BackupHandler>& backups_;
 };
 }

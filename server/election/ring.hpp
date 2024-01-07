@@ -1,3 +1,5 @@
+#pragma once
+
 #include "networking/addr.hpp"
 #include "networking/socket.hpp"
 
@@ -19,6 +21,7 @@ class Ring {
 
     [[nodiscard]] bool constexpr HasPrev() const noexcept { return prev_socket_ != kInvalidSocket; }
 
+    /// Tests whether there is a connection to the next in the ring
     [[nodiscard]] bool HasNext() const noexcept { return next_socket_.HasConnection(); }
 
     ~Ring() = default;

@@ -4,7 +4,8 @@
 #include <thread>
 
 #include "communication/protocol.hpp"
-#include "communication/socket_stream.hpp"
+#include "networking/SocketStream.hpp"
+#include "composite/Sender.hpp"
 #include "composite_interface.hpp"
 #include "networking/socket.hpp"
 #include "utils.hpp"
@@ -95,18 +96,15 @@ class ClientHandler {
 
     CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
-    Socket header_socket_;  ///< Socket to exchange the header with.
-    Socket sync_sc_socket_;
-    Socket sync_cs_socket_;
+    Socket            header_socket_;  ///< Socket to exchange the header with.
+    composite::Sender sc_composite_;
+    Socket            sync_cs_socket_;
 
     SocketStream payload_stream_;
-    SocketStream sc_stream_;
     SocketStream cs_stream_;
 
     HeaderExchange he_;  ///< Exchanges headers with the client.
     FileExchange   fe_;  ///< Exchanges files with the client.
-
-    FileExchange scfe_;
 
     FileExchange csfe_;
 
