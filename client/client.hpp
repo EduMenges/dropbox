@@ -29,7 +29,7 @@ class Client {
 
     Client(Client&& other) = delete;
 
-    ~Client();
+    ~Client() = default;
 
     /**
      * Sends the username to the server.
@@ -111,8 +111,6 @@ class Client {
     FileExchange   server_fe_;
 
     Inotify inotify_;
-
-    bool client_sync_;
 };
 
 }

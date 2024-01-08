@@ -1,7 +1,5 @@
 ---
 Checks: <
-  abseil-*
-
   boost-*
   
   bugprone-*

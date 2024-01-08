@@ -173,7 +173,7 @@ bool dropbox::ClientHandler::SyncUpload(const std::filesystem::path& path) {
 
 void dropbox::ClientHandler::SyncFromClient(std::stop_token stop_token) {
     while (!stop_token.stop_requested()) {
-        const optional<Command> kReceivedCommand = csfe_.ReceiveCommand();
+        const auto kReceivedCommand = csfe_.ReceiveCommand();
 
         if (!kReceivedCommand.has_value()) {
             continue;

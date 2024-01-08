@@ -77,7 +77,7 @@ void dropbox::replica::Primary::NewClient(dropbox::Socket&& payload_socket, drop
                                                   std::move(server_sync),
                                                   std::move(payload_stream));
 
-            std::jthread const sync_thread([&](std::stop_token stop_token) { handler.SyncFromClient(stop_token); });
+            std::jthread const kSyncThread([&](std::stop_token stop_token) { handler.SyncFromClient(stop_token); });
 
             handler.MainLoop();
 

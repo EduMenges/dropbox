@@ -96,16 +96,25 @@ bool dropbox::FileExchange::Receive() noexcept {
     }
 }
 
-std::optional<dropbox::Command> dropbox::FileExchange::ReceiveCommand() noexcept {
+tl::expected<dropbox::Command, std::error_code> dropbox::FileExchange::ReceiveCommand() noexcept {
     try {
         cereal::PortableBinaryInputArchive archive(stream_);
         Command                            command;
         archive(command);
 
         return command;
+    } catch (cereal::Exception& e) {
+        const auto kError = static_cast<std::errc>(errno);
+
+        if (std::string_view(e.what()).find("Read 0") != std::string_view::npos) {
+            return tl::make_unexpected(std::make_error_code(std::errc::connection_aborted));
+        }
+
+        fmt::println(stderr, "{}: ", e.what());
+        return tl::make_unexpected(std::make_error_code(static_cast<std::errc>(kError)));
     } catch (std::exception& e) {
-        fmt::println(stderr, "{}: {}", __func__, e.what());
-        return std::nullopt;
+        const auto kError = static_cast<std::errc>(errno);
+        return tl::make_unexpected(std::make_error_code(kError));
     }
 }
 

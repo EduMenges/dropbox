@@ -44,7 +44,7 @@ class FileExchange {
 
     void SendCommand(Command command) noexcept;
 
-    std::optional<Command> ReceiveCommand() noexcept;
+    tl::expected<dropbox::Command, std::error_code> ReceiveCommand() noexcept;
 
     bool SendPath() noexcept;
 

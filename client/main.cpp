@@ -7,7 +7,13 @@
 #include "user_input.hpp"
 
 namespace dropbox {
-enum ArgV : size_t { kExecutionPath [[maybe_unused]] = 0U, kUserName, kServerIpAddress, kPort, kTotal }; // NOLINT(*-enum-size)
+enum ArgV : size_t {
+    kExecutionPath [[maybe_unused]] = 0U,
+    kUserName,
+    kServerIpAddress,
+    kPort,
+    kTotal
+};  // NOLINT(*-enum-size)
 }
 
 using dropbox::ArgV;
@@ -41,10 +47,11 @@ int main(int argc, char* argv[]) {  // NOLINT
 
         dropbox::UserInput(client).Start();
 
+        sync_thread.request_stop();
+
         file_exchange_thread.request_stop();
 
         inotify_thread.request_stop();
-
     } catch (std::exception& e) {
         fmt::println("{}", e.what());
     }

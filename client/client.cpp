@@ -22,8 +22,7 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
       payload_fe_(payload_stream_),
       client_fe_(client_stream_),
       server_fe_(server_stream_),
-      inotify_(SyncDirPath()),
-      client_sync_(true) {
+      inotify_(SyncDirPath()) {
     const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}, {0}};
 
     Socket *to_connect[] = {&payload_socket_, &client_sync, &server_sync};  // NOLINT
@@ -100,12 +99,12 @@ bool dropbox::Client::Download(std::filesystem::path &&file_name) {
 
     const auto kReceived = payload_fe_.ReceiveCommand();
     if (!kReceived.has_value()) {
-        fmt::println(stderr, "{}: failure when receiving response from server.", __func__);
+        fmt::println(stderr, "{}: {}", __func__, kReceived.error().message());
         return false;
     }
 
     if (kReceived == Command::kError) {
-        fmt::println("File was not found on the server.");
+        fmt::println(stderr, "{}: file was not found on the server", __func__);
         return false;
     }
 
@@ -139,11 +138,7 @@ bool dropbox::Client::GetSyncDir() {
     return true;
 }
 
-dropbox::Client::~Client() { client_sync_ = false; }
-
 void dropbox::Client::Exit() {
-    client_sync_ = false;
-
     client_fe_.SendCommand(Command::kExit);
     client_fe_.Flush();
 
@@ -184,7 +179,7 @@ void dropbox::Client::StartInotify(const std::stop_token &stop_token) {
 }
 
 void dropbox::Client::SyncFromClient(std::stop_token stop_token) {
-    while (client_sync_) {
+    while (true) {
         std::unique_lock lk(inotify_.collection_mutex_);
         inotify_.cv_.wait(lk, [&] { return inotify_.HasActions() || stop_token.stop_requested(); });
 
@@ -228,6 +223,9 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
         const auto kReceivedCommand = server_fe_.ReceiveCommand();
 
         if (!kReceivedCommand.has_value()) {
+            if (kReceivedCommand.error() != std::errc::connection_aborted) {
+                fmt::println(stderr, "{}: {}", __func__, kReceivedCommand.error().message());
+            }
             continue;
         }
 
