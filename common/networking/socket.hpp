@@ -22,6 +22,15 @@ class Socket {
         Error error_;
     };
 
+    class SetTimeoutException : public std::system_error {
+       public:
+        SetTimeoutException() = default;
+
+        [[nodiscard]] const char *what() const noexcept override {
+            return "Error in setting timeout";
+        }
+    };
+
     Socket() noexcept(false) : socket_(socket(kDomain, kType, kProtocol)) {
         if (socket_ == kInvalidSocket) {
             throw SocketCreation();
