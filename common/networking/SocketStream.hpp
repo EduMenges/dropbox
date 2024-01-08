@@ -31,7 +31,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 
     SocketBuffer(const SocketBuffer& other) = delete;
 
-    [[nodiscard]] SocketType constexpr GetSocket() const noexcept { return socket_; }
+    void SetSocket(Socket& socket) { socket_ = socket; }
 
    protected:
     int_type underflow() noexcept(false) override;
@@ -52,7 +52,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
     std::streamsize SendData() noexcept;
 
     /// Socket descriptor that is not owned by the stream, therefore, is not destroyed with it.
-    Socket& socket_;
+    std::reference_wrapper<Socket> socket_;
 
     /// Underlying buffer for reading and writing operations.
     std::unique_ptr<std::array<BufferElementType, kBufferSize>> buffer_;
@@ -66,7 +66,7 @@ class SocketStream : public std::basic_iostream<BufferElementType> {  // NOLINT
 
     SocketStream(SocketStream&& other) noexcept;
 
-    [[nodiscard]] SocketType GetSocket() const noexcept { return buffer_.GetSocket(); }
+    void SetSocket(Socket& socket) { buffer_.SetSocket(socket); }
 
    private:
     SocketBuffer buffer_;

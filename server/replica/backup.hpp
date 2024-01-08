@@ -4,8 +4,8 @@
 #include <netinet/in.h>
 
 #include "networking/socket.hpp"
-#include "networking/SocketStream.hpp"
 #include "composite/Base.hpp"
+#include "networking/SocketStream.hpp"
 
 namespace dropbox::replica {
 class Backup {

@@ -3,8 +3,13 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "ClientComposite.hpp"
+#include "ClientHandler.hpp"
+#include "networking/SocketStream.hpp"
+#include "networking/socket.hpp"
+#include "replica/BackupHandler.hpp"
 
 namespace dropbox {
 /// Class that holds information for all of the clients and all of their devices.
@@ -18,9 +23,9 @@ class ClientPool {
 
     ClientPool(ClientPool&& other) = delete;
 
-    dropbox::ClientHandler& Emplace(std::string&& username, std::vector<BackupHandler>& backups, Socket&& header_socket,
-                                    SocketStream&& payload_stream, Socket&& sync_sc_socket,
-                                    Socket&& sync_cs_socket) noexcept(false);
+    dropbox::ClientHandler& Emplace(std::string&& username, std::vector<BackupHandler>& backups,
+                                    Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
+                                    SocketStream&& payload_stream) noexcept(false);
 
    private:
     std::mutex mutex_;

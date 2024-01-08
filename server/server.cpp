@@ -49,11 +49,11 @@ void dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
     if (id == GetId()) {
         replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp());
 
-        std::get<replica::Primary>(*replica_).AcceptBackups();
+        std::get<replica::Primary>(*replica_).AcceptBackupLoop();
         std::get<replica::Primary>(*replica_).MainLoop(should_stop_);
     } else {
         auto addr = servers_[static_cast<size_t>(id)];
-        addr.SetPort(replica::Primary::kAdminPort);
+        addr.SetPort(replica::Primary::kBackupPort);
         replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
 
         std::get<replica::Backup>(*replica_).MainLoop(should_stop_);
@@ -93,6 +93,6 @@ dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection
     if (result.has_value()) {
         HandleElection(*result);
     } else {
-        fmt::println(stderr, "{}", result.error().message());
+        fmt::println(stderr, "{}: {}", __func__, result.error().message());
     }
 }

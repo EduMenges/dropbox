@@ -58,11 +58,23 @@ class Socket {
         return getpeername(socket_, reinterpret_cast<sockaddr *>(&address), &address_len) == 0;
     }
 
+    [[nodiscard]] bool Bind(const sockaddr_in& addr) const noexcept {
+        return bind(socket_, reinterpret_cast<const sockaddr *>(&addr), sizeof(sockaddr_in)) == 0;
+    }
+
+    [[nodiscard]] bool Listen(int backlog) const noexcept {
+        return listen(socket_, backlog) == 0;
+    }
+
     [[nodiscard]] bool Connect(const sockaddr_in &address) const noexcept {
         return connect(socket_, reinterpret_cast<const sockaddr *>(&address), sizeof(sockaddr_in)) == 0;
     }
 
     [[nodiscard]] tl::expected<void, std::pair<KeepAliveError, std::error_code>> SetKeepalive() const;
+
+    bool SetTimeout(struct timeval timeout) const {
+        return setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == 0;
+    }
 
     constexpr operator int() const noexcept { return socket_; }
 

@@ -23,9 +23,6 @@ class UserInput {
     /// Stops the user input handling..
     void Stop();
 
-    /// Não sei o que isso faz, tem que ver com o Arthur.
-    std::string GetQueue();
-
    private:
     /**
      * Calls the methods corresponding to the command.

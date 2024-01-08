@@ -12,7 +12,6 @@
 #include "ClientPool.hpp"
 #include "networking/socket.hpp"
 
-
 namespace dropbox::replica {
 
 class Primary {
@@ -26,12 +25,12 @@ class Primary {
     ~Primary() = default;
 
     /**
-     * Accept a new backup replica.
+     * AcceptBackup a new backup replica.
      * @return \c true if a backup connect, \c false if error or timeout.
      */
-    bool Accept();
+    bool AcceptBackup();
 
-    void AcceptBackups();
+    void AcceptBackupLoop();
 
     /// Keep accepting new client connections in this loop.
     void MainLoop(sig_atomic_t& should_stop);
@@ -41,15 +40,18 @@ class Primary {
      * @param header_socket Header socket of the new client.
      * @param payload_socket File socket of the new client.
      */
-    void NewClient(Socket&& header_socket, Socket&& payload_socket, Socket&& sync_sc_socket, Socket&& sync_cs_socket);
+    void NewClient(dropbox::Socket&& payload_socket, dropbox::Socket&& client_sync, dropbox::Socket&& server_sync);
 
-    static constexpr in_port_t kAdminPort = 12345;
+    static constexpr in_port_t kClientPort = 12345;
+    static constexpr in_port_t kBackupPort = 54321;
 
    private:
     static constexpr int     kBacklog = 10;  ///< Backlog in connection.
-    static constexpr timeval kTimeout{1, 0};
+    static constexpr timeval kTimeout{2, 0};
 
-    Socket       receiver_;
+    Socket client_receiver_;
+    Socket backup_receiver_;
+
     std::jthread accept_thread_;
 
     std::vector<BackupHandler> backups_;

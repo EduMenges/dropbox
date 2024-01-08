@@ -3,10 +3,8 @@
 #include <netinet/in.h>
 
 #include <communication/protocol.hpp>
-#include <cstdint>
 #include <filesystem>
 #include <string>
-#include <thread>
 
 #include "networking/SocketStream.hpp"
 #include "inotify.hpp"
@@ -74,7 +72,7 @@ class Client {
      * Ends main loop and communication with server.
      * @return Status of the operation.
      */
-    bool Exit();
+    void Exit();
 
     void SyncFromServer(const std::stop_token& stop_token);
 
@@ -91,7 +89,7 @@ class Client {
      * @brief Uploads a file to the server.
      * @pre Assumes that \p path is a valid file.
      */
-    bool Upload(const std::filesystem::path& path);
+    bool Upload(std::filesystem::path&& path);
 
     inline void Flush() { payload_stream_.flush(); }
 
@@ -100,21 +98,17 @@ class Client {
    private:
     std::string username_;  ///< User's name, used as an identifier.
 
-    Socket header_socket_;   ///< Socket to exchange headers.
     Socket payload_socket_;  ///< Socket to exchange files.
-
-    Socket sync_sc_socket_;  ///< Socket only for sync server -> client
-    Socket sync_cs_socket_;  ///< Socket only for sync client -> server
+    Socket client_sync;  ///< Socket for sync client -> server.
+    Socket server_sync;  ///< Socket for sync server -> client.
 
     SocketStream payload_stream_;
-    SocketStream sc_stream_;
-    SocketStream cs_stream_;
+    SocketStream client_stream_;
+    SocketStream server_stream_;
 
-    HeaderExchange he_;  ///< What to exchange headers (commands) to the server with.
-    FileExchange   fe_;  ///< What to exchange files with the server with.
-
-    FileExchange   scfe_;
-    FileExchange   csfe_;
+    FileExchange   payload_fe_;  ///< What to exchange files with the server with.
+    FileExchange   client_fe_;
+    FileExchange   server_fe_;
 
     Inotify inotify_;
 

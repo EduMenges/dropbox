@@ -2,13 +2,8 @@
 
 #include <iostream>
 
-dropbox::SocketStream::SocketStream(dropbox::SocketStream&& other) noexcept
-    : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)) {
-    this->set_rdbuf(&buffer_);
-}
-
 std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
-    const ssize_t kBytesRead = ::read(socket_, buffer_->begin(), kBufferSize);
+    const ssize_t kBytesRead = ::read(socket_.get(), buffer_->begin(), kBufferSize);
 
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
@@ -19,7 +14,7 @@ std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
 
 std::streamsize dropbox::SocketBuffer::SendData() noexcept {
     const size_t  kDataSize  = pptr() - pbase();
-    const ssize_t kBytesSent = ::write(socket_, pbase(), kDataSize);
+    const ssize_t kBytesSent = ::write(socket_.get(), pbase(), kDataSize);
 
     if (kBytesSent == kInvalidWrite) {
         perror(__func__);
@@ -38,7 +33,7 @@ int dropbox::SocketBuffer::underflow() noexcept(false) {
     const auto kBytesReceived = ReceiveData();
 
     if (kBytesReceived == kInvalidRead) {
-        throw std::system_error(std::error_code(errno, std::generic_category()));
+        throw std::system_error(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
     if (kBytesReceived == 0) {
@@ -75,4 +70,10 @@ int dropbox::SocketBuffer::sync() {
     }
 
     pbump(static_cast<int>(-kTotalSent));
-    return 0; }
+    return 0;
+}
+
+dropbox::SocketStream::SocketStream(dropbox::SocketStream&& other) noexcept
+    : basic_iostream<BufferElementType>(std::move(other)), buffer_(std::move(other.buffer_)) {
+    this->set_rdbuf(&buffer_);
+}

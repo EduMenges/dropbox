@@ -1,5 +1,8 @@
 #include "ClientComposite.hpp"
 
+#include <atomic>
+#include <ranges>
+
 #include "exceptions.hpp"
 
 void dropbox::ClientComposite::Remove(int id) {
@@ -8,22 +11,19 @@ void dropbox::ClientComposite::Remove(int id) {
     list_.remove_if([id](auto& cli) { return cli == id; });
 }
 
-dropbox::ClientHandler& dropbox::ClientComposite::Emplace(Socket&& header_socket, SocketStream&& payload_stream,
-                                                          Socket&& sync_sc_socket,
-                                                          Socket&& sync_cs_socket) noexcept(false) {
+dropbox::ClientHandler& dropbox::ClientComposite::Emplace(Socket&& payload_socket, Socket&& client_sync,
+                                                          Socket&&       server_sync,
+                                                          SocketStream&& payload_stream) noexcept(false) {
     const std::lock_guard kLock(mutex_);
 
     if (list_.size() >= kDeviceLimit) {
-        std::cerr << "Can't connect " << username_ << '\n';
+        fmt::println(stderr, "ClientComposite::{}: can't connect new client {} due to full list", __func__, username_);
         throw FullList();
     }
 
-    auto& client = list_.emplace_back(this,
-                                      std::move(header_socket),
-                                      std::move(payload_stream),
-                                      std::move(sync_sc_socket),
-                                      std::move(sync_cs_socket));
-    std::cout << "New client: " << client.GetUsername() << "::" << client.GetId() << '\n';
+    auto& client = list_.emplace_back(
+        this, std::move(payload_socket), std::move(client_sync), std::move(server_sync), std::move(payload_stream));
+    fmt::println("ClientComposite::{}: new client {}::{}", __func__, client.GetUsername(), client.GetId());
     return list_.back();
 }
 
@@ -44,7 +44,7 @@ bool dropbox::ClientComposite::BroadcastCommand(
         }
     }
 
-    for (auto& backup: backups_) {
+    for (auto& backup : backups_) {
         if (!backup_method(backup, path)) {
             return false;
         }

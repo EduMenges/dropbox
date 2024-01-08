@@ -37,6 +37,7 @@ Checks: <
   
   misc-*
   -misc-non-private-member-variables-in-classes
+  -misc-include-cleaner
   
   modernize-*
   -modernize-use-trailing-return-type
@@ -52,6 +53,9 @@ FormatStyle: file
 
 CheckOptions:
   hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: true
+
+  performance-unnecessary-value-param.IncludeStyle: google
+  performance-unnecessary-value-param.AllowedTypes: std::stop_token;std::function
 
   readability-identifier-naming.IgnoreMainLikeFunctions: true
 

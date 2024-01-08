@@ -12,7 +12,7 @@ dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_socket_(kInvalidSocket)
         throw Listening();
     }
 
-    SetTimeout(accept_socket_, kTimeout);
+    [[maybe_unused]] bool res = accept_socket_.SetTimeout(kTimeout);
 }
 
 bool dropbox::Ring::AcceptPrev() noexcept {

@@ -18,7 +18,7 @@ class Addr {
      * @param port Port.
      */
     Addr(IdType id, std::string &&ip, in_port_t port)
-        : id_(id), ip_(std::move(ip)), port_(port), addr_({kFamily, htons(port_), {inet_addr(ip_.c_str())}}) {}
+        : id_(id), ip_(std::move(ip)), port_(port), addr_({kFamily, htons(port_), {inet_addr(ip_.c_str())}, {0}}) {}
 
     [[nodiscard]] constexpr const sockaddr_in &AsAddr() const noexcept { return addr_; }
 

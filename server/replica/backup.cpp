@@ -18,7 +18,7 @@ void dropbox::replica::Backup::MainLoop(sig_atomic_t& should_stop) {
             if (!exchange_.exchange_.Receive()) {
             }
 
-            fmt::println("{}  was modified from another device", exchange_.exchange_.GetPath().c_str());
+            fmt::println("{}: {} was modified from another device", __func__, exchange_.exchange_.GetPath().c_str());
 
         } else if (kCommand == Command::kDelete) {
             if (!exchange_.exchange_.ReceivePath()) {
@@ -30,19 +30,19 @@ void dropbox::replica::Backup::MainLoop(sig_atomic_t& should_stop) {
                 std::filesystem::remove(file_path);
             }
 
-            std::cout << file_path << " was deleted from another device\n";
+            fmt::println( "{}: {} was deleted from another device", __func__, file_path.c_str());
         } else if (kCommand != Command::kExit) {
-            std::cerr << "Unexpected command from server sync: " << kCommand << '\n';
+            fmt::println(stderr, "{}: unexpected command: {}", __func__, kCommand);
         }
     }
 }
 
 dropbox::replica::Backup::Backup(const sockaddr_in& primary_addr)
-    : primary_addr_(primary_addr), exchange_(Socket(kInvalidSocket)) {
-    const auto kKeepAliveResult = exchange_.socket_.SetKeepalive();
-    if (!kKeepAliveResult.has_value()) {
-        throw Socket::KeepAliveException(kKeepAliveResult.error());
-    }
-
+    : primary_addr_(primary_addr), exchange_(Socket()) {
     [[maybe_unused]] bool could_connect = ConnectToPrimary();
+
+//    const auto kKeepAliveResult = exchange_.socket_.SetKeepalive();
+//    if (!kKeepAliveResult.has_value()) {
+//        throw Socket::KeepAliveException(kKeepAliveResult.error());
+//    }
 }

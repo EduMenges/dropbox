@@ -1,72 +1,70 @@
-#include "primary.hpp"
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
 #include "fmt/core.h"
+#include "primary.hpp"
 
 dropbox::replica::Primary::Primary(const std::string& ip) {
-    sockaddr_in addr = {kFamily, htons(kAdminPort), {inet_addr(ip.c_str())}};
+    const sockaddr_in kClientReceiverAddr = {kFamily, htons(kClientPort), {inet_addr(ip.c_str())}, {0}};
+    const sockaddr_in kBackupAddr         = {kFamily, htons(kBackupPort), {inet_addr(ip.c_str())}, {0}};
 
-    if (bind(receiver_, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) == -1) {
+    if (!client_receiver_.Bind(kClientReceiverAddr) || !backup_receiver_.Bind(kBackupAddr)) {
         throw Binding();
     }
 
-    if (listen(receiver_, kBacklog) == -1) {
+    if (!client_receiver_.Listen(kBacklog) || !backup_receiver_.Listen(kBacklog)) {
         throw Listening();
     }
 
-    SetTimeout(receiver_, kTimeout);
+//    client_receiver_.SetTimeout(kTimeout);
 }
 
-bool dropbox::replica::Primary::Accept() {
-    Socket new_backup(accept(receiver_, nullptr, nullptr));
+bool dropbox::replica::Primary::AcceptBackup() {
+    Socket new_backup(accept(backup_receiver_, nullptr, nullptr));
 
     if (!new_backup.IsValid()) {
         return false;
     }
 
-    fmt::println("New server");
+    fmt::println("{}: new server", __func__);
     backups_.emplace_back(std::move(new_backup));
     return true;
 }
 
-void dropbox::replica::Primary::AcceptBackups() {
+void dropbox::replica::Primary::AcceptBackupLoop() {
     accept_thread_ = std::jthread([&](const std::stop_token& stop_token) {
         while (!stop_token.stop_requested()) {
-            Accept();
+            AcceptBackup();
         }
     });
 }
 
 void dropbox::replica::Primary::MainLoop(sig_atomic_t& should_stop) {
     while (should_stop != 1) {
-        Socket header_socket(accept(receiver_, nullptr, nullptr));
-        Socket payload_socket(accept(receiver_, nullptr, nullptr));
-        Socket sync_sc_socket(accept(receiver_, nullptr, nullptr));
-        Socket sync_cs_socket(accept(receiver_, nullptr, nullptr));
+        Socket payload_socket(accept(client_receiver_, nullptr, nullptr));
 
-        if (header_socket.IsValid()) {
-            NewClient(std::move(header_socket),
-                      std::move(payload_socket),
-                      std::move(sync_sc_socket),
-                      std::move(sync_cs_socket));
+        if (payload_socket == kInvalidSocket && errno == EAGAIN) {
+            continue;
+        }
+
+        Socket client_sync(accept(client_receiver_, nullptr, nullptr));
+        Socket server_sync(accept(client_receiver_, nullptr, nullptr));
+
+        // Immediately stops the client building if any sockets are invalid.
+        if (InvalidSockets(payload_socket, server_sync, client_sync)) {
+            const auto kCurrentErrno = std::make_error_code(static_cast<std::errc>(errno));
+                fmt::println(stderr,
+                             "MainLoop: could not accept new client connection {{ errno: {} }}",
+                             kCurrentErrno.message());
+        } else {
+            NewClient(std::move(payload_socket), std::move(client_sync), std::move(server_sync));
         }
     }
 }
 
-void dropbox::replica::Primary::NewClient(dropbox::Socket&& header_socket, dropbox::Socket&& payload_socket,
-                                        dropbox::Socket&& sync_sc_socket, dropbox::Socket&& sync_cs_socket) {
+void dropbox::replica::Primary::NewClient(dropbox::Socket&& payload_socket, dropbox::Socket&& client_sync,
+                                          dropbox::Socket&& server_sync) {
     std::thread new_client_thread(
-        [this](Socket&&    header_socket,
-               Socket&&    payload_socket,
-               Socket&&    sync_sc_socket,
-               Socket&&    sync_cs_socket,
-               ClientPool& pool) {
-            // Immediately stops the client building if any sockets are invalid.
-            if (InvalidSockets(header_socket, payload_socket, sync_sc_socket, sync_cs_socket)) {
-                fmt::println(stderr, "Could not accept new client connection due to invalid sockets");
-                return;
-            }
-
+        [this](Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync, ClientPool& pool) {
             try {
                 SocketStream                       payload_stream(payload_socket);
                 cereal::PortableBinaryInputArchive archive(payload_stream);
@@ -75,12 +73,12 @@ void dropbox::replica::Primary::NewClient(dropbox::Socket&& header_socket, dropb
 
                 ClientHandler& handler = pool.Emplace(std::move(username),
                                                       backups_,
-                                                      std::move(header_socket),
-                                                      std::move(payload_stream),
-                                                      std::move(sync_sc_socket),
-                                                      std::move(sync_cs_socket));
+                                                      std::move(payload_socket),
+                                                      std::move(client_sync),
+                                                      std::move(server_sync),
+                                                      std::move(payload_stream));
 
-                std::thread sync_thread([&]() { handler.SyncFromClient(); });
+                std::jthread sync_thread([&](std::stop_token stop_token) { handler.SyncFromClient(stop_token); });
 
                 handler.MainLoop();
 
@@ -88,13 +86,12 @@ void dropbox::replica::Primary::NewClient(dropbox::Socket&& header_socket, dropb
 
                 sync_thread.join();
             } catch (std::exception& e) {
-                std::cerr << "Error when creating client: " << e.what() << '\n';
+                fmt::println(stderr, "NewClient: {}", e.what());
             }
         },
-        std::move(header_socket),
         std::move(payload_socket),
-        std::move(sync_sc_socket),
-        std::move(sync_cs_socket),
+        std::move(client_sync),
+        std::move(server_sync),
         std::ref(client_pool_));
 
     new_client_thread.detach();

@@ -22,8 +22,8 @@ class ClientComposite : public CompositeInterface {
 
     ClientComposite(ClientComposite&& other) = delete;
 
-    ClientHandler& Emplace(Socket&& header_socket, SocketStream&& payload_stream, Socket&& sync_sc_socket,
-                           Socket&& sync_cs_socket) noexcept(false);
+    dropbox::ClientHandler& Emplace(Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
+                                    SocketStream&& payload_stream) noexcept(false);
 
     [[nodiscard]] const std::string& GetUsername() const noexcept override { return username_; }
 

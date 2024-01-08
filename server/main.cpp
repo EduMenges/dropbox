@@ -49,7 +49,7 @@ extern "C" void SignalHandler(int signal) {
 
 int main(int argc, char *argv[]) {
     if (static_cast<ArgV>(argc) != kTotal) {
-        std::cerr << "Usage: <index>\n";
+        fmt::println(stderr, "Usage: <index>");
         return EXIT_FAILURE;
     }
 
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
     } else {
-        std::cerr << "Port conversion failed\n";
+        fmt::println(stderr, "Failure converting index \"{}\"", argv[kIndex]);
         return EXIT_FAILURE;
     }
 

@@ -13,8 +13,7 @@ void dropbox::UserInput::Start() {
     reading_ = true;
 
     while (reading_) {
-        std::cout << "$ ";
-        std::cout.flush();
+        fmt::print("$ ");
 
         std::string user_input;
         std::getline(std::cin, user_input);
@@ -30,59 +29,57 @@ void dropbox::UserInput::Start() {
         const std::optional<Command>& command = CommandFromStr(input_command);
 
         if (!command.has_value()) {
-            fmt::println(stderr, "Unknown command: {}", input_command);
+            fmt::println(stderr, "Unknown command: \"{}\"", input_command);
             continue;
         }
-        
-        const Command kCommand = *command;
-        HandleCommand(kCommand);
+
+        HandleCommand(*command);
     }
 }
 
 void dropbox::UserInput::Stop() { reading_ = false; }
 
-std::string dropbox::UserInput::GetQueue() {
-    if (input_queue_.empty()) {
-        return "";
-    }
-
-    std::string front_queue = input_queue_.front();
-    input_queue_.pop();
-
-    return front_queue;
-}
-
 void dropbox::UserInput::HandleCommand(Command command) {
+    auto do_and_report = [&](std::function<bool(dropbox::Client&, std::filesystem::path&&)> method,
+                             std::filesystem::path&&                                        path) {
+        if (method(client_, std::move(path))) {
+            fmt::println("Success");
+        } else {
+            fmt::println(stderr, "Failure");
+        }
+    };
+
     switch (command) {
         case Command::kUpload:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
                 if (is_regular_file(path)) {
-                    fmt::println("Result: {}", client_.Upload(path));
+                    do_and_report(&Client::Upload, std::move(path));
                 } else {
-                    std::cerr << path.filename() << " is not a file\n";
+                    fmt::println(stderr, "{} is not a file", path.filename().c_str());
                 }
             } else {
-                std::cerr << "Missing path\n";
+                fmt::println(stderr, "Missing path");
             }
             break;
         case Command::kDownload:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
-                std::cerr << "Result: " << client_.Download(std::move(path)) << '\n';
+                do_and_report(&Client::Download, std::move(path));
+
             } else {
-                std::cerr << "Missing path\n";
+                fmt::println(stderr, "Missing path");
             }
             break;
         case Command::kDelete:
             if (!input_path_.empty()) {
                 std::filesystem::path path(input_path_);
 
-                std::cerr << "Result: " << client_.Delete(std::move(path)) << '\n';
+                do_and_report(&Client::Delete, std::move(path));
             } else {
-                std::cerr << "Missing path.\n";
+                fmt::println(stderr, "Missing path");
             }
             break;
         case Command::kListServer:
@@ -96,7 +93,7 @@ void dropbox::UserInput::HandleCommand(Command command) {
             Stop();
             break;
         default:
-            std::cerr << "Unexpected command: " << command << '\n';
+            fmt::println(stderr, "Unexpected command: {}", command);
             break;
     }
     client_.Flush();

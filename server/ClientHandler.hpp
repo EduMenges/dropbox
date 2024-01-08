@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iostream>
+#include <filesystem>
 #include <thread>
 
 #include "communication/protocol.hpp"
@@ -19,8 +19,8 @@ class ClientHandler {
 
     static constexpr IdType kInvalidId = kInvalidSocket;
 
-    ClientHandler(CompositeInterface* composite, int header_socket, SocketStream&& payload_stream, int sync_sc_socket,
-                  int sync_cs_socket);
+    ClientHandler(CompositeInterface* composite, Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
+                  SocketStream&& payload_stream);
 
     /// Clients handlers are not copiable due to side effect in socket closing.
     ClientHandler(const ClientHandler& other) = delete;
@@ -33,7 +33,7 @@ class ClientHandler {
     void MainLoop();
 
     /// Creates the sync_dir_directory on the server side if it does not exist.
-    void CreateUserFolder() const;
+    void CreateUserFolder() const { std::filesystem::create_directory(SyncDirPath()); }
 
     /// Username getter.
     [[nodiscard]] const std::string& GetUsername() const noexcept { return GetComposite()->GetUsername(); };
@@ -72,7 +72,7 @@ class ClientHandler {
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
      */
-    [[nodiscard]] inline IdType GetId() const noexcept { return header_socket_; }
+    [[nodiscard]] inline IdType GetId() const noexcept { return payload_socket_.socket_; }
 
     inline bool operator==(const ClientHandler& other) const noexcept { return GetId() == other.GetId(); }
 
@@ -88,7 +88,7 @@ class ClientHandler {
 
     bool SyncDelete(const std::filesystem::path& path);
 
-    void SyncFromClient();
+    void SyncFromClient(std::stop_token stop_token);
 
    private:
     /// How many attempts remain until a client is disconnected.
@@ -96,18 +96,15 @@ class ClientHandler {
 
     CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
-    Socket            header_socket_;  ///< Socket to exchange the header with.
-    composite::Sender sc_composite_;
-    Socket            sync_cs_socket_;
+    Socket payload_socket_;
+    Socket client_sync_;
+
+    composite::Sender server_sync_composite_;
 
     SocketStream payload_stream_;
     SocketStream cs_stream_;
 
-    HeaderExchange he_;  ///< Exchanges headers with the client.
-    FileExchange   fe_;  ///< Exchanges files with the client.
-
+    FileExchange fe_;  ///< Exchanges files with the client.
     FileExchange csfe_;
-
-    bool server_sync_;
 };
 }

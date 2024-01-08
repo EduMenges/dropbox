@@ -22,19 +22,6 @@ class SocketExchange {
     SocketType socket_;
 };
 
-class HeaderExchange : public SocketExchange {
-   public:
-    HeaderExchange() = delete;
-
-    explicit HeaderExchange(SocketType socket_fd) : SocketExchange(socket_fd){};
-
-    HeaderExchange(HeaderExchange&& other) = default;
-
-    bool Send(Command command) noexcept;
-
-    [[nodiscard]] std::optional<Command> Receive() noexcept;
-};
-
 class FileExchange {
    public:
     FileExchange() = delete;
@@ -55,7 +42,7 @@ class FileExchange {
         return *this;
     }
 
-    void SendCommand(Command command) noexcept { stream_ << static_cast<int8_t>(command); }
+    void SendCommand(Command command) noexcept;
 
     std::optional<Command> ReceiveCommand() noexcept;
 
