@@ -15,7 +15,9 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
         throw Listening();
     }
 
-    //    client_receiver_.SetTimeout(kTimeout);
+    if (!backup_receiver_.SetTimeout(kTimeout)) {
+        throw Socket::SetTimeoutException();
+    }
 }
 
 bool dropbox::replica::Primary::AcceptBackup() {
