@@ -15,7 +15,7 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
         throw Listening();
     }
 
-//    client_receiver_.SetTimeout(kTimeout);
+    //    client_receiver_.SetTimeout(kTimeout);
 }
 
 bool dropbox::replica::Primary::AcceptBackup() {
@@ -52,9 +52,8 @@ void dropbox::replica::Primary::MainLoop(sig_atomic_t& should_stop) {
         // Immediately stops the client building if any sockets are invalid.
         if (InvalidSockets(payload_socket, server_sync, client_sync)) {
             const auto kCurrentErrno = std::make_error_code(static_cast<std::errc>(errno));
-                fmt::println(stderr,
-                             "MainLoop: could not accept new client connection {{ errno: {} }}",
-                             kCurrentErrno.message());
+            fmt::println(
+                stderr, "MainLoop: could not accept new client connection {{ errno: {} }}", kCurrentErrno.message());
         } else {
             NewClient(std::move(payload_socket), std::move(client_sync), std::move(server_sync));
         }
@@ -63,36 +62,45 @@ void dropbox::replica::Primary::MainLoop(sig_atomic_t& should_stop) {
 
 void dropbox::replica::Primary::NewClient(dropbox::Socket&& payload_socket, dropbox::Socket&& client_sync,
                                           dropbox::Socket&& server_sync) {
-    std::thread new_client_thread(
-        [this](Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync, ClientPool& pool) {
-            try {
-                SocketStream                       payload_stream(payload_socket);
-                cereal::PortableBinaryInputArchive archive(payload_stream);
-                std::string                        username;
-                archive(username);
+    auto thread_function = [this](
+                               Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync, ClientPool& pool) {
+        try {
+            SocketStream                       payload_stream(payload_socket);
+            cereal::PortableBinaryInputArchive archive(payload_stream);
+            std::string                        username;
+            archive(username);
 
-                ClientHandler& handler = pool.Emplace(std::move(username),
-                                                      backups_,
-                                                      std::move(payload_socket),
-                                                      std::move(client_sync),
-                                                      std::move(server_sync),
-                                                      std::move(payload_stream));
+            ClientHandler& handler = pool.Emplace(std::move(username),
+                                                  backups_,
+                                                  std::move(payload_socket),
+                                                  std::move(client_sync),
+                                                  std::move(server_sync),
+                                                  std::move(payload_stream));
 
-                std::jthread sync_thread([&](std::stop_token stop_token) { handler.SyncFromClient(stop_token); });
+            std::jthread const sync_thread([&](std::stop_token stop_token) { handler.SyncFromClient(stop_token); });
 
-                handler.MainLoop();
+            handler.MainLoop();
 
-                handler.GetComposite()->Remove(handler.GetId());
+            handler.GetComposite()->Remove(handler.GetId());
+        } catch (std::exception& e) {
+            fmt::println(stderr, "NewClient: {}", e.what());
+        }
+    };
 
-                sync_thread.join();
-            } catch (std::exception& e) {
-                fmt::println(stderr, "NewClient: {}", e.what());
-            }
-        },
-        std::move(payload_socket),
-        std::move(client_sync),
-        std::move(server_sync),
-        std::ref(client_pool_));
+    auto available_thread =
+        std::ranges::find_if_not(client_threads_, [](std::jthread& thread) { return thread.joinable(); });
 
-    new_client_thread.detach();
+    if (available_thread == std::end(client_threads_)) {
+        client_threads_.emplace_back(thread_function,
+                                     std::move(payload_socket),
+                                     std::move(client_sync),
+                                     std::move(server_sync),
+                                     std::ref(client_pool_));
+    } else {
+        *available_thread = std::jthread(thread_function,
+                                         std::move(payload_socket),
+                                         std::move(client_sync),
+                                         std::move(server_sync),
+                                         std::ref(client_pool_));
+    }
 }

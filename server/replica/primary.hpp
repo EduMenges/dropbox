@@ -53,6 +53,7 @@ class Primary {
     Socket backup_receiver_;
 
     std::jthread accept_thread_;
+    std::vector<std::jthread> client_threads_;
 
     std::vector<BackupHandler> backups_;
     ClientPool                 client_pool_;  ///< Pool that stores information for all of the clients.
