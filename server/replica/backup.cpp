@@ -1,8 +1,8 @@
 #include "backup.hpp"
 #include "fmt/core.h"
 
-void dropbox::replica::Backup::MainLoop(sig_atomic_t& should_stop) {
-    while (should_stop != 1) {
+void dropbox::replica::Backup::MainLoop(std::atomic_bool& shutdown) {
+    while (!shutdown) {
         const auto kReceivedCommand = exchange_.exchange_.ReceiveCommand();
 
         if (!kReceivedCommand.has_value()) {

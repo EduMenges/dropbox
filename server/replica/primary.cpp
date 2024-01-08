@@ -40,11 +40,11 @@ void dropbox::replica::Primary::AcceptBackupLoop() {
     });
 }
 
-void dropbox::replica::Primary::MainLoop(sig_atomic_t& should_stop) {
-    while (should_stop != 1) {
+void dropbox::replica::Primary::MainLoop(std::atomic_bool& shutdown) {
+    while (!shutdown) {
         Socket payload_socket(accept(client_receiver_, nullptr, nullptr));
 
-        if (payload_socket == kInvalidSocket && errno == EAGAIN) {
+        if (payload_socket == kInvalidSocket && (errno == EAGAIN || errno == EINTR)) {
             continue;
         }
 

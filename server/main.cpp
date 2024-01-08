@@ -39,12 +39,14 @@ std::optional<std::vector<Addr>> ParseConfig() {
 using enum dropbox::ArgV;
 using dropbox::ArgV;
 
-sig_atomic_t should_stop = 0;
+std::atomic<bool> should_stop = false;
 
-extern "C" void SignalHandler(int signal) {
-    if (signal == SIGINT) {
+extern "C" {
+static void SignalHandler(int signal) {
+    if (signal == SIGINT || signal == SIGTERM) {
         should_stop = 1;
     }
+}
 }
 
 int main(int argc, char *argv[]) {
@@ -56,12 +58,17 @@ int main(int argc, char *argv[]) {
     size_t index   = 0;
     auto [ptr, ec] = std::from_chars(argv[kIndex], argv[kIndex] + strlen(argv[kIndex]), index);
 
-    if (ec == std::errc()) {
-        if (signal(SIGINT, SignalHandler) == SIG_ERR || signal(SIGTERM, SignalHandler) == SIG_ERR) {
-            return EXIT_FAILURE;
-        }
-    } else {
+    if (ec != std::errc()) {
         fmt::println(stderr, "Failure converting index \"{}\"", argv[kIndex]);
+        return EXIT_FAILURE;
+    }
+
+    struct sigaction sa {};
+    sa.sa_handler = SignalHandler;
+    sigfillset(&sa.sa_mask);
+
+    if (sigaction(SIGINT, &sa, nullptr) == -1 || sigaction(SIGTERM, &sa, nullptr) == -1) {
+        perror("Error setting up SIGINT handler");
         return EXIT_FAILURE;
     }
 
@@ -71,11 +78,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    auto           &servers = *parsed_config;
+    auto &servers = *parsed_config;
 
     try {
         dropbox::Server server(index, std::vector(servers), should_stop);
-    } catch (std::exception& e) {
+    } catch (std::exception &e) {
         fmt::println(stderr, "{}", e.what());
     }
 

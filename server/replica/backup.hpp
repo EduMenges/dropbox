@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <csignal>
 #include <netinet/in.h>
 
@@ -14,7 +15,7 @@ class Backup {
 
     [[nodiscard]] bool ConnectToPrimary() const { return exchange_.socket_.Connect(primary_addr_); }
 
-    void MainLoop(sig_atomic_t& should_stop);
+    void MainLoop(std::atomic_bool& shutdown);
 
    private:
     sockaddr_in     primary_addr_;

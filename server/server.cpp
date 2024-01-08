@@ -50,20 +50,20 @@ void dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
         replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp());
 
         std::get<replica::Primary>(*replica_).AcceptBackupLoop();
-        std::get<replica::Primary>(*replica_).MainLoop(should_stop_);
+        std::get<replica::Primary>(*replica_).MainLoop(shutdown_);
     } else {
         auto addr = servers_[static_cast<size_t>(id)];
         addr.SetPort(replica::Primary::kBackupPort);
         replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
 
-        std::get<replica::Backup>(*replica_).MainLoop(should_stop_);
+        std::get<replica::Backup>(*replica_).MainLoop(shutdown_);
     }
 }
 
-dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection, sig_atomic_t &should_stop)
+dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection, std::atomic_bool &shutdown)
     : addr_index_(addr_index),
       servers_(std::move(server_collection)),
-      should_stop_(should_stop),
+      shutdown_(shutdown),
       ring_(GetAddr()),
       accept_thread_([&](const std::stop_token &stop_token) {
           while (!stop_token.stop_requested()) {

@@ -15,7 +15,7 @@
 namespace dropbox {
 class Server {
    public:
-    Server(size_t addr_index, std::vector<Addr>&& server_collection, sig_atomic_t& should_stop);
+    Server(size_t addr_index, std::vector<Addr>&& server_collection, std::atomic_bool& shutdown);
 
     /// Server is not copiable due to side effect in destructor.
     Server(const Server& other) = delete;
@@ -47,7 +47,7 @@ class Server {
     size_t            addr_index_;  /// Where, in the given collection, the address of the server is located.
     std::vector<Addr> servers_;
 
-    sig_atomic_t& should_stop_;
+    std::atomic_bool& shutdown_;
 
     Ring                                                       ring_;
     std::optional<std::variant<replica::Primary, replica::Backup>> replica_ = std::nullopt;

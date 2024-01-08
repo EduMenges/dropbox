@@ -30,7 +30,7 @@ class Ring {
     Socket prev_socket_;
 
    private:
-    static constexpr timeval kTimeout{1, 0};
+    static constexpr timeval kTimeout{2, 0};
     Socket                   accept_socket_;
 };
 }

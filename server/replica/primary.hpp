@@ -33,7 +33,7 @@ class Primary {
     void AcceptBackupLoop();
 
     /// Keep accepting new client connections in this loop.
-    void MainLoop(sig_atomic_t& should_stop);
+    void MainLoop(std::atomic_bool& shutdown);
 
     /**
      * Builds a new client instance, inserts it into the pool, and starts its loop.
