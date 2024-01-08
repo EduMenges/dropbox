@@ -18,7 +18,7 @@ class Inotify {
         std::filesystem::path path;
     };
 
-    Inotify(std::filesystem::path&& watch_path);
+    explicit Inotify(std::filesystem::path&& watch_path);
     ~Inotify();
 
     void Start();

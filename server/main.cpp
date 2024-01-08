@@ -72,7 +72,12 @@ int main(int argc, char *argv[]) {
     }
 
     auto           &servers = *parsed_config;
-    dropbox::Server server(index, std::vector(servers), should_stop);
+
+    try {
+        dropbox::Server server(index, std::vector(servers), should_stop);
+    } catch (std::exception& e) {
+        fmt::println(stderr, "{}", e.what());
+    }
 
     return EXIT_SUCCESS;
 }

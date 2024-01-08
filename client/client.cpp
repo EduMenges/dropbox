@@ -240,7 +240,7 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
             }
             inotify_.Resume();
 
-            fmt::println("{}: {} was modified from another device", __func__, server_fe_.GetPath().c_str());
+            fmt::println("{}: {} was modified from another device", __func__, server_fe_.GetPath().filename().c_str());
 
         } else if (kCommand == Command::kDelete) {
             if (!server_fe_.ReceivePath()) {
@@ -254,7 +254,7 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
                 inotify_.Resume();
             }
 
-            fmt::println("{}: {} was deleted from another device", __func__, server_fe_.GetPath().c_str());
+            fmt::println("{}: {} was deleted from another device", __func__, server_fe_.GetPath().filename().c_str());
         } else if (kCommand != Command::kExit) {
             fmt::println(stderr, "{} unexpected command {}", __func__, kCommand);
         }
