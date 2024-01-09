@@ -9,6 +9,7 @@
 #include "replica/backup.hpp"
 #include "replica/primary.hpp"
 #include "tl/expected.hpp"
+#include "election/election.hpp"
 #include <csignal>
 #include <variant>
 
@@ -26,11 +27,17 @@ class Server {
 
     Addr& GetAddr() noexcept { return servers_[addr_index_]; }
 
-    tl::expected<Addr::IdType, std::error_code> PerformElection();
+    tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> PerformElection();
 
-    void HandleElection(Addr::IdType id);
+    dropbox::replica::MainLoopReply HandleElection(Addr::IdType id);
 
-    bool ConnectNext();
+    /**
+     * Attempts to connect to the next replica in \p servers_.
+     * Will exhaustively try the all of the replicas, until none can be connected.
+     * @param offset Where to start the connection in \p servers_ after \p addr_index_.
+     * @return
+     */
+    bool ConnectNext(size_t offset);
 
     /**
      * Getter for the replica.
@@ -39,19 +46,22 @@ class Server {
      */
     std::variant<replica::Primary, replica::Backup>& GetReplica() { return *replica_; }
 
+    /// Getter for the id.
     [[nodiscard]] constexpr Addr::IdType GetId() const noexcept { return static_cast<Addr::IdType>(addr_index_); }
 
+    /// Getter for the ring.
     [[nodiscard]] Ring& GetRing() noexcept { return ring_; }
 
    private:
-    size_t            addr_index_;  /// Where, in the given collection, the address of the server is located.
-    std::vector<Addr> servers_;
+    size_t            addr_index_;  ///< Where, in the given collection, the address of the server is located.
+    std::vector<Addr> servers_;     ///< Servers to connect with.
 
-    std::atomic_bool& shutdown_;
+    std::atomic_bool& shutdown_;  ///< Whether to shutdown the server.
 
-    Ring                                                       ring_;
-    std::optional<std::variant<replica::Primary, replica::Backup>> replica_ = std::nullopt;
+    Ring ring_; ///< Ring for use with the election.
+    std::jthread accept_thread_; ///< Thead that accepts new previous in the ring.
 
-    std::jthread accept_thread_;
+    std::optional<std::variant<replica::Primary, replica::Backup>> replica_ = std::nullopt; ///< Underlying replica type of the server.
+
 };
 }

@@ -1,11 +1,14 @@
 #include "server.hpp"
 #include "election/election.hpp"
 
-tl::expected<dropbox::Addr::IdType, std::error_code> dropbox::Server::PerformElection() {
+tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> dropbox::Server::PerformElection() {
     Election election(ring_, GetId());
-    election.StartElection();
 
-    tl::expected<std::optional<Addr::IdType>, bool> result;
+    if (!election.StartElection()) {
+        return tl::make_unexpected(Election::Error::kNextBroken);
+    }
+
+    tl::expected<std::optional<Addr::IdType>, Election::Error> result;
 
     do {
         result = election.ReplyElection();
@@ -15,22 +18,25 @@ tl::expected<dropbox::Addr::IdType, std::error_code> dropbox::Server::PerformEle
         return result->value();
     }
 
-    return tl::make_unexpected(std::make_error_code(static_cast<std::errc>(errno)));
+    return tl::make_unexpected(result.error());
 }
 
-bool dropbox::Server::ConnectNext() {
-    constexpr auto kMaxDuration = std::chrono::seconds(5);
+bool dropbox::Server::ConnectNext(size_t offset) {
+    /// How much to wait before trying to connect to the next server in @p servers_
+    constexpr auto kTimeout = std::chrono::seconds(8);
 
-    size_t next_i   = (addr_index_ + 1) % servers_.size();
+    size_t next_i   = (addr_index_ + offset) % servers_.size();
     auto   inc_next = [&] { next_i = (next_i + 1) % servers_.size(); };
 
     while (next_i != addr_index_) {
-        const auto kEnd = std::chrono::high_resolution_clock::now() + kMaxDuration;
+        const auto kEnd = std::chrono::high_resolution_clock::now() + kTimeout;
+
+        fmt::println("{}: trying server {}", __func__, next_i);
 
         while (std::chrono::high_resolution_clock::now() < kEnd && !GetRing().HasNext()) {
             auto &next_addr = servers_[next_i % servers_.size()];
             if (!GetRing().ConnectNext(next_addr)) {
-                fmt::println(stderr, "{}: Error when connecting to {}", __func__, next_addr.GetId());
+                fmt::println(stderr, "{}: error when connecting to {}", __func__, next_addr.GetId());
             } else {
                 return true;
             }
@@ -39,24 +45,34 @@ bool dropbox::Server::ConnectNext() {
         }
 
         inc_next();
-        fmt::println("{}: Trying next server {}", __func__, next_i);
     }
 
     return false;
 }
 
-void dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
+using dropbox::replica::MainLoopReply;
+
+dropbox::replica::MainLoopReply dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
     if (id == GetId()) {
         replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp());
 
         std::get<replica::Primary>(*replica_).AcceptBackupLoop();
         std::get<replica::Primary>(*replica_).MainLoop(shutdown_);
-    } else {
-        auto addr = servers_[static_cast<size_t>(id)];
-        addr.SetPort(replica::Primary::kBackupPort);
-        replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
 
-        std::get<replica::Backup>(*replica_).MainLoop(shutdown_);
+        return MainLoopReply::kShutdown;
+    } else {
+        Addr addr = servers_[static_cast<size_t>(id)];
+        addr.SetPort(replica::Primary::kBackupPort);
+
+        if (replica_.has_value()) {
+            auto &backup = std::get<replica::Backup>(*replica_);
+            backup.SetPrimaryAddr(addr.AsAddr());
+            backup.ConnectToPrimary();
+        } else {
+            replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
+        }
+
+        return std::get<replica::Backup>(*replica_).MainLoop(shutdown_);
     }
 }
 
@@ -73,26 +89,4 @@ dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection
                   perror("AcceptPrev");
               }
           }
-      }) {
-    const bool kCouldConnectNext = ConnectNext();
-
-    tl::expected<dropbox::Addr::IdType, std::error_code> result;
-
-    if (kCouldConnectNext) {
-        // We assume that there was never an error while the previous was trying to connect
-        while (!GetRing().HasPrev()) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-
-        result = PerformElection();
-    } else {
-        fmt::println("ElectionThread: No servers found, skipping election");
-        result = static_cast<dropbox::Addr::IdType>(addr_index_);
-    }
-
-    if (result.has_value()) {
-        HandleElection(*result);
-    } else {
-        fmt::println(stderr, "{}: {}", __func__, result.error().message());
-    }
-}
+      }) {}

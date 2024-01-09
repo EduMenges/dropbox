@@ -37,14 +37,14 @@ std::optional<std::vector<Addr>> ParseConfig() {
 }
 
 using enum dropbox::ArgV;
-using dropbox::ArgV;
+using dropbox::ArgV, dropbox::replica::MainLoopReply;
 
 std::atomic<bool> should_stop = false;
 
 extern "C" {
 static void SignalHandler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
-        should_stop = 1;
+        should_stop = true;
     }
 }
 }
@@ -82,6 +82,37 @@ int main(int argc, char *argv[]) {
 
     try {
         dropbox::Server server(index, std::vector(servers), should_stop);
+
+        tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> election_result;
+        dropbox::replica::MainLoopReply                               loop_result;
+        size_t                                                        offset = 1;
+
+        do {
+            const bool kCouldConnectNext = server.ConnectNext(offset);
+
+            if (kCouldConnectNext) {
+                // We assume that there was never an error while the previous was trying to connect
+                while (!server.GetRing().HasPrev()) {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
+
+                election_result = server.PerformElection();
+            } else {
+                fmt::println("Election: no servers found, skipping election");
+                election_result = server.GetId();
+            }
+
+            if (election_result.has_value()) {
+                loop_result = server.HandleElection(*election_result);
+
+                if (loop_result == dropbox::replica::MainLoopReply::kLostConnectionToPrimary) {
+                    offset += 1;
+                }
+            } else {
+                fmt::println(stderr, "{}: {}", __func__, election_result.error());
+            }
+        } while (loop_result != dropbox::replica::MainLoopReply::kShutdown);
+
     } catch (std::exception &e) {
         fmt::println(stderr, "{}", e.what());
     }

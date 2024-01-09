@@ -72,7 +72,7 @@ class ClientHandler {
      * Getter for the unique ID of the client.
      * @return Unique ID of the client.
      */
-    [[nodiscard]] inline IdType GetId() const noexcept { return payload_socket_.socket_; }
+    [[nodiscard]] inline IdType GetId() const noexcept { return payload_socket_.Get(); }
 
     inline bool operator==(const ClientHandler& other) const noexcept { return GetId() == other.GetId(); }
 

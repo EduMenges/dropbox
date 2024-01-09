@@ -1,20 +1,25 @@
 #include "election.hpp"
 
-bool dropbox::Election::StartElection()  {
+bool dropbox::Election::StartElection() {
     election_started_ = true;
 
     ElectionData message{ElectionData::Status::kUnderway, id_};
-    return write(ring_.next_socket_, &message, sizeof(message)) == sizeof(ElectionData);
+
+    return write(ring_.next_.Get(), &message, sizeof(message)) == sizeof(ElectionData);
 }
 
-tl::expected<std::optional<dropbox::Addr::IdType>, bool> dropbox::Election::ReplyElection()  {
-    ElectionData data; // NOLINT
+tl::expected<std::optional<dropbox::Addr::IdType>, dropbox::Election::Error> dropbox::Election::ReplyElection() {
+    /// Data to send and receive from.
+    ElectionData data;  // NOLINT
 
-    auto receive_election = [&] { return read(ring_.prev_socket_, &data, sizeof(data)); };
-    auto send_election    = [&] { return write(ring_.next_socket_, &data, sizeof(data)); };
+    /// Receives the data from the previous connection.
+    auto receive_election = [&] { return read(ring_.prev_.Get(), &data, sizeof(data)); };
+
+    /// Sends the data for the next connection.
+    auto send_election    = [&] { return write(ring_.next_.Get(), &data, sizeof(data)); };
 
     if (receive_election() != sizeof(data)) {
-        return tl::unexpected(false);
+        return tl::unexpected(Error::kPreviousBroken);
     }
 
     switch (data.status) {
@@ -36,17 +41,17 @@ tl::expected<std::optional<dropbox::Addr::IdType>, bool> dropbox::Election::Repl
             }
 
             if (send_election() != sizeof(data)) {
-                return tl::unexpected(false);
+                return tl::unexpected(Error::kNextBroken);
             }
 
             return std::nullopt;
         case ElectionData::Status::kElected:
             election_started_ = false;
 
-            /// We only send the election if \c id wasn't elected
+            // We only send the election if \c id wasn't elected
             if (data.id != id_) {
                 if (send_election() != sizeof(data)) {
-                    return tl::unexpected(false);
+                    return tl::unexpected(Error::kNextBroken);
                 }
                 fmt::println("{}: {} was elected", __func__, data.id);
             }

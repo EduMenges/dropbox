@@ -10,19 +10,20 @@ namespace dropbox {
 enum class Command : int8_t {
     kError = -1,  ///< An error occurred.
     kSuccess,     ///< Operation was a success.
+    kGetSyncDir,  ///< Downloads the \c sync_dir directory and starts syncing.
     kUpload,      ///< Uploads a file from \c cwd to the root directory.
+    kDownload,    ///< Downloads a file to the \c cwd.
     kDelete,      ///< Deletes a file at the root directory.
     kUsername,    ///< Username receiver.
-    kGetSyncDir,  ///< Downloads the \c sync_dir directory and starts syncing.
-    kExit,        ///< Ends connection with server
-    kListClient,  ///< Lists the files from the client
-    kListServer,  ///< Lists the files from the server
-    kDownload,    ///< Downloads a file to the \c cwd.
+    kListClient,  ///< Lists the files from the client.
+    kListServer,  ///< Lists the files from the server.
+    kExit,        ///< Ends connection with server.
 };
 
 /// Constructs a command based on a str.
 std::optional<Command> CommandFromStr(std::string_view str) noexcept;
 
+/// @internal Only for use with @ref StrFromCommand or @ref CommandFromStr
 namespace command_internal {
 constexpr std::string_view kUpload     = "upload";
 constexpr std::string_view kDownload   = "download";
@@ -36,29 +37,48 @@ constexpr std::string_view kSuccess    = "success";
 constexpr std::string_view kUsername   = "username";
 }
 
+/**
+ * Constructs a string from the @p command.
+ * @param command Command to construct the string from.
+ * @return The constructed string.
+ */
 constexpr std::string_view StrFromCommand(Command command) noexcept {
+    std::string_view ans;
+
     switch (command) {
         case Command::kError:
-            return command_internal::kError;
+            ans = command_internal::kError;
+            break;
         case Command::kSuccess:
-            return command_internal::kSuccess;
+            ans = command_internal::kSuccess;
+            break;
         case Command::kUpload:
-            return command_internal::kUpload;
+            ans = command_internal::kUpload;
+            break;
         case Command::kDelete:
-            return command_internal::kDelete;
+            ans = command_internal::kDelete;
+            break;
         case Command::kUsername:
-            return command_internal::kUsername;
+            ans = command_internal::kUsername;
+            break;
         case Command::kGetSyncDir:
-            return command_internal::kGetSyncDir;
+            ans = command_internal::kGetSyncDir;
+            break;
         case Command::kExit:
-            return command_internal::kExit;
+            ans = command_internal::kExit;
+            break;
         case Command::kListClient:
-            return command_internal::kListClient;
+            ans = command_internal::kListClient;
+            break;
         case Command::kListServer:
-            return command_internal::kListServer;
+            ans = command_internal::kListServer;
+            break;
         case Command::kDownload:
-            return command_internal::kDownload;
+            ans = command_internal::kDownload;
+            break;
     }
+
+    return ans;
 }
 }
 

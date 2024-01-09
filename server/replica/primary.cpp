@@ -7,7 +7,16 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
     const sockaddr_in kClientReceiverAddr = {kFamily, htons(kClientPort), {inet_addr(ip.c_str())}, {0}};
     const sockaddr_in kBackupAddr         = {kFamily, htons(kBackupPort), {inet_addr(ip.c_str())}, {0}};
 
-    if (!client_receiver_.Bind(kClientReceiverAddr) || !backup_receiver_.Bind(kBackupAddr)) {
+    client_receiver_.SetOpt(SOL_SOCKET, SO_REUSEPORT, 1);
+    backup_receiver_.SetOpt(SOL_SOCKET, SO_REUSEPORT, 1);
+
+    if (!client_receiver_.Bind(kClientReceiverAddr)) {
+        fmt::println(stderr, "{}: when binding to client receiver", __func__);
+        throw Binding();
+    }
+
+    if (!backup_receiver_.Bind(kBackupAddr)) {
+        fmt::println(stderr, "{}: when binding to backup receiver", __func__);
         throw Binding();
     }
 
@@ -21,7 +30,7 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
 }
 
 bool dropbox::replica::Primary::AcceptBackup() {
-    Socket new_backup(accept(backup_receiver_, nullptr, nullptr));
+    Socket new_backup(accept(backup_receiver_.Get(), nullptr, nullptr));
 
     if (!new_backup.IsValid()) {
         return false;
@@ -42,14 +51,14 @@ void dropbox::replica::Primary::AcceptBackupLoop() {
 
 void dropbox::replica::Primary::MainLoop(std::atomic_bool& shutdown) {
     while (!shutdown) {
-        Socket payload_socket(accept(client_receiver_, nullptr, nullptr));
+        Socket payload_socket(accept(client_receiver_.Get(), nullptr, nullptr));
 
-        if (payload_socket == kInvalidSocket && (errno == EAGAIN || errno == EINTR)) {
+        if (!payload_socket.IsValid() && (errno == EAGAIN || errno == EINTR)) {
             continue;
         }
 
-        Socket client_sync(accept(client_receiver_, nullptr, nullptr));
-        Socket server_sync(accept(client_receiver_, nullptr, nullptr));
+        Socket client_sync(accept(client_receiver_.Get(), nullptr, nullptr));
+        Socket server_sync(accept(client_receiver_.Get(), nullptr, nullptr));
 
         // Immediately stops the client building if any sockets are invalid.
         if (InvalidSockets(payload_socket, server_sync, client_sync)) {

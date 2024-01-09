@@ -1,14 +1,16 @@
 #include "ring.hpp"
+#include "fmt/core.h"
 
-dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_socket_(kInvalidSocket) {
+dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_(kInvalidSocket) {
     sockaddr_in receive_addr = my_addr.AsAddr();
     receive_addr.sin_addr    = {INADDR_ANY};
 
-    if (bind(accept_socket_, reinterpret_cast<const sockaddr*>(&receive_addr), sizeof(sockaddr_in)) == -1) {
+    if (!accept_socket_.Bind(receive_addr)) {
+        fmt::println(stderr, "{}: when binding to accept_socket", __func__);
         throw Binding();
     }
 
-    if (listen(accept_socket_, 1) == -1) {
+    if (!accept_socket_.Listen(1)) {
         throw Listening();
     }
 
@@ -18,15 +20,12 @@ dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_socket_(kInvalidSocket)
 }
 
 bool dropbox::Ring::AcceptPrev() noexcept {
-    static sockaddr  prev_addr;
-    static socklen_t prev_len;
-
-    Socket new_prev(accept(accept_socket_, &prev_addr, &prev_len));
+    Socket new_prev(accept(accept_socket_.Get(), nullptr, nullptr));
 
     if (!new_prev.IsValid()) {
         return false;
     }
 
-    prev_socket_ = std::move(new_prev);
+    prev_ = std::move(new_prev);
     return true;
 }

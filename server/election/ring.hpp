@@ -12,25 +12,21 @@ class Ring {
 
     Ring(const Ring &other) = delete;
 
-    [[nodiscard]] bool ConnectNext(const Addr &next_addr) const noexcept {
-        return connect(next_socket_, reinterpret_cast<const sockaddr *>(&next_addr.AsAddr()), sizeof(sockaddr_in)) !=
-               -1;
-    }
+    ~Ring() = default;
+
+    [[nodiscard]] bool ConnectNext(const Addr &next_addr) const noexcept { return next_.Connect(next_addr.AsAddr()); }
 
     bool AcceptPrev() noexcept;
 
-    [[nodiscard]] bool constexpr HasPrev() const noexcept { return prev_socket_ != kInvalidSocket; }
+    [[nodiscard]] bool constexpr HasPrev() const noexcept { return prev_.IsValid(); }
 
     /// Tests whether there is a connection to the next in the ring
-    [[nodiscard]] bool HasNext() const noexcept { return next_socket_.HasConnection(); }
+    [[nodiscard]] bool HasNext() const noexcept { return next_.HasConnection(); }
 
-    ~Ring() = default;
-
-    Socket next_socket_;
-    Socket prev_socket_;
-
-   private:
     static constexpr timeval kTimeout{2, 0};
-    Socket                   accept_socket_;
+
+    Socket accept_socket_;
+    Socket next_;
+    Socket prev_;
 };
 }

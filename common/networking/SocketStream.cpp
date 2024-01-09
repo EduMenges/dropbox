@@ -3,7 +3,7 @@
 #include <iostream>
 
 std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
-    const ssize_t kBytesRead = ::read(socket_.get(), buffer_->begin(), kBufferSize);
+    const ssize_t kBytesRead = ::read(socket_.get().Get(), buffer_->begin(), kBufferSize);
 
     if (kBytesRead == kInvalidRead) {
         perror(__func__);
@@ -14,7 +14,7 @@ std::streamsize dropbox::SocketBuffer::ReceiveData() noexcept {
 
 std::streamsize dropbox::SocketBuffer::SendData() noexcept {
     const size_t  kDataSize  = pptr() - pbase();
-    const ssize_t kBytesSent = ::write(socket_.get(), pbase(), kDataSize);
+    const ssize_t kBytesSent = ::write(socket_.get().Get(), pbase(), kDataSize);
 
     if (kBytesSent == kInvalidWrite) {
         perror(__func__);
