@@ -26,7 +26,6 @@ int main(int argc, char* argv[]) {  // NOLINT
         return EXIT_FAILURE;
     }
 
-    // Converting port from text to number
     in_port_t port = 0;
     auto [ptr, ec] = std::from_chars(argv[kPort], argv[kPort] + strlen(argv[kPort]), port);
 

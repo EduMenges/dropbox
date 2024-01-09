@@ -1,10 +1,11 @@
 #pragma once
 
+#include <mutex>
+
 #include "networking/socket.hpp"
 #include "composite/Sender.hpp"
 #include "communication/protocol.hpp"
 #include "networking/SocketStream.hpp"
-#include <mutex>
 
 namespace dropbox {
 class BackupHandler : public composite::Sender {

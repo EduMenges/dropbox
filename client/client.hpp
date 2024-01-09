@@ -74,10 +74,22 @@ class Client {
      */
     void Exit();
 
+    /**
+     * Syncs files that the server sends to us.
+     * @param stop_token Whether to stop the syncing.
+     */
     void SyncFromServer(const std::stop_token& stop_token);
 
+    /**
+     * Starts inotify activities
+     * @param stop_token Whether to stop monitoring the directory.
+     */
     void StartInotify(const std::stop_token& stop_token);
 
+    /**
+     * Sync files that inotify detects.
+     * @param stop_token Whether to stop the syncing.
+     */
     void SyncFromClient(std::stop_token stop_token);
 
     /**
@@ -91,7 +103,10 @@ class Client {
      */
     bool Upload(std::filesystem::path&& path);
 
-    inline void Flush() { payload_stream_.flush(); }
+    /**
+     * Sends the payload stream to the server.
+     */
+    void Flush() { payload_stream_.flush(); }
 
     [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; }
 
@@ -99,16 +114,16 @@ class Client {
     std::string username_;  ///< User's name, used as an identifier.
 
     Socket payload_socket_;  ///< Socket to exchange files.
-    Socket client_sync;  ///< Socket for sync client -> server.
-    Socket server_sync;  ///< Socket for sync server -> client.
+    Socket client_sync_;     ///< Socket for sync client -> server.
+    Socket server_sync_;     ///< Socket for sync server -> client.
 
-    SocketStream payload_stream_;
-    SocketStream client_stream_;
-    SocketStream server_stream_;
+    SocketStream payload_stream_; ///< Stream to exchange commands from the user to the server.
+    SocketStream client_stream_; ///< Stream to exchange the syncing of inotify from the client side.
+    SocketStream server_stream_; ///< Stream to exchange the syncing of the server files.
 
-    FileExchange   payload_fe_;  ///< What to exchange files with the server with.
-    FileExchange   client_fe_;
-    FileExchange   server_fe_;
+    FileExchange payload_fe_;  ///< What to exchange files with the server with.
+    FileExchange client_fe_; ///< Exchange to sync the inotify files.
+    FileExchange server_fe_; ///< Exchange to sync the server files.
 
     Inotify inotify_;
 };

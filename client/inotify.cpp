@@ -7,7 +7,7 @@
 #include "utils.hpp"
 
 dropbox::Inotify::Inotify(std::filesystem::path &&watch_path)
-    : watch_path_(std::move(watch_path)), watching_(false), pause_(false), fd_(inotify_init1(IN_NONBLOCK)), wd_(-1) {
+    : watch_path_(std::move(watch_path)), fd_(inotify_init1(IN_NONBLOCK)), wd_(-1) {
     if (fd_ == -1) {
         throw InotifyCreate();
     }
@@ -21,6 +21,7 @@ void dropbox::Inotify::Start() {
     }
 
     watching_ = true;
+    pause_ = false;
 }
 
 dropbox::Inotify::~Inotify() {
@@ -67,7 +68,3 @@ void dropbox::Inotify::MainLoop(const std::stop_token &stop_token) {
     }
     cv_.notify_one();
 }
-
-void dropbox::Inotify::Pause() { pause_ = true; }
-
-void dropbox::Inotify::Resume() { pause_ = false; }

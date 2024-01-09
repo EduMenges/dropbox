@@ -17,15 +17,15 @@
 dropbox::Client::Client(std::string &&username, const char *server_ip_address, in_port_t port)
     : username_(std::move(username)),
       payload_stream_(payload_socket_),
-      client_stream_(client_sync),
-      server_stream_(server_sync),
+      client_stream_(client_sync_),
+      server_stream_(server_sync_),
       payload_fe_(payload_stream_),
       client_fe_(client_stream_),
       server_fe_(server_stream_),
       inotify_(SyncDirPath()) {
     const sockaddr_in kServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}, {0}};
 
-    Socket *to_connect[] = {&payload_socket_, &client_sync, &server_sync};  // NOLINT
+    Socket *to_connect[] = {&payload_socket_, &client_sync_, &server_sync_};  // NOLINT
 
     for (Socket *socket : to_connect) {
         if (!socket->Connect(kServerAddress)) {
