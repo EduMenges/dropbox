@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 #include "composite/Sender.hpp"
 #include "communication/protocol.hpp"
 #include "networking/SocketStream.hpp"

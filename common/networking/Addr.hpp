@@ -13,6 +13,7 @@ class Addr {
     using IdType = uint8_t;
 
     /**
+     * Constructor.
      * @pre \p ip port in host byte-order.
      * @param ip Ip in IPv4 dot format.
      * @param port Port.
@@ -38,9 +39,9 @@ class Addr {
     }
 
    private:
-    IdType      id_;
-    std::string ip_;
-    in_port_t   port_;
-    sockaddr_in addr_;
+    IdType      id_; ///< Id of the address (if it represents a server).
+    std::string ip_; ///< Ip.
+    in_port_t   port_; ///< Port.
+    sockaddr_in addr_; ///< Address for interfacing with POSIX functions.
 };
 }

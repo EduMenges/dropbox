@@ -7,7 +7,7 @@
 #include "networking/SocketStream.hpp"
 #include "composite/Sender.hpp"
 #include "composite_interface.hpp"
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 #include "utils.hpp"
 
 namespace dropbox {

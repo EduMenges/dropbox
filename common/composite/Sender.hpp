@@ -3,7 +3,7 @@
 #include "networking/SocketStream.hpp"
 #include "communication/protocol.hpp"
 #include "composite/Base.hpp"
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 
 namespace dropbox::composite {
 class Sender : public Base {

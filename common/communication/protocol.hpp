@@ -7,25 +7,9 @@
 #include "networking/SocketStream.hpp"
 
 namespace dropbox {
-/// Uses raw sockets for communication
-class SocketExchange {
-   public:
-    SocketExchange() : socket_(kInvalidSocket){};
-
-    explicit SocketExchange(SocketType socket_fd) : socket_(socket_fd){};
-
-    SocketExchange(SocketExchange&& other) noexcept : socket_(std::exchange(other.socket_, kInvalidSocket)){};
-
-    [[nodiscard]] constexpr SocketType GetSocket() const noexcept { return socket_; }
-
-   protected:
-    SocketType socket_;
-};
-
+/// Class to exchange files, paths, and commands
 class FileExchange {
    public:
-    FileExchange() = delete;
-
     explicit FileExchange(SocketStream& stream) : stream_(stream){};
 
     FileExchange(FileExchange&& other) = default;
@@ -50,18 +34,29 @@ class FileExchange {
 
     bool ReceivePath() noexcept;
 
+    /**
+     * Sends the file stored at @p path_.
+     * @return Whether it could send the file.
+     */
     bool Send() noexcept;
 
+    /**
+     * Receives the file stored at @p path_;
+     * @return Whether it could receive the file.
+     */
     bool Receive() noexcept;
 
-    inline void Flush() { stream_.flush(); }
+    /**
+     * Sends all the content stored in the stream.
+     */
+    void Flush() { stream_.flush(); }
 
    private:
     /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;  // NOLINT
 
-    SocketStream& stream_;
+    SocketStream& stream_; ///< Stream to send and receive from.
 
-    std::filesystem::path path_;
+    std::filesystem::path path_; ///< File path.
 };
 }

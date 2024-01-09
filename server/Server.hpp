@@ -4,10 +4,10 @@
 
 #include "ClientPool.hpp"
 #include "election/ring.hpp"
-#include "networking/addr.hpp"
-#include "networking/socket.hpp"
-#include "replica/backup.hpp"
-#include "replica/primary.hpp"
+#include "networking/Addr.hpp"
+#include "networking/Socket.hpp"
+#include "replica/Backup.hpp"
+#include "replica/Primary.hpp"
 #include "tl/expected.hpp"
 #include "election/election.hpp"
 #include <csignal>

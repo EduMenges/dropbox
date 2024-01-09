@@ -5,9 +5,9 @@
 #include <iostream>
 #include <variant>
 
-#include "server.hpp"
+#include "Server.hpp"
 #include "fmt/core.h"
-#include "networking/addr.hpp"
+#include "networking/Addr.hpp"
 #include "toml++/toml.hpp"
 
 namespace dropbox {

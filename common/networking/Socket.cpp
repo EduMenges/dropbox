@@ -1,9 +1,9 @@
-#include "socket.hpp"
+#include "Socket.hpp"
 #include "fmt/core.h"
 #include "fmt/format.h"
 #include <netinet/tcp.h>
 
-tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> dropbox::Socket::SetKeepalive() const {
+tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> dropbox::Socket::SetKeepalive() const noexcept {
     constexpr auto kFlagsLen = static_cast<socklen_t>(sizeof(int));
 
     constexpr int kIdleTime = 5;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 #include "communication/protocol.hpp"
 #include "networking/SocketStream.hpp"
 

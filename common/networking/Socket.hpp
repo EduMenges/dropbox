@@ -8,10 +8,13 @@
 #include "fmt/core.h"
 
 namespace dropbox {
+/// Socket class that uses RAII.
 class Socket {
    public:
+    /// Errors when setting keepalive.
     enum class KeepAliveError : uint8_t { kIdleTime, kMaxProbes, kTimeBetween, kEnable };
 
+    /// Exception when setting keepalive.
     class KeepAliveException : public std::system_error {
        public:
         using Error = std::pair<KeepAliveError, std::error_code>;
@@ -23,6 +26,7 @@ class Socket {
         Error error_;
     };
 
+    /// Exception when setting timeout.
     class SetTimeoutException : public std::system_error {
        public:
         SetTimeoutException() = default;
@@ -30,12 +34,14 @@ class Socket {
         [[nodiscard]] const char *what() const noexcept override { return "Error in setting timeout"; }
     };
 
+    /// Creates a TCP socket with a valid descriptor.
     Socket() noexcept(false) : socket_(socket(kDomain, kType, kProtocol)) {
         if (socket_ == kInvalidSocket) {
             throw SocketCreation();
         }
     }
 
+    /// @pre Assumes that @p socket is now OWNED by this instance, therefore, is closed with it.
     explicit Socket(SocketType socket) : socket_(socket) {}
 
     Socket(const Socket &other) = delete;
@@ -54,13 +60,13 @@ class Socket {
 
     ~Socket() {
         if (IsValid()) {
-            shutdown(socket_, SHUT_RDWR);
             close(socket_);
         }
     }
 
     [[nodiscard]] constexpr bool IsValid() const noexcept { return socket_ != kInvalidSocket; }
 
+    /// @return Whether the socket has a connection.
     [[nodiscard]] bool HasConnection() const noexcept {
         static sockaddr_in address;
         socklen_t          address_len = sizeof(sockaddr_in);
@@ -77,23 +83,23 @@ class Socket {
         return connect(socket_, reinterpret_cast<const sockaddr *>(&address), sizeof(sockaddr_in)) == 0;
     }
 
-    [[nodiscard]] tl::expected<void, std::pair<KeepAliveError, std::error_code>> SetKeepalive() const;
+    [[nodiscard]] tl::expected<void, std::pair<KeepAliveError, std::error_code>> SetKeepalive() const noexcept;
 
-    bool SetTimeout(struct timeval timeout) const {
-        return SetOpt(SOL_SOCKET, SO_RCVTIMEO, timeout);
-    }
+    bool SetTimeout(struct timeval timeout) const { return SetOpt(SOL_SOCKET, SO_RCVTIMEO, timeout); }
 
-    template<typename O>
+    template <typename O>
     bool SetOpt(int level, int optname, O optval) const {
         return setsockopt(socket_, level, optname, &optval, sizeof(O)) == 0;
     }
 
-    constexpr explicit operator int() const noexcept { return socket_; }
-
+    /**
+     * @post Socket is not closed since it is only borrowed.
+     * @return The underlying socket descriptor.
+     */
     [[nodiscard]] constexpr SocketType Get() const noexcept { return socket_; }
 
    private:
-    SocketType socket_ = kInvalidSocket;
+    SocketType socket_ = kInvalidSocket;  ///< Underlying, implementation-defined socket.
 };
 
 inline constexpr bool InvalidSockets(const Socket &socket) noexcept { return !socket.IsValid(); }

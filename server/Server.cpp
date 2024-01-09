@@ -1,4 +1,4 @@
-#include "server.hpp"
+#include "Server.hpp"
 #include "election/election.hpp"
 
 tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> dropbox::Server::PerformElection() {

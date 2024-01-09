@@ -10,7 +10,7 @@
 #include "connections.hpp"
 #include "BackupHandler.hpp"
 #include "ClientPool.hpp"
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 
 namespace dropbox::replica {
 

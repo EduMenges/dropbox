@@ -1,7 +1,7 @@
 #pragma once
 
-#include "networking/addr.hpp"
-#include "networking/socket.hpp"
+#include "networking/Addr.hpp"
+#include "networking/Socket.hpp"
 
 namespace dropbox {
 class Ring {

@@ -8,7 +8,7 @@
 
 #include "networking/SocketStream.hpp"
 #include "inotify.hpp"
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 #include "utils.hpp"
 
 namespace dropbox {

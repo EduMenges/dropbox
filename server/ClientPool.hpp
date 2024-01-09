@@ -8,7 +8,7 @@
 #include "ClientComposite.hpp"
 #include "ClientHandler.hpp"
 #include "networking/SocketStream.hpp"
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 #include "replica/BackupHandler.hpp"
 
 namespace dropbox {

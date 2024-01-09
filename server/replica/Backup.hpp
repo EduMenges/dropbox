@@ -4,7 +4,7 @@
 #include <csignal>
 #include <netinet/in.h>
 
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 #include "composite/Base.hpp"
 #include "networking/SocketStream.hpp"
 #include "replica/MainLoopReply.hpp"

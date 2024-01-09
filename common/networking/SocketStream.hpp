@@ -9,7 +9,7 @@
 
 #include "connections.hpp"
 #include "constants.hpp"
-#include "networking/socket.hpp"
+#include "networking/Socket.hpp"
 
 namespace dropbox {
 
@@ -45,10 +45,10 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
    private:
     void InitializePointers();
 
-    /// Abstracts the OS calls to send in socket_
+    /// Abstracts the OS calls to send in @p socket_
     std::streamsize ReceiveData() noexcept;
 
-    /// Abstracts the OS calls to receive in socket_
+    /// Abstracts the OS calls to receive in @p socket_
     std::streamsize SendData() noexcept;
 
     /// Socket descriptor that is not owned by the stream, therefore, is not destroyed with it.

@@ -1,7 +1,7 @@
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
 #include "fmt/core.h"
-#include "primary.hpp"
+#include "Primary.hpp"
 
 dropbox::replica::Primary::Primary(const std::string& ip) {
     const sockaddr_in kClientReceiverAddr = {kFamily, htons(kClientPort), {inet_addr(ip.c_str())}, {0}};
