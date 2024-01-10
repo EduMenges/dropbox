@@ -1,4 +1,4 @@
-#include "election.hpp"
+#include "Election.hpp"
 
 bool dropbox::Election::StartElection() {
     election_started_ = true;

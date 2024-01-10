@@ -17,17 +17,18 @@ class ClientPool {
    public:
     ClientPool() = default;
 
-    ~ClientPool() = default;
-
     ClientPool(const ClientPool& other) = delete;
 
     ClientPool(ClientPool&& other) = delete;
+
+    ~ClientPool() = default;
 
     dropbox::ClientHandler& Emplace(std::string&& username, std::vector<BackupHandler>& backups,
                                     Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
                                     SocketStream&& payload_stream) noexcept(false);
 
    private:
+    /// Mutex to protect the underlying collection.
     std::mutex mutex_;
 
     /// Collection that associates username with their devices.

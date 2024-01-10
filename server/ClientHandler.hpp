@@ -6,7 +6,7 @@
 #include "communication/protocol.hpp"
 #include "networking/SocketStream.hpp"
 #include "composite/Sender.hpp"
-#include "composite_interface.hpp"
+#include "CompositeInterface.hpp"
 #include "networking/Socket.hpp"
 #include "utils.hpp"
 
@@ -15,10 +15,19 @@ namespace dropbox {
 /// Handles one device of a client.
 class ClientHandler {
    public:
-    using IdType = int;
+    /// Id is just the first socket.
+    using IdType = SocketType;
 
     static constexpr IdType kInvalidId = kInvalidSocket;
 
+    /**
+     * Constructor.
+     * @param composite Composite that owns this instance. Used to send broadcasts.
+     * @param payload_socket The playload socket.
+     * @param client_sync Socket to sync the client with.
+     * @param server_sync Socket to sync the changes from other devices with.
+     * @param payload_stream Stream of the @p payload_socket.
+     */
     ClientHandler(CompositeInterface* composite, Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
                   SocketStream&& payload_stream);
 
@@ -84,10 +93,21 @@ class ClientHandler {
      */
     [[nodiscard]] inline std::filesystem::path SyncDirPath() const { return SyncDirWithPrefix(GetUsername()); }
 
-    bool SyncUpload(const std::filesystem::path& path);
+    /// To be used by @p composite_ to sync the upload of a file.
+    bool SyncUpload(const std::filesystem::path& path) {
+        return server_sync_composite_.Upload(path);
+    }
 
-    bool SyncDelete(const std::filesystem::path& path);
+    /// To be used by @p composite_ to sync the deletion of a file.
+    bool SyncDelete(const std::filesystem::path& path) {
+        return server_sync_composite_.Delete(path);
+    }
 
+    /**
+     * Receives files from the client's inotify and sends them to the other devices and backup replicas.
+     * @param stop_token Whether to stop the sync.
+     * @note This should run in an isolated thread.
+     */
     void SyncFromClient(std::stop_token stop_token);
 
    private:

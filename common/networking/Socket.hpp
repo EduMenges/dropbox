@@ -42,15 +42,15 @@ class Socket {
     }
 
     /// @pre Assumes that @p socket is now OWNED by this instance, therefore, is closed with it.
-    explicit Socket(SocketType socket) : socket_(socket) {}
+    constexpr explicit Socket(SocketType socket) : socket_(socket) {}
 
     Socket(const Socket &other) = delete;
 
-    Socket(Socket &&other) noexcept : socket_(std::exchange(other.socket_, kInvalidSocket)) {}
+    constexpr Socket(Socket &&other) noexcept : socket_(std::exchange(other.socket_, kInvalidSocket)) {}
 
     Socket &operator=(const Socket &other) = delete;
 
-    Socket &operator=(Socket &&other) noexcept {
+    constexpr Socket &operator=(Socket &&other) noexcept {
         if (this != &other) {
             socket_ = std::exchange(other.socket_, kInvalidSocket);
         }
@@ -99,13 +99,13 @@ class Socket {
     [[nodiscard]] constexpr SocketType Get() const noexcept { return socket_; }
 
    private:
-    SocketType socket_ = kInvalidSocket;  ///< Underlying, implementation-defined socket.
+    SocketType socket_ = kInvalidSocket;  ///< Underlying implementation-defined socket.
 };
 
-inline constexpr bool InvalidSockets(const Socket &socket) noexcept { return !socket.IsValid(); }
+constexpr bool InvalidSockets(const Socket &socket) noexcept { return !socket.IsValid(); }
 
 template <typename... Sockets>
-inline constexpr bool InvalidSockets(const Socket &socket, const Sockets &...sockets) noexcept {
+constexpr bool InvalidSockets(const Socket &socket, const Sockets &...sockets) noexcept {
     return InvalidSockets(socket) || InvalidSockets(sockets...);
 }
 

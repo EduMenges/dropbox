@@ -3,19 +3,19 @@
 #include <optional>
 
 #include "fmt/core.h"
-#include "ring.hpp"
+#include "Ring.hpp"
 #include "tl/expected.hpp"
 
 namespace dropbox {
 
 struct ElectionData {
     enum class Status : int8_t {
-        kUnderway = -1, ///< Election has started and is underway
-        kElected, ///< Election finished with a winner
+        kUnderway = -1,  ///< Election has started and is underway
+        kElected,        ///< Election finished with a winner
     };
 
-    Status       status; ///< Status of the election
-    Addr::IdType id; ///< Id of the elected
+    Status       status;  ///< Status of the election
+    Addr::IdType id;      ///< Id of the elected
 };
 
 /**
@@ -23,9 +23,9 @@ struct ElectionData {
  */
 class Election {
    public:
-    enum class Error: int8_t {
-        kPreviousBroken = -1, ///< The connection to the previous replica in the ring is broken.
-        kNextBroken ///< The connection to the next replica in the ring is broken.,
+    enum class Error : int8_t {
+        kPreviousBroken = -1,  ///< The connection to the previous replica in the ring is broken.
+        kNextBroken            ///< The connection to the next replica in the ring is broken.
     };
 
     /**
@@ -43,21 +43,21 @@ class Election {
 
     /**
      * Receives the election message received in @p ring_.prev_ and sends it to @p ring_.next_.
-     * @return \p error if error in exchanging data; \p nullopt if none was elected yet; \p id of the elected.
+     * @return @p error if error in exchanging data; @p nullopt if none was elected yet; @p id of the elected.
      */
     [[nodiscard]] tl::expected<std::optional<Addr::IdType>, Error> ReplyElection();
 
    private:
-    Ring        &ring_; ///< Ring to send and receive data from.
-    Addr::IdType id_; ///< Id of the server that issued this election.
-    bool         election_started_ = false; ///< Whether the election has started.
+    Ring        &ring_;                      ///< Ring to send and receive data from.
+    Addr::IdType id_;                        ///< Id of the server that issued this election.
+    bool         election_started_ = false;  ///< Whether the election has started.
 };
 }
 
 template <>
 struct fmt::formatter<dropbox::Election::Error> : formatter<string_view> {
    public:
-    constexpr auto format(dropbox::Election::Error error, format_context& ctx) const {
+    constexpr auto format(dropbox::Election::Error error, format_context &ctx) const {
         std::string_view ans;
 
         switch (error) {

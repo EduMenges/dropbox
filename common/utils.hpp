@@ -15,13 +15,13 @@ inline std::filesystem::path SyncDirWithPrefix(const std::string& username) {
 }
 
 template <typename T>
-ssize_t SSizeOf()
+constexpr ssize_t SSizeOf()
 {
     return static_cast<ssize_t>(sizeof(T));
 }
 
 template <typename T>
-ssize_t SSizeOf(const T& _instance)
+constexpr ssize_t SSizeOf(const T& _instance)
 {
     return SSizeOf<T>();
 }

@@ -53,7 +53,7 @@ class InotifyCreate : public std::system_error {
 
 class InotifyWatch : public std::filesystem::filesystem_error {
    public:
-    InotifyWatch(const std::filesystem::path& path)
+    explicit InotifyWatch(const std::filesystem::path& path)
         : std::filesystem::filesystem_error("Could not watch directory", path,
                                             std::make_error_code(static_cast<std::errc>(errno))){};
 };

@@ -6,7 +6,7 @@
 #include <ranges>
 
 #include "ClientHandler.hpp"
-#include "composite_interface.hpp"
+#include "CompositeInterface.hpp"
 #include "replica/BackupHandler.hpp"
 
 namespace dropbox {
@@ -22,11 +22,20 @@ class ClientComposite : public CompositeInterface {
 
     ClientComposite(ClientComposite&& other) = delete;
 
+    /// Builds a new client at the end of list.
     dropbox::ClientHandler& Emplace(Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
                                     SocketStream&& payload_stream) noexcept(false);
 
     [[nodiscard]] const std::string& GetUsername() const noexcept override { return username_; }
 
+    /**
+     * Broadcasts a command to other replicas and client devices.
+     * @param method The method to use with the other clients.
+     * @param backup_method The method to use with all of the backup replicas.
+     * @param origin The device that sent the broadcast.
+     * @param path The path of the file.
+     * @return Whether the broadcast was a success.
+     */
     bool BroadcastCommand(const std::function<bool(ClientHandler&, const std::filesystem::path&)>& method,
                           const std::function<bool(BackupHandler&, const std::filesystem::path&)>& backup_method,
                           ClientHandler::IdType origin, const std::filesystem::path& path);
@@ -39,19 +48,14 @@ class ClientComposite : public CompositeInterface {
         return BroadcastCommand(&ClientHandler::SyncDelete, &BackupHandler::Delete, origin, path);
     }
 
-    /**
-     * Removes from the list a client by its ID.
-     * @param id Client ID.
-     * @warning Destroys the client pointed to by \p id.
-     */
     void Remove(int id) override;
 
    private:
     static constexpr size_t kDeviceLimit = 2U;  ///< Maximum amount of devices that one client can connect with.
 
-    std::string                 username_;
+    std::string                 username_; ///< Username of the client.
     std::list<ClientHandler>    list_;   ///< List of the devices for one client.
     std::mutex                  mutex_;  ///< Mutex for handling the list.
-    std::vector<BackupHandler>& backups_;
+    std::vector<BackupHandler>& backups_; ///< Reference to the backup replicas.
 };
 }

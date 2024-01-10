@@ -163,14 +163,6 @@ bool dropbox::ClientHandler::ListServer() noexcept {
     }
 }
 
-bool dropbox::ClientHandler::SyncDelete(const std::filesystem::path& path) {
-    return server_sync_composite_.Delete(path);
-}
-
-bool dropbox::ClientHandler::SyncUpload(const std::filesystem::path& path) {
-    return server_sync_composite_.Upload(path);
-}
-
 void dropbox::ClientHandler::SyncFromClient(std::stop_token stop_token) {
     while (!stop_token.stop_requested()) {
         const auto kReceivedCommand = csfe_.ReceiveCommand();

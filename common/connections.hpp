@@ -7,11 +7,12 @@
 #include "exceptions.hpp"
 
 namespace dropbox {
+/// @c SocketType for POSIX systems.
 using SocketType = int;
 
 constexpr int kDomain   = AF_INET;
 constexpr int kFamily   = kDomain;
-constexpr int kType     = SOCK_STREAM;
+constexpr int kType     = SOCK_STREAM;  ///< This project uses TCP for communication.
 constexpr int kProtocol = 0;
 
 inline void MultipleConnect(const sockaddr_in *const kServerAddress, int socket) noexcept(false) {

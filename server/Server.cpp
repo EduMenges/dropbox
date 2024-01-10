@@ -1,5 +1,5 @@
 #include "Server.hpp"
-#include "election/election.hpp"
+#include "election/Election.hpp"
 
 tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> dropbox::Server::PerformElection() {
     Election election(ring_, GetId());

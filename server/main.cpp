@@ -39,6 +39,7 @@ std::optional<std::vector<Addr>> ParseConfig() {
 using enum dropbox::ArgV;
 using dropbox::ArgV, dropbox::replica::MainLoopReply;
 
+/// Whether to shutdown
 std::atomic<bool> should_stop = false;
 
 extern "C" {

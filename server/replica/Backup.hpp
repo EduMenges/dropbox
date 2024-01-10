@@ -27,7 +27,7 @@ class Backup {
      */
     MainLoopReply MainLoop(std::atomic_bool& shutdown);
 
-    void SetPrimaryAddr(sockaddr_in primary_addr) { primary_addr_ = primary_addr; }
+    constexpr void SetPrimaryAddr(sockaddr_in primary_addr) { primary_addr_ = primary_addr; }
 
    private:
     sockaddr_in     primary_addr_;  ///< Address of the primary replica.
