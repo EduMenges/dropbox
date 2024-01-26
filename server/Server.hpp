@@ -31,7 +31,7 @@ class Server {
 
     ~Server() = default;
 
-    constexpr Addr& GetAddr() noexcept { return servers_[addr_index_]; }
+    /* constexpr */ Addr& GetAddr() noexcept { return servers_[addr_index_]; }
 
     tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> PerformElection();
 

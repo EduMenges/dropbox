@@ -81,6 +81,10 @@ int main(int argc, char *argv[]) {
 
     auto &servers = *parsed_config;
 
+    for (const auto &server : servers) {
+        std::cout << "IP: " << server.GetIp() << '\n';
+    }
+
     try {
         dropbox::Server server(index, std::vector(servers), should_stop);
 
