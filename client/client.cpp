@@ -179,6 +179,9 @@ void dropbox::Client::StartInotify(const std::stop_token &stop_token) {
 }
 
 void dropbox::Client::SyncFromClient(std::stop_token stop_token) {
+    cereal::PortableBinaryInputArchive archive(client_stream_);
+    archive(servers_);
+
     while (true) {
         std::unique_lock lk(inotify_.collection_mutex_);
         inotify_.cv_.wait(lk, [&] { return inotify_.HasActions() || stop_token.stop_requested(); });
@@ -226,11 +229,15 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
             if (kReceivedCommand.error() != std::errc::connection_aborted) {
                 fmt::println(stderr, "{}: {}", __func__, kReceivedCommand.error().message());
             } else {
-                // AQUI
-                const char *server_ip_address = "127.0.0.1";
+                std::istringstream iss(servers_);
+                std::string server_ip_address;
+                std::getline(iss, server_ip_address, ' ');
                 const in_port_t kPort = 12345;
-                while(!ReconnectToServer(server_ip_address, kPort)) {
+
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                while(!ReconnectToServer(server_ip_address.c_str(), kPort)) {
                     std::this_thread::sleep_for(std::chrono::seconds(1));
+                    std::getline(iss, server_ip_address, ' ');
                 }
             }
             continue;
@@ -270,6 +277,7 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
 
 bool dropbox::Client::ReconnectToServer(const char *server_ip_address, in_port_t port) {
     fmt::println("Reconnecting to server...");
+
     payload_socket_ = Socket();
     client_sync_ = Socket();
     server_sync_ = Socket();

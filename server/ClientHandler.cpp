@@ -164,6 +164,10 @@ bool dropbox::ClientHandler::ListServer() noexcept {
 }
 
 void dropbox::ClientHandler::SyncFromClient(std::stop_token stop_token) {
+    cereal::PortableBinaryOutputArchive archive(cs_stream_);
+    archive(GetServers());
+    cs_stream_.flush();
+
     while (!stop_token.stop_requested()) {
         const auto kReceivedCommand = csfe_.ReceiveCommand();
 

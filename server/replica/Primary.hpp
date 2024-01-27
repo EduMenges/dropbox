@@ -11,6 +11,7 @@
 #include "BackupHandler.hpp"
 #include "ClientPool.hpp"
 #include "networking/Socket.hpp"
+#include "networking/Addr.hpp"
 
 namespace dropbox::replica {
 
@@ -47,6 +48,14 @@ class Primary {
     static constexpr in_port_t kClientPort = 12345;  ///< Where the clients are expected to connect to.
     static constexpr in_port_t kBackupPort = 54321;  ///< Where the backup replicas are expected to connect to.
 
+    void SetServers(const std::vector<Addr>& servers) {
+        for (const auto& server : servers) {
+            servers_ += server.GetIp() + " ";
+        }
+    }
+
+    std::string GetServers() { return servers_; }
+
    private:
     static constexpr int     kBacklog = 10;   ///< Backlog in connection.
     static constexpr timeval kTimeout{2, 0};  ///< Timeout used in @p backup_receiver_ to allow a graceful exit.
@@ -59,5 +68,6 @@ class Primary {
 
     std::vector<BackupHandler> backups_;      ///< Backup replicas.
     ClientPool                 client_pool_;  ///< Pool that stores information for all of the clients.
+    std::string                servers_;
 };
 }
