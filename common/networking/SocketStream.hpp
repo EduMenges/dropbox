@@ -46,7 +46,7 @@ class SocketBuffer : public std::basic_streambuf<BufferElementType> {
 
     int sync() override;
 
-    constexpr std::streamsize showmanyc() override { return egptr() - gptr(); }
+    /* constexpr */ std::streamsize showmanyc() override { return egptr() - gptr(); }
 
    private:
     void InitializePointers();

@@ -110,6 +110,8 @@ class Client {
 
     [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; }
 
+    bool ReconnectToServer(const char *server_ip_address, in_port_t port);
+    std::string servers_;
    private:
     std::string username_;  ///< User's name, used as an identifier.
 
@@ -126,6 +128,8 @@ class Client {
     FileExchange server_fe_; ///< Exchange to sync the server files.
 
     Inotify inotify_;
+
+
 };
 
 }

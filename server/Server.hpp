@@ -31,7 +31,7 @@ class Server {
 
     ~Server() = default;
 
-    constexpr Addr& GetAddr() noexcept { return servers_[addr_index_]; }
+    /* constexpr */ Addr& GetAddr() noexcept { return servers_[addr_index_]; }
 
     tl::expected<dropbox::Addr::IdType, dropbox::Election::Error> PerformElection();
 
@@ -55,6 +55,12 @@ class Server {
 
     /// Getter for the @p ring_.
     [[nodiscard]] Ring& GetRing() noexcept { return ring_; }
+
+    void SetServers() {
+        if (replica_.has_value() && std::holds_alternative<replica::Primary>(replica_.value())) {
+            std::get<replica::Primary>(replica_.value()).SetServers(servers_);
+        }
+    }
 
    private:
     size_t            addr_index_;  ///< Where, in the given collection, the address of the server is located.

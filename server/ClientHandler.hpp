@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <thread>
+#include <utility>
 
 #include "communication/protocol.hpp"
 #include "networking/SocketStream.hpp"
@@ -110,9 +111,17 @@ class ClientHandler {
      */
     void SyncFromClient(std::stop_token stop_token);
 
+    void SetServers(std::string servers) {
+        servers_ = std::move(servers);
+    }
+
+    std::string GetServers() { return servers_; }
+
    private:
     /// How many attempts remain until a client is disconnected.
     static constexpr uint8_t kAttemptAmount = 5;
+
+    std::string servers_;
 
     CompositeInterface* composite_;  ///< Parent composite structure that OWNS this instance.
 
