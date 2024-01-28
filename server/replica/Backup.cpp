@@ -21,6 +21,11 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
             if (!exchange_.exchange_.ReceivePath()) {
             }
 
+            std::istringstream iss(exchange_.exchange_.GetPath().c_str());
+            std::string path;
+            std::getline(iss, path, '/');
+            std::filesystem::create_directory(path);
+
             if (!exchange_.exchange_.Receive()) {
             }
 
@@ -29,6 +34,11 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
         } else if (kCommand == Command::kDelete) {
             if (!exchange_.exchange_.ReceivePath()) {
             }
+
+            std::istringstream iss(exchange_.exchange_.GetPath().c_str());
+            std::string path;
+            std::getline(iss, path, '/');
+            std::filesystem::create_directory(path);
 
             const std::filesystem::path& file_path = exchange_.exchange_.GetPath();
 
