@@ -27,6 +27,8 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/USCiLab/cereal.git
         GIT_TAG v1.3.2
 )
+set(BUILD_DOC OFF)
+set(BUILD_SANDBOX OFF)
 set(SKIP_PERFORMANCE_COMPARISON ON)
 FetchContent_MakeAvailable(cereal)
 
