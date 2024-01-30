@@ -52,7 +52,7 @@ class Socket {
 
     constexpr Socket &operator=(Socket &&other) noexcept {
         if (this != &other) {
-            socket_ = std::exchange(other.socket_, kInvalidSocket);
+            socket_ = std::exchange(other.socket_, this->socket_);
         }
 
         return *this;
