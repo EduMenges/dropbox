@@ -28,7 +28,8 @@ bool dropbox::Server::ConnectNext(size_t offset) {
     size_t next_i   = (addr_index_ + offset) % servers_.size();
     auto   inc_next = [&] { next_i = (next_i + 1) % servers_.size(); };
 
-    while (next_i != addr_index_) {
+    auto has_tried_every_server = [&] { return next_i == addr_index_; };
+    while (!has_tried_every_server()) {
         const auto kEnd = std::chrono::high_resolution_clock::now() + kTimeout;
 
         fmt::println("{}: trying server {}", __func__, next_i);
@@ -53,7 +54,8 @@ bool dropbox::Server::ConnectNext(size_t offset) {
 using dropbox::replica::MainLoopReply;
 
 dropbox::replica::MainLoopReply dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
-    if (id == GetId()) {
+    const bool kIsPrimary = id == GetId();
+    if (kIsPrimary) {
         replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp());
         SetServers();
 
@@ -61,20 +63,20 @@ dropbox::replica::MainLoopReply dropbox::Server::HandleElection(dropbox::Addr::I
         std::get<replica::Primary>(*replica_).MainLoop(shutdown_);
 
         return MainLoopReply::kShutdown;
-    } else {
-        Addr addr = servers_[static_cast<size_t>(id)];
-        addr.SetPort(replica::Primary::kBackupPort);
-
-        if (replica_.has_value()) {
-            auto &backup = std::get<replica::Backup>(*replica_);
-            backup.SetPrimaryAddr(addr.AsAddr());
-            backup.ConnectToPrimary();
-        } else {
-            replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
-        }
-
-        return std::get<replica::Backup>(*replica_).MainLoop(shutdown_);
     }
+
+    Addr addr = servers_[static_cast<size_t>(id)];
+    addr.SetPort(replica::Primary::kBackupPort);
+
+    if (replica_.has_value()) {
+        auto &backup = std::get<replica::Backup>(*replica_);
+        backup.SetPrimaryAddr(addr.AsAddr());
+        backup.ConnectToPrimary();
+    } else {
+        replica_.emplace(std::in_place_type<replica::Backup>, addr.AsAddr());
+    }
+
+    return std::get<replica::Backup>(*replica_).MainLoop(shutdown_);
 }
 
 dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection, std::atomic_bool &shutdown)
@@ -91,3 +93,5 @@ dropbox::Server::Server(size_t addr_index, std::vector<Addr> &&server_collection
               }
           }
       }) {}
+
+void dropbox::Server::CreateNext() {ring_.next_ = Socket(); }

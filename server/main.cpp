@@ -89,10 +89,15 @@ int main(int argc, char *argv[]) {
         size_t                                                        offset = 1;
 
         do {
-            const bool kCouldConnectNext = server.ConnectNext(offset);
+            bool has_connection_to_next = server.HasConnectionToNext();
 
-            if (kCouldConnectNext) {
-                // We assume that there was never an error while the previous was trying to connect
+            if (!has_connection_to_next) {
+                server.CreateNext();
+                has_connection_to_next = server.ConnectNext(offset);
+            }
+
+            if (has_connection_to_next) {
+                // We assume that there was never an error while the previous in the ring was trying to connect
                 while (!server.GetRing().HasPrev()) {
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                 }

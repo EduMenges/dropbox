@@ -35,6 +35,10 @@ tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> 
     return {};
 }
 bool dropbox::Socket::HasConnection() const noexcept {
+    if (socket_ == kInvalidSocket) {
+        return false;
+    }
+
     struct pollfd fds = {.fd = socket_, .events = POLLRDHUP, .revents = 0};
 
     int const could_pool = poll(&fds, 1, -1);

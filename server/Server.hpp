@@ -43,12 +43,14 @@ class Server {
     dropbox::replica::MainLoopReply HandleElection(Addr::IdType id);
 
     /**
-     * Attempts to connect to the next replica in @p servers_.
+     * Attempts to connect the ring to the next replica in @p servers_.
      * Will exhaustively try the all of the replicas, until none can be connected.
      * @param offset Where to start the connection in @p servers_ after @p addr_index_.
      * @return Whether a connection to the @p next in @p ring_ could be done.
      */
     bool ConnectNext(size_t offset);
+
+    bool HasConnectionToNext() const noexcept { return ring_.HasNext(); }
 
     /// Getter for the id.
     [[nodiscard]] constexpr Addr::IdType GetId() const noexcept { return static_cast<Addr::IdType>(addr_index_); }
@@ -61,6 +63,8 @@ class Server {
             std::get<replica::Primary>(replica_.value()).SetServers(servers_);
         }
     }
+
+    void CreateNext();
 
    private:
     size_t            addr_index_;  ///< Where, in the given collection, the address of the server is located.

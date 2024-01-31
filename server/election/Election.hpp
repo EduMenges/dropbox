@@ -57,7 +57,7 @@ class Election {
 template <>
 struct fmt::formatter<dropbox::Election::Error> : formatter<string_view> {
    public:
-    constexpr auto format(dropbox::Election::Error error, format_context &ctx) const {
+    auto format(dropbox::Election::Error error, format_context &ctx) const {
         std::string_view ans;
 
         switch (error) {

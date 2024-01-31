@@ -1,7 +1,7 @@
 #include "Ring.hpp"
 #include "fmt/core.h"
 
-dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_(kInvalidSocket) {
+dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_(kInvalidSocket), next_(kInvalidSocket) {
     sockaddr_in receive_addr = my_addr.AsAddr();
     receive_addr.sin_addr    = {INADDR_ANY};
 

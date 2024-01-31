@@ -9,10 +9,9 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
             if (kReceivedCommand.error() == std::errc::connection_aborted) {
                 fmt::println("{}: lost connection to primary", __func__);
                 return MainLoopReply::kLostConnectionToPrimary;
-            } else {
-                fmt::println("{}: {}", __func__, kReceivedCommand.error().message());
-                continue;
             }
+            fmt::println("{}: {}", __func__, kReceivedCommand.error().message());
+            continue;
         }
 
         const Command kCommand = kReceivedCommand.value();
@@ -22,7 +21,7 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
             }
 
             std::istringstream iss(exchange_.exchange_.GetPath().c_str());
-            std::string path;
+            std::string        path;
             std::getline(iss, path, '/');
             std::filesystem::create_directory(path);
 
@@ -36,7 +35,7 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
             }
 
             std::istringstream iss(exchange_.exchange_.GetPath().c_str());
-            std::string path;
+            std::string        path;
             std::getline(iss, path, '/');
             std::filesystem::create_directory(path);
 
