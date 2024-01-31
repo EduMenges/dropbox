@@ -2,8 +2,10 @@
 #include "fmt/core.h"
 #include "fmt/format.h"
 #include <netinet/tcp.h>
+#include <poll.h>
 
-tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> dropbox::Socket::SetKeepalive() const noexcept {
+tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> dropbox::Socket::SetKeepalive()
+    const noexcept {
     constexpr auto kFlagsLen = static_cast<socklen_t>(sizeof(int));
 
     constexpr int kIdleTime = 5;
@@ -31,6 +33,17 @@ tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> 
     }
 
     return {};
+}
+bool dropbox::Socket::HasConnection() const noexcept {
+    struct pollfd fds = {.fd = socket_, .events = POLLRDHUP, .revents = 0};
+
+    int const could_pool = poll(&fds, 1, -1);
+    if (could_pool == -1) {
+        perror(__func__);
+        return false;
+    }
+
+    return (fds.revents & (POLLRDHUP | POLLHUP)) == 0;
 }
 
 template <>

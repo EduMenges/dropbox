@@ -67,11 +67,7 @@ class Socket {
     [[nodiscard]] constexpr bool IsValid() const noexcept { return socket_ != kInvalidSocket; }
 
     /// @return Whether the socket has a connection.
-    [[nodiscard]] bool HasConnection() const noexcept {
-        static sockaddr_in address;
-        socklen_t          address_len = sizeof(sockaddr_in);
-        return getpeername(socket_, reinterpret_cast<sockaddr *>(&address), &address_len) == 0;
-    }
+    [[nodiscard]] bool HasConnection() const noexcept;
 
     [[nodiscard]] bool Bind(const sockaddr_in &addr) const noexcept {
         return bind(socket_, reinterpret_cast<const sockaddr *>(&addr), sizeof(sockaddr_in)) == 0;
