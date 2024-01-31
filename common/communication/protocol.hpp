@@ -34,6 +34,10 @@ class FileExchange {
 
     bool ReceivePath() noexcept;
 
+    void SetStream(SocketStream& stream) {
+        stream_ = stream;
+    }
+
     /**
      * Sends the file stored at @p path_.
      * @return Whether it could send the file.
@@ -49,13 +53,13 @@ class FileExchange {
     /**
      * Sends all the content stored in the stream.
      */
-    void Flush() { stream_.flush(); }
+    void Flush() { stream_.get().flush(); }
 
    private:
     /// Buffer to store the file in RAM with.
     static thread_local std::array<char, kPacketSize> buffer;  // NOLINT
 
-    SocketStream& stream_; ///< Stream to send and receive from.
+    std::reference_wrapper<SocketStream> stream_; ///< Stream to send and receive from.
 
     std::filesystem::path path_; ///< File path.
 };

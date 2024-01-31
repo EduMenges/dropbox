@@ -12,6 +12,7 @@ class Base {
     Base(Base&& other) noexcept
         : socket_(std::move(other.socket_)), stream_(std::move(other.stream_)), exchange_(std::move(other.exchange_)) {
         stream_.SetSocket(socket_);
+        exchange_.SetStream(stream_);
     }
 
     Base(const Base& other) = delete;

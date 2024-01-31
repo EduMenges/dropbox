@@ -25,13 +25,7 @@ class Primary {
 
     ~Primary() = default;
 
-    /**
-     * AcceptBackup a new backup replica.
-     * @return \c true if a backup connect, \c false if error or timeout.
-     */
-    bool AcceptBackup();
-
-    /// Creates a thread that concurrently runs @ref dropbox::Primary::AcceptBackup until the destruction of @c this.
+    /// Creates a thread that concurrently runs until the destruction of @c this.
     void AcceptBackupLoop();
 
     /// Keep accepting new client connections in this loop.

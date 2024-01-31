@@ -1,7 +1,7 @@
+#include "Primary.hpp"
 #include "cereal/archives/portable_binary.hpp"
 #include "cereal/types/string.hpp"
 #include "fmt/core.h"
-#include "Primary.hpp"
 
 dropbox::replica::Primary::Primary(const std::string& ip) {
     const sockaddr_in kClientReceiverAddr = {kFamily, htons(kClientPort), {inet_addr(ip.c_str())}, {0}};
@@ -29,22 +29,17 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
     }
 }
 
-bool dropbox::replica::Primary::AcceptBackup() {
-    Socket new_backup(accept(backup_receiver_.Get(), nullptr, nullptr));
-
-    if (!new_backup.IsValid()) {
-        return false;
-    }
-
-    fmt::println("{}: new server", __func__);
-    backups_.emplace_back(std::move(new_backup));
-    return true;
-}
-
 void dropbox::replica::Primary::AcceptBackupLoop() {
     accept_thread_ = std::jthread([&](const std::stop_token& stop_token) {
         while (!stop_token.stop_requested()) {
-            AcceptBackup();
+            Socket new_backup(accept(backup_receiver_.Get(), nullptr, nullptr));
+
+            if (!new_backup.IsValid()) {
+                continue;
+            }
+
+            fmt::println("AcceptBackupLoop: new server {}", new_backup.Get());
+            backups_.emplace_back(std::move(new_backup));
         }
     });
 }

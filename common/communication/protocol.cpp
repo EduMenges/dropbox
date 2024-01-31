@@ -50,7 +50,7 @@ bool dropbox::FileExchange::Send() noexcept {
 
         do {
             const auto kBytesRead = file.read(buffer.data(), kPacketSize).gcount();
-            stream_.write(buffer.data(), kBytesRead);
+            stream_.get().write(buffer.data(), kBytesRead);
         } while (!file.eof());
 
         return true;
@@ -79,7 +79,7 @@ bool dropbox::FileExchange::Receive() noexcept {
 
         while (remaining_size != 0) {
             const auto kBytesToReceive = std::min(remaining_size, static_cast<intmax_t>(buffer.size()));
-            const auto kBytesReceived  = stream_.read(buffer.data(), kBytesToReceive).gcount();
+            const auto kBytesReceived  = stream_.get().read(buffer.data(), kBytesToReceive).gcount();
 
             if (kBytesReceived == kInvalidRead) {
                 return false;

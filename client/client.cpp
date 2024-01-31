@@ -59,7 +59,7 @@ bool dropbox::Client::Upload(std::filesystem::path &&path) {
 
     try {
         inotify_.Pause();
-        std::filesystem::copy_file(path, kDestPath);
+        std::filesystem::copy_file(path, kDestPath, std::filesystem::copy_options::overwrite_existing );
         inotify_.Resume();
         return true;
     } catch (std::exception &e) {
