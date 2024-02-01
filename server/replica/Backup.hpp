@@ -18,7 +18,7 @@ class Backup {
      * Connects to the primary replica.
      * @return Success.
      */
-    bool ConnectToPrimary() const { return exchange_.socket_.Connect(primary_addr_); }
+    bool ConnectToPrimary() const noexcept { return exchange_.socket_.Connect(primary_addr_); }
 
     /**
      * Main loop of the backup.

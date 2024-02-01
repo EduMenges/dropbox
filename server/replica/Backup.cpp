@@ -1,5 +1,6 @@
 #include "Backup.hpp"
 #include "fmt/core.h"
+#include <thread>
 
 dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_bool& shutdown) {
     while (!shutdown) {
@@ -55,7 +56,9 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
 }
 
 dropbox::replica::Backup::Backup(const sockaddr_in& primary_addr) : primary_addr_(primary_addr), exchange_(Socket()) {
-    ConnectToPrimary();
+    while (!ConnectToPrimary()) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 
     const auto kKeepAliveResult = exchange_.socket_.SetKeepalive();
     if (!kKeepAliveResult.has_value()) {
