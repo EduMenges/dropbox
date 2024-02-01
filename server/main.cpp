@@ -97,6 +97,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (has_connection_to_next) {
+                fmt::println("Election: could connect to next in ring");
                 // We assume that there was never an error while the previous in the ring was trying to connect
                 while (!server.GetRing().HasPrev()) {
                     std::this_thread::sleep_for(std::chrono::seconds(1));

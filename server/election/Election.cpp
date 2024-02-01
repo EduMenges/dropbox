@@ -19,6 +19,7 @@ tl::expected<std::optional<dropbox::Addr::IdType>, dropbox::Election::Error> dro
     auto send_election    = [&] { return write(ring_.next_.Get(), &data, sizeof(data)); };
 
     if (receive_election() != sizeof(data)) {
+        fmt::println(stderr, "{}", errno);
         return tl::unexpected(Error::kPreviousBroken);
     }
 
