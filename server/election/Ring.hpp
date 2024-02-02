@@ -26,9 +26,9 @@ class Ring {
      * @warning @c false may be due to timeout, not due to error. Check errno!
      * @return Whether a previous connection happened.
      */
-    bool AcceptPrev() noexcept;
+    bool AcceptPrev();
 
-    [[nodiscard]] bool constexpr HasPrev() const noexcept { return prev_.IsValid(); }
+    [[nodiscard]] bool  HasPrev() const noexcept { return prev_.HasConnection(); }
 
     /// Tests whether there is a connection to the next in the ring.
     [[nodiscard]] bool HasNext() const noexcept { return next_.HasConnection(); }

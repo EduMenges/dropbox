@@ -34,20 +34,15 @@ tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> 
 
     return {};
 }
+
 bool dropbox::Socket::HasConnection() const noexcept {
-    if (socket_ == kInvalidSocket) {
-        return false;
+    auto result = recv(socket_, nullptr, 1, MSG_DONTWAIT | MSG_PEEK);
+
+    if (result == -1) {
+        return errno == EWOULDBLOCK || errno == EFAULT;
     }
 
-    struct pollfd fds = {.fd = socket_, .events = POLLRDHUP, .revents = 0};
-
-    int const could_pool = poll(&fds, 1, -1);
-    if (could_pool == -1) {
-        perror(__func__);
-        return false;
-    }
-
-    return (fds.revents & (POLLRDHUP | POLLHUP)) == 0;
+    return result != 0;
 }
 
 template <>

@@ -19,7 +19,7 @@ dropbox::Ring::Ring(const dropbox::Addr& my_addr) : prev_(kInvalidSocket), next_
     }
 }
 
-bool dropbox::Ring::AcceptPrev() noexcept {
+bool dropbox::Ring::AcceptPrev() {
     Socket new_prev(accept(accept_socket_.Get(), nullptr, nullptr));
 
     if (!new_prev.IsValid()) {
@@ -27,5 +27,9 @@ bool dropbox::Ring::AcceptPrev() noexcept {
     }
 
     prev_ = std::move(new_prev);
+    if (!prev_.SetTimeout({0, 0})) {
+        throw std::runtime_error("Couldn't reset timeout on previous\n");
+    }
+
     return true;
 }

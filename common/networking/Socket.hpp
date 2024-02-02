@@ -34,7 +34,10 @@ class Socket {
         [[nodiscard]] const char *what() const noexcept override { return "Error in setting timeout"; }
     };
 
-    /// Creates a TCP socket with a valid descriptor.
+    /**
+     * Creates a TCP socket with a valid descriptor.
+     * @throws SocketCreation if created socket is not valid (return of @c socket was @c -1)
+     */
     Socket() noexcept(false) : socket_(socket(kDomain, kType, kProtocol)) {
         if (socket_ == kInvalidSocket) {
             throw SocketCreation();
@@ -81,10 +84,10 @@ class Socket {
 
     [[nodiscard]] tl::expected<void, std::pair<KeepAliveError, std::error_code>> SetKeepalive() const noexcept;
 
-    bool SetTimeout(struct timeval timeout) const { return SetOpt(SOL_SOCKET, SO_RCVTIMEO, timeout); }
+    [[nodiscard]] bool SetTimeout(struct timeval timeout) const { return SetOpt(SOL_SOCKET, SO_RCVTIMEO, timeout); }
 
     template <typename O>
-    bool SetOpt(int level, int optname, O optval) const {
+    [[nodiscard]] bool SetOpt(int level, int optname, O optval) const {
         return setsockopt(socket_, level, optname, &optval, sizeof(O)) == 0;
     }
 
@@ -95,7 +98,7 @@ class Socket {
     [[nodiscard]] constexpr SocketType Get() const noexcept { return socket_; }
 
    private:
-    SocketType socket_ = kInvalidSocket;  ///< Underlying implementation-defined socket.
+    SocketType socket_;  ///< Underlying implementation-defined socket.
 };
 
 constexpr bool InvalidSockets(const Socket &socket) noexcept { return !socket.IsValid(); }
