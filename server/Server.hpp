@@ -66,16 +66,16 @@ class Server {
 
     void CreateNext();
 
-   private:
+//   private:
     size_t            addr_index_;  ///< Where, in the given collection, the address of the server is located.
     std::vector<Addr> servers_;     ///< Servers to connect with.
 
     std::atomic_bool& shutdown_;  ///< Whether to shutdown the server.
 
-    Ring         ring_;           ///< Ring for use with the election.
-    std::jthread accept_thread_;  ///< Thead that accepts new previous in the ring.
-
     /// Underlying replica type of the server.
     std::optional<std::variant<replica::Primary, replica::Backup>> replica_ = std::nullopt;
+
+    Ring         ring_;           ///< Ring for use with the election.
+    std::jthread accept_thread_;  ///< Thead that accepts new previous in the ring.
 };
 }

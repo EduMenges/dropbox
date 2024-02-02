@@ -64,4 +64,6 @@ dropbox::replica::Backup::Backup(const sockaddr_in& primary_addr) : primary_addr
     if (!kKeepAliveResult.has_value()) {
         throw Socket::KeepAliveException(kKeepAliveResult.error());
     }
+
+    fmt::println("{}: constructed", __func__);
 }

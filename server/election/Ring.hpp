@@ -28,16 +28,16 @@ class Ring {
      */
     bool AcceptPrev();
 
-    [[nodiscard]] bool  HasPrev() const noexcept { return prev_.HasConnection(); }
+    [[nodiscard]] bool HasPrev() const noexcept { return prev_.HasConnection(); }
 
     /// Tests whether there is a connection to the next in the ring.
     [[nodiscard]] bool HasNext() const noexcept { return next_.HasConnection(); }
 
     /// Timeout used in sockets to enable graceful exit.
-    static constexpr timeval kTimeout{2, 0};
+    static constexpr timeval kTimeout{3, 0};
 
-    Socket accept_socket_; ///< Socket to listen to new connections for @p prev_.
-    Socket prev_; ///< Previous replica in the ring.
-    Socket next_; ///< Next replica in the ring.
+    Socket accept_socket_;  ///< Socket to listen to new connections for @p prev_.
+    Socket prev_;           ///< Previous replica in the ring.
+    Socket next_;           ///< Next replica in the ring.
 };
 }

@@ -27,6 +27,8 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
     if (!backup_receiver_.SetTimeout(kTimeout)) {
         throw Socket::SetTimeoutException();
     }
+
+    fmt::println("{}: constructed", __func__);
 }
 
 void dropbox::replica::Primary::AcceptBackupLoop() {

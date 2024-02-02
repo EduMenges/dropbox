@@ -2,7 +2,6 @@
 #include "fmt/core.h"
 #include "fmt/format.h"
 #include <netinet/tcp.h>
-#include <poll.h>
 
 tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> dropbox::Socket::SetKeepalive()
     const noexcept {
@@ -36,13 +35,14 @@ tl::expected<void, std::pair<dropbox::Socket::KeepAliveError, std::error_code>> 
 }
 
 bool dropbox::Socket::HasConnection() const noexcept {
-    auto result = recv(socket_, nullptr, 1, MSG_DONTWAIT | MSG_PEEK);
+    char buf;
+    auto result = recv(socket_, &buf, 1, MSG_DONTWAIT | MSG_PEEK);
 
     if (result == -1) {
-        return errno == EWOULDBLOCK || errno == EFAULT;
+        return errno == EWOULDBLOCK;
     }
 
-    return result != 0;
+    return result > 0;
 }
 
 template <>

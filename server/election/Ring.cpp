@@ -27,8 +27,9 @@ bool dropbox::Ring::AcceptPrev() {
     }
 
     prev_ = std::move(new_prev);
+    // This probably isn't necessary, but I'm keeping it for safety's sake
     if (!prev_.SetTimeout({0, 0})) {
-        throw std::runtime_error("Couldn't reset timeout on previous\n");
+        throw Socket::SetTimeoutException();
     }
 
     return true;

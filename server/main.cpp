@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
                     offset += 1;
                 }
             } else {
-                fmt::println(stderr, "{}: {}", __func__, election_result.error());
+                fmt::println(stderr, "Election: {}", election_result.error());
             }
         } while (loop_result != dropbox::replica::MainLoopReply::kShutdown);
 
