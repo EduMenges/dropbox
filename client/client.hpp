@@ -110,14 +110,17 @@ class Client {
 
     [[nodiscard]] const std::string& GetUsername() const noexcept { return username_; }
 
-    bool ReconnectToServer(const char *server_ip_address, in_port_t port);
+    void ReconnectToServer();
     std::string servers_;
+    bool lost_connection_ = false;
+    std::string elected_ip_;
    private:
     std::string username_;  ///< User's name, used as an identifier.
 
     Socket payload_socket_;  ///< Socket to exchange files.
     Socket client_sync_;     ///< Socket for sync client -> server.
     Socket server_sync_;     ///< Socket for sync server -> client.
+    Socket reconnection_socket_;
 
     SocketStream payload_stream_; ///< Stream to exchange commands from the user to the server.
     SocketStream client_stream_; ///< Stream to exchange the syncing of inotify from the client side.

@@ -229,16 +229,7 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
             if (kReceivedCommand.error() != std::errc::connection_aborted) {
                 fmt::println(stderr, "{}: {}", __func__, kReceivedCommand.error().message());
             } else {
-                std::istringstream iss(servers_);
-                std::string server_ip_address;
-                std::getline(iss, server_ip_address, ' ');
-                const in_port_t kPort = 12345;
-
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-                while(!ReconnectToServer(server_ip_address.c_str(), kPort)) {
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                    std::getline(iss, server_ip_address, ' ');
-                }
+                ReconnectToServer();
             }
             continue;
         }
@@ -275,30 +266,44 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
     }
 }
 
-bool dropbox::Client::ReconnectToServer(const char *server_ip_address, in_port_t port) {
-    fmt::println("Reconnecting to server...");
+void dropbox::Client::ReconnectToServer() {
+    const sockaddr_in kServerReceiverAddr = {kFamily, htons(6969), {inet_addr("127.0.0.1")}, {0}};
 
-    payload_socket_ = Socket();
-    client_sync_ = Socket();
-    server_sync_ = Socket();
+    reconnection_socket_.SetOpt(SOL_SOCKET, SO_REUSEPORT, 1);
+
+    if (!reconnection_socket_.Bind(kServerReceiverAddr)) {
+        fmt::println(stderr, "{}: when binding to reconnection socket", __func__);
+        throw Binding();
+    }
+
+    if (!reconnection_socket_.Listen(10)) {
+        throw Listening();
+    }
+
+    fmt::println("waiting connection...");
+
+    Socket payload_socket(accept(reconnection_socket_.Get(), nullptr, nullptr));
+    Socket client_sync(accept(reconnection_socket_.Get(), nullptr, nullptr));
+    Socket server_sync(accept(reconnection_socket_.Get(), nullptr, nullptr));
+
+    if (payload_socket.IsValid() && client_sync.IsValid() && server_sync.IsValid()) {
+        std::cout << "is valid" << '\n';
+    }
+
+    if (payload_socket.HasConnection() && client_sync.HasConnection() && server_sync.HasConnection()) {
+        std::cout << "has connection" << '\n';
+    }
+
+    payload_socket_ = std::move(payload_socket);
+    client_sync_ = std::move(client_sync);
+    server_sync_ = std::move(server_sync);
 
     payload_stream_.SetSocket(payload_socket_);
     client_stream_.SetSocket(client_sync_);
     server_stream_.SetSocket(server_sync_);
 
-    const sockaddr_in kNewServerAddress = {kFamily, htons(port), {inet_addr(server_ip_address)}, {0}};
-
-    Socket *to_connect[] = {&payload_socket_, &client_sync_, &server_sync_};  // NOLINT
-
-    for (Socket *socket : to_connect) {
-        if (!socket->Connect(kNewServerAddress)) {
-            return false;
-        }
-    }
-
     SendUsername();
     GetSyncDir();
 
-    fmt::println("Reconnected to server: {}", server_ip_address);
-    return true;
+    fmt::println("reconnected");
 }

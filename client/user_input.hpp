@@ -35,5 +35,6 @@ class UserInput {
 
     std::queue<std::string> input_queue_;  ///< Não sei, pergunta pro Arthur.
     std::string             input_path_;   ///< Não sei, pergunta pro Arthur.
+    std::string             input_command_;
 };
 }
