@@ -38,7 +38,7 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     // :()
 
-    const sockaddr_in kServerReceiverAddr = {kFamily, htons(6969), {inet_addr("127.0.0.1")}, {0}};
+    const sockaddr_in kServerReceiverAddr = {kFamily, htons(6969), {INADDR_ANY}, {0}};
 
     reconnection_socket_.SetOpt(SOL_SOCKET, SO_REUSEPORT, 1);
 
