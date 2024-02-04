@@ -24,7 +24,7 @@ class ClientComposite : public CompositeInterface {
 
     /// Builds a new client at the end of list.
     dropbox::ClientHandler& Emplace(Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
-                                    SocketStream&& payload_stream) noexcept(false);
+                                    SocketStream&& payload_stream, std::string client_ip) noexcept(false);
 
     [[nodiscard]] const std::string& GetUsername() const noexcept override { return username_; }
 
@@ -48,6 +48,10 @@ class ClientComposite : public CompositeInterface {
         return BroadcastCommand(&ClientHandler::SyncDelete, &BackupHandler::Delete, origin, path);
     }
 
+    bool BroadcastIp(ClientHandler::IdType origin, std::string ip) {
+        return BroadcastCommand(&ClientHandler::SyncIp, &BackupHandler::Ip, origin, ip);
+    }
+
     void Remove(int id) override;
 
    private:
@@ -55,6 +59,7 @@ class ClientComposite : public CompositeInterface {
 
     std::string                 username_; ///< Username of the client.
     std::list<ClientHandler>    list_;   ///< List of the devices for one client.
+    std::list<std::string>      ip_list_; ///< List of ips for one client.
     std::mutex                  mutex_;  ///< Mutex for handling the list.
     std::vector<BackupHandler>& backups_; ///< Reference to the backup replicas.
 };

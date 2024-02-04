@@ -1,4 +1,6 @@
 #include "Sender.hpp"
+#include "cereal/archives/portable_binary.hpp"
+#include "cereal/types/string.hpp"
 
 bool dropbox::composite::Sender::Upload(const std::filesystem::path& path) {
     exchange_.SendCommand(Command::kUpload);
@@ -23,5 +25,15 @@ bool dropbox::composite::Sender::Delete(const std::filesystem::path& path) {
     }
 
     exchange_.Flush();
+    return true;
+}
+
+bool dropbox::composite::Sender::Ip(std::string ip) {
+    exchange_.SendCommand(Command::kSuccess);
+
+    cereal::PortableBinaryOutputArchive archive(stream_);
+    archive(ip);
+    stream_.flush();
+
     return true;
 }

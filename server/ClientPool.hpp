@@ -25,7 +25,7 @@ class ClientPool {
 
     dropbox::ClientHandler& Emplace(std::string&& username, std::vector<BackupHandler>& backups,
                                     Socket&& payload_socket, Socket&& client_sync, Socket&& server_sync,
-                                    SocketStream&& payload_stream) noexcept(false);
+                                    SocketStream&& payload_stream, std::string client_ip) noexcept(false);
 
    private:
     /// Mutex to protect the underlying collection.

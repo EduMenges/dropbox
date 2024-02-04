@@ -17,7 +17,7 @@ namespace dropbox::replica {
 
 class Primary {
    public:
-    explicit Primary(const std::string& ip);
+    explicit Primary(const std::string& ip, std::vector<std::string> clients_ips = {});
 
     Primary(Primary&& other) = delete;
 
@@ -50,6 +50,10 @@ class Primary {
 
     std::string GetServers() { return servers_; }
 
+    void SetClientsIps(std::vector<std::string> ips) {
+        list_client_ip_ = ips;
+    }
+
    private:
     static constexpr int     kBacklog = 10;   ///< Backlog in connection.
     static constexpr timeval kTimeout{2, 0};  ///< Timeout used in @p backup_receiver_ to allow a graceful exit.
@@ -63,5 +67,7 @@ class Primary {
     std::vector<BackupHandler> backups_;      ///< Backup replicas.
     ClientPool                 client_pool_;  ///< Pool that stores information for all of the clients.
     std::string                servers_;
+    std::string                client_ip_;
+    std::vector<std::string>   list_client_ip_;
 };
 }

@@ -2,6 +2,9 @@
 #include "fmt/core.h"
 #include <thread>
 
+#include "cereal/archives/portable_binary.hpp"
+#include "cereal/types/string.hpp"
+
 dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_bool& shutdown) {
     while (!shutdown) {
         const auto kReceivedCommand = exchange_.exchange_.ReceiveCommand();
@@ -47,6 +50,15 @@ dropbox::replica::MainLoopReply dropbox::replica::Backup::MainLoop(std::atomic_b
             }
 
             fmt::println("{}: deleted {} from primary", __func__, file_path.c_str());
+        } else if (kCommand == Command::kSuccess) {
+            std::string ip;
+
+            cereal::PortableBinaryInputArchive archive(exchange_.stream_);
+            archive(ip);
+
+            client_ips.push_back(ip);
+
+            fmt::println("{}: connected {} in primary", __func__, ip.c_str());
         } else if (kCommand != Command::kExit) {
             fmt::println(stderr, "{}: unexpected command: {}", __func__, kCommand);
         }

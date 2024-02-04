@@ -19,5 +19,7 @@ class Sender : public Base {
     virtual bool Upload(const std::filesystem::path& path);
 
     virtual bool Delete(const std::filesystem::path& path);
+
+    virtual bool Ip(const std::string);
 };
 }

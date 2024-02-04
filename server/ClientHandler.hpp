@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <thread>
 #include <utility>
+#include <list>
 
 #include "communication/protocol.hpp"
 #include "networking/SocketStream.hpp"
@@ -102,6 +103,10 @@ class ClientHandler {
     /// To be used by @p composite_ to sync the deletion of a file.
     bool SyncDelete(const std::filesystem::path& path) {
         return server_sync_composite_.Delete(path);
+    }
+
+    bool SyncIp(std::string ip) {
+        return server_sync_composite_.Ip(ip);
     }
 
     /**

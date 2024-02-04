@@ -29,6 +29,8 @@ class Backup {
 
     constexpr void SetPrimaryAddr(sockaddr_in primary_addr) { primary_addr_ = primary_addr; }
 
+    std::vector<std::string> client_ips;
+
    private:
     sockaddr_in     primary_addr_;  ///< Address of the primary replica.
     composite::Base exchange_;      ///< How to exchange the server with.

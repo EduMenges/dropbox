@@ -25,6 +25,7 @@ dropbox::ClientHandler::ClientHandler(CompositeInterface* composite, Socket&& pa
     CreateUserFolder();
 
     GetSyncDir();
+
 }
 
 dropbox::ClientHandler::ClientHandler(ClientHandler&& other) noexcept

@@ -28,6 +28,8 @@ class CompositeInterface {
      * @copydoc BroadcastUpload
      */
     virtual bool BroadcastDelete(int origin, const std::filesystem::path& path) = 0;
+
+    virtual bool BroadcastIp(int origin, std::string ip) = 0;
 };
 
 }

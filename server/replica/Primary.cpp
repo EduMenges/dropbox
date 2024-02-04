@@ -3,7 +3,7 @@
 #include "cereal/types/string.hpp"
 #include "fmt/core.h"
 
-dropbox::replica::Primary::Primary(const std::string& ip) {
+dropbox::replica::Primary::Primary(const std::string& ip, std::vector<std::string> clients_ips) {
     const sockaddr_in kClientReceiverAddr = {kFamily, htons(kClientPort), {inet_addr(ip.c_str())}, {0}};
     const sockaddr_in kBackupAddr         = {kFamily, htons(kBackupPort), {inet_addr(ip.c_str())}, {0}};
 
@@ -30,19 +30,21 @@ dropbox::replica::Primary::Primary(const std::string& ip) {
 
     fmt::println("{}: constructed", __func__);
 
-    // Composite com os ips
-    // reconectar 1 a 1
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    const sockaddr_in kClientAddress = {2, htons(6969), {inet_addr("127.0.0.1")}, {0}};
-    dropbox::Socket payload_socket = dropbox::Socket();
-    dropbox::Socket client_sync = dropbox::Socket();
-    dropbox::Socket server_sync = dropbox::Socket();
+    if (!clients_ips.empty()) {
+        for (const auto &client_ip : clients_ips) {
+            fmt::println("trying: {}", client_ip);
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            const sockaddr_in kClientAddress = {2, htons(6969), {inet_addr(client_ip.c_str())}, {0}};
+            dropbox::Socket   payload_socket = dropbox::Socket();
+            dropbox::Socket   client_sync    = dropbox::Socket();
+            dropbox::Socket   server_sync    = dropbox::Socket();
 
-    if (!payload_socket.Connect(kClientAddress) ||
-        !client_sync.Connect(kClientAddress) ||
-        !server_sync.Connect(kClientAddress)) {
-    } else {
-        NewClient(std::move(payload_socket), std::move(client_sync), std::move(server_sync));
+            if (!payload_socket.Connect(kClientAddress) || !client_sync.Connect(kClientAddress) ||
+                !server_sync.Connect(kClientAddress)) {
+            } else {
+                NewClient(std::move(payload_socket), std::move(client_sync), std::move(server_sync));
+            }
+        }
     }
 
 }
@@ -70,7 +72,7 @@ void dropbox::replica::Primary::MainLoop(std::atomic_bool& shutdown) {
         Socket payload_socket(accept(client_receiver_.Get(), reinterpret_cast<struct sockaddr*>(&cli_addr),
                                      reinterpret_cast<socklen_t*>(&cli_len)));
 
-        std::cout << inet_ntoa(cli_addr.sin_addr) << '\n';
+        client_ip_ = inet_ntoa(cli_addr.sin_addr);
 
         if (!payload_socket.IsValid() && (errno == EAGAIN || errno == EINTR)) {
             continue;
@@ -105,9 +107,11 @@ void dropbox::replica::Primary::NewClient(dropbox::Socket&& payload_socket, drop
                                                   std::move(payload_socket),
                                                   std::move(client_sync),
                                                   std::move(server_sync),
-                                                  std::move(payload_stream));
+                                                  std::move(payload_stream),
+                                                  client_ip_);
 
             handler.SetServers(GetServers());
+            handler.GetComposite()->BroadcastIp(payload_socket.Get(), client_ip_);
 
             std::jthread const kSyncThread([&](std::stop_token stop_token) { handler.SyncFromClient(stop_token); });
 

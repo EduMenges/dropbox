@@ -12,3 +12,8 @@ bool dropbox::BackupHandler::Delete(const std::filesystem::path& path) {
     const std::lock_guard kLock(*mutex_);
     return Sender::Delete(path);
 }
+
+bool dropbox::BackupHandler::Ip(std::string ip) {
+    const std::lock_guard kLock(*mutex_);
+    return Sender::Ip(ip);
+}

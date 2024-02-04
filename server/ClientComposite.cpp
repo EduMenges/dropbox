@@ -13,7 +13,8 @@ void dropbox::ClientComposite::Remove(int id) {
 
 dropbox::ClientHandler& dropbox::ClientComposite::Emplace(Socket&& payload_socket, Socket&& client_sync,
                                                           Socket&&       server_sync,
-                                                          SocketStream&& payload_stream) noexcept(false) {
+                                                          SocketStream&& payload_stream,
+                                                          std::string client_ip) noexcept(false) {
     const std::lock_guard kLock(mutex_);
 
     if (list_.size() >= kDeviceLimit) {
@@ -24,6 +25,7 @@ dropbox::ClientHandler& dropbox::ClientComposite::Emplace(Socket&& payload_socke
     auto& client = list_.emplace_back(
         this, std::move(payload_socket), std::move(client_sync), std::move(server_sync), std::move(payload_stream));
     fmt::println("ClientComposite::{}: new client {}::{}", __func__, client.GetUsername(), client.GetId());
+    ip_list_.emplace_back(client_ip);
     return list_.back();
 }
 

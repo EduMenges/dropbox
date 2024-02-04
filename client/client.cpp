@@ -35,6 +35,21 @@ dropbox::Client::Client(std::string &&username, const char *server_ip_address, i
 
     SendUsername();
     GetSyncDir();
+
+    // :()
+
+    const sockaddr_in kServerReceiverAddr = {kFamily, htons(6969), {inet_addr("127.0.0.1")}, {0}};
+
+    reconnection_socket_.SetOpt(SOL_SOCKET, SO_REUSEPORT, 1);
+
+    if (!reconnection_socket_.Bind(kServerReceiverAddr)) {
+        fmt::println(stderr, "{}: when binding to reconnection socket", __func__);
+        throw Binding();
+    }
+
+    if (!reconnection_socket_.Listen(10)) {
+        throw Listening();
+    }
 }
 
 void dropbox::Client::SendUsername() noexcept(false) {
@@ -267,19 +282,6 @@ void dropbox::Client::SyncFromServer(const std::stop_token &stop_token) {
 }
 
 void dropbox::Client::ReconnectToServer() {
-    const sockaddr_in kServerReceiverAddr = {kFamily, htons(6969), {inet_addr("127.0.0.1")}, {0}};
-
-    reconnection_socket_.SetOpt(SOL_SOCKET, SO_REUSEPORT, 1);
-
-    if (!reconnection_socket_.Bind(kServerReceiverAddr)) {
-        fmt::println(stderr, "{}: when binding to reconnection socket", __func__);
-        throw Binding();
-    }
-
-    if (!reconnection_socket_.Listen(10)) {
-        throw Listening();
-    }
-
     fmt::println("waiting connection...");
 
     Socket payload_socket(accept(reconnection_socket_.Get(), nullptr, nullptr));

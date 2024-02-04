@@ -37,6 +37,8 @@ class BackupHandler : public composite::Sender {
      */
     bool Delete(const std::filesystem::path& path) override;
 
+    bool Ip(std::string ip);
+
    private:
     /// Mutex to protected the methods and prevent concurrent access to the socket.
     std::unique_ptr<std::mutex> mutex_;

@@ -56,7 +56,13 @@ using dropbox::replica::MainLoopReply;
 dropbox::replica::MainLoopReply dropbox::Server::HandleElection(dropbox::Addr::IdType id) {
     const bool kIsPrimary = id == GetId();
     if (kIsPrimary) {
-        replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp());
+        std::vector<std::string> ips;
+        if (kIsPrimary && replica_ && std::holds_alternative<replica::Backup>(*replica_)) {
+            replica::Backup         &backup = std::get<replica::Backup>(*replica_);
+            ips    = backup.client_ips;
+        }
+        replica_.emplace(std::in_place_type<replica::Primary>, GetAddr().GetIp(), ips);
+
         SetServers();
 
         std::get<replica::Primary>(*replica_).AcceptBackupLoop();
